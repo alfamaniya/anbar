@@ -1507,7 +1507,7 @@
           <li><a class="nav-link" href="#section-1"><span class="nav-number">۱</span><span>ورودی کالا ها</span></a></li>
           <li><a class="nav-link" href="#section-2"><span class="nav-number">۲</span><span>مشاهده کالاهای موجود و ارسال</span></a></li>
           <li><a class="nav-link" href="#section-3"><span class="nav-number">۳</span><span>تنظیمات</span></a></li>
-          <li><a class="nav-link" href="#section-4"><span class="nav-number">۴</span><span>بخش چهارم</span></a></li>
+          <li><a class="nav-link" href="#section-4"><span class="nav-number">۴</span><span>گزارش‌ها</span></a></li>
           <li><a class="nav-link" href="#section-5"><span class="nav-number">۵</span><span>بخش پنجم</span></a></li>
           <li><a class="nav-link" href="#section-6" id="management-nav-link" hidden><span class="nav-number">۶</span><span>مدیریت</span></a></li>
         </ul>
@@ -1631,6 +1631,45 @@
             <h3 id="title-3">تنظیمات</h3>
           </div>
           <div class="settings-grid">
+            <article class="settings-box" data-location-manager>
+              <h4>مدیریت محل‌های ارسال</h4>
+              <p>ایجاد محل و تعریف زیرمجموعه‌ها؛ زیرمجموعه‌ها را با ویرگول جدا کنید.</p>
+              <form id="location-create-form"><div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120"></div><div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500"></div><button class="action-button" type="submit">ذخیره محل</button></form>
+              <p class="feedback" id="location-manager-feedback" role="status"></p><div id="location-manager-list"></div>
+            </article>
+            <article class="settings-box" data-admin-settings>
+              <h4>بکاپ خودکار فایل JSON</h4>
+              <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
+              <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه بکاپ ذخیره‌شده / انتخاب پوشه</button>
+              <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
+              <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
+            </article>
+            <article class="settings-box" data-admin-settings>
+              <h4>بازگردانی بکاپ JSON</h4>
+              <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
+              <div class="field-group">
+                <label for="restore-json-file">فایل پشتیبان JSON</label>
+                <input id="restore-json-file" type="file" accept=".json,application/json">
+              </div>
+              <button class="action-button" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
+              <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
+              <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
+            </article>
+            <article class="settings-box" data-admin-settings>
+              <h4>لاگ بکاپ خودکار</h4>
+              <p>فهرست رخدادهای ورود، تغییر و حذف کالاها؛ این جدول تاریخچه جداگانه هر بار نوشتن فایل بکاپ را ثبت نمی‌کند.</p>
+              <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ</button>
+              <div class="preview-panel" id="backup-log-results" aria-live="polite"><p class="preview-empty">هنوز رخدادی ثبت نشده است.</p></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-card" id="section-4" aria-labelledby="title-4">
+          <div class="section-heading">
+            <span class="section-icon" aria-hidden="true">۴</span>
+            <h3 id="title-4">گزارش‌ها</h3>
+          </div>
+          <div class="settings-grid reports-grid">
             <article class="settings-box" data-history-permission="entryHistory">
               <h4>مشاهده تاریخچه ورود اقلام</h4>
               <p>فهرست ورودها؛ برای مرتب‌سازی روی عنوان هر ستون بزنید.</p>
@@ -1675,45 +1714,7 @@
                 <button class="action-button secondary" id="shipment-history-next" type="button" disabled>بعدی</button>
               </div>
             </article>
-            <article class="settings-box" data-location-manager>
-              <h4>مدیریت محل‌های ارسال</h4>
-              <p>ایجاد محل و تعریف زیرمجموعه‌ها؛ زیرمجموعه‌ها را با ویرگول جدا کنید.</p>
-              <form id="location-create-form"><div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120"></div><div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500"></div><button class="action-button" type="submit">ذخیره محل</button></form>
-              <p class="feedback" id="location-manager-feedback" role="status"></p><div id="location-manager-list"></div>
-            </article>
-            <article class="settings-box" data-admin-settings>
-              <h4>بکاپ خودکار فایل JSON</h4>
-              <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
-              <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه بکاپ ذخیره‌شده / انتخاب پوشه</button>
-              <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
-              <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
-            </article>
-            <article class="settings-box" data-admin-settings>
-              <h4>بازگردانی بکاپ JSON</h4>
-              <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
-              <div class="field-group">
-                <label for="restore-json-file">فایل پشتیبان JSON</label>
-                <input id="restore-json-file" type="file" accept=".json,application/json">
-              </div>
-              <button class="action-button" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
-              <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
-              <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
-            </article>
-            <article class="settings-box" data-admin-settings>
-              <h4>لاگ بکاپ خودکار</h4>
-              <p>فهرست رخدادهای ورود، تغییر و حذف کالاها؛ این جدول تاریخچه جداگانه هر بار نوشتن فایل بکاپ را ثبت نمی‌کند.</p>
-              <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ</button>
-              <div class="preview-panel" id="backup-log-results" aria-live="polite"><p class="preview-empty">هنوز رخدادی ثبت نشده است.</p></div>
-            </article>
           </div>
-        </section>
-
-        <section class="section-card" id="section-4" aria-labelledby="title-4">
-          <div class="section-heading">
-            <span class="section-icon" aria-hidden="true">۴</span>
-            <h3 id="title-4">بخش چهارم</h3>
-          </div>
-          <p>محتوای این بخش در ادامه مشخص و تکمیل می‌شود.</p>
         </section>
 
         <section class="section-card" id="section-5" aria-labelledby="title-5">
@@ -1876,7 +1877,8 @@
       const permissions = currentSession.permissions || {};
       if (sectionId === 'section-1') return Boolean(permissions.entry);
       if (sectionId === 'section-2') return Boolean(permissions.shipment);
-      if (sectionId === 'section-3') return Boolean(permissions.entryHistory || permissions.shipmentHistory || permissions.manageLocations);
+      if (sectionId === 'section-3') return Boolean(permissions.manageLocations);
+      if (sectionId === 'section-4') return Boolean(permissions.entryHistory || permissions.shipmentHistory);
       return false;
     }
     function applySessionAccess() {
@@ -1904,7 +1906,7 @@
         section.classList.toggle('is-active', section.id === 'section-1' && canAccessSection('section-1'));
       });
       if (currentSession) {
-        const firstAllowed = ['section-1','section-2','section-3','section-6'].find(canAccessSection);
+        const firstAllowed = ['section-1','section-2','section-3','section-4','section-6'].find(canAccessSection);
         if (firstAllowed) openSection(firstAllowed);
       }
       document.getElementById('login-overlay').hidden = Boolean(currentSession);
@@ -2379,7 +2381,7 @@
 
     function openSection(sectionId) {
       if (currentSession && !canAccessSection(sectionId)) {
-        const firstAllowed = ['section-1', 'section-2', 'section-3', 'section-6'].find(canAccessSection);
+        const firstAllowed = ['section-1', 'section-2', 'section-3', 'section-4', 'section-6'].find(canAccessSection);
         if (firstAllowed && firstAllowed !== sectionId) return openSection(firstAllowed);
         return;
       }
