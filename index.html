@@ -985,7 +985,6 @@
                 <textarea id="pasted-data" name="pasted-data" placeholder="هر ردیف: کد تدارکاتی، شرح کالا، موجودی"></textarea>
                 <span class="field-hint">ردیف‌ها را از Excel یا فایل متنی کپی کنید و اینجا جای‌گذاری کنید.</span>
               </div>
-              <button class="action-button secondary" id="preview-pasted-data" type="button">پیش‌نمایش داده‌ها</button>
               <div class="preview-panel" id="bulk-preview" aria-live="polite">
                 <h5>پیش‌نمایش ورودی</h5>
                 <p class="preview-empty">پس از پیش‌نمایش داده‌های کلیپ‌بورد، اطلاعات اینجا نمایش داده می‌شوند.</p>
@@ -2376,22 +2375,6 @@
       });
     });
 
-    document.getElementById('preview-pasted-data').addEventListener('click', () => {
-      pendingClipboardRows = prepareImportRows(parseDelimitedText(pastedDataInput.value));
-      if (!pendingClipboardRows.length) {
-        renderBulkPreview([], 'داده‌های کپی‌شده', bulkPreview);
-        renderSharedInputPreview();
-        importPreviewButton.disabled = true;
-        inputFeedback.textContent = 'ابتدا داده‌ها را در کادر کپی و جای‌گذاری کنید.';
-        return;
-      }
-      renderBulkPreview(pendingClipboardRows, 'داده‌های کپی‌شده', bulkPreview);
-      importPreviewButton.disabled = !pendingClipboardRows.some(row =>
-        Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && normalizeRow(row)
-      );
-      inputFeedback.textContent = 'پیش‌نمایش آماده است. اطلاعات را بررسی و سپس «تأیید و افزودن کالاها» را انتخاب کنید.';
-    });
-
     function confirmImportRows(rows, target, previewTarget, confirmButton, emptyMessage) {
       if (!rows.length) {
         target.textContent = 'ابتدا داده‌ها را پیش‌نمایش کنید.';
@@ -2466,9 +2449,10 @@
     });
 
     pastedDataInput.addEventListener('input', () => {
-      pendingClipboardRows = [];
+      pendingClipboardRows = prepareImportRows(parseDelimitedText(pastedDataInput.value));
       inputFeedback.textContent = '';
       renderSharedInputPreview();
+      importPreviewButton.disabled = !getCombinedPendingRows().some(item => normalizeRow(item.row));
     });
 
     document.getElementById('excel-file').addEventListener('change', async (event) => {
