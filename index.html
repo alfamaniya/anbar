@@ -465,7 +465,8 @@
 
     .entry-history-panel { min-width: 0; }
     .entry-history-table-wrap { width: 100%; overflow-x: auto; }
-    .entry-history-table { min-width: 540px; }\n    .shipment-history-table { min-width: 900px; }
+    .entry-history-table { min-width: 540px; }
+    .shipment-history-table { min-width: 900px; }
     .entry-history-table th { text-align: center; }
     .entry-sort-button {
       display: inline-flex;
@@ -621,107 +622,123 @@
     @media(max-width:650px) {
       .shipment-line,.shipment-meta { grid-template-columns:1fr; }
       .shipment-header,.shipment-footer { flex-wrap:wrap; }
-      .item-card { grid-template-columns:1fr; gap:8px; }
-      .item-selection-label { justify-self:start; }
-      .item-details { grid-template-columns:1fr; gap:5px; }
+      .inventory-table { min-width: 820px; }
+      .inventory-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      overscroll-behavior-x: contain;
     }
 
-    .inventory-search-panel { display:grid; gap:6px; margin:14px 0; padding:12px; border:1px solid var(--border); border-radius:10px; background:#e1eaf6; }
-    .inventory-search-panel label { font-size:12px; font-weight:700; }
-    .inventory-search-panel input { width:100%; min-height:42px; padding:8px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--text); font:inherit; }
-    .search-live-text { margin:0; color:var(--muted); font-size:12px; }
-    .search-live-text strong { color:var(--text); overflow-wrap:anywhere; }
-    .inventory-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      max-height: 900px;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      padding: 4px;
+    .inventory-table {
+      width: 100%;
+      min-width: 860px;
+      border-collapse: separate;
+      border-spacing: 0;
+      table-layout: auto;
+      font-size: 13px;
+      text-align: center;
     }
-    .bulk-preview-scroll { max-height:520px; overflow:auto; }
-    .bulk-preview-scroll thead { position:sticky; top:0; z-index:1; }
-    .import-invalid-row { background:#fff0f0; color:#8f1d1d; }
-    .import-invalid-row td:last-child { min-width:220px; white-space:normal; }
 
-    .item-selection-label {
-      display: inline-flex;
-      align-items: center;
-      align-self: center;
-      gap: 6px;
-      min-height: 20px;
-      color: var(--muted);
-      font-size: 11px;
+    .inventory-table th,
+    .inventory-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #d8e1ef;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .inventory-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #dce7f6;
+      color: var(--text);
+      font-weight: 700;
+      box-shadow: 0 1px 0 #c8d5e7;
+    }
+
+    .inventory-table tbody tr:nth-child(odd) { background: #ffffff; }
+    .inventory-table tbody tr:nth-child(even) { background: #edf3fb; }
+    .inventory-table tbody tr:hover { background: #dceaff; }
+    .inventory-table tbody tr:last-child td { border-bottom: 0; }
+    .inventory-table th:first-child,
+    .inventory-table td:first-child { width: 74px; }
+
+    .inventory-sort-button {
+      width: 100%;
+      min-height: 36px;
+      padding: 5px 7px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 700;
       cursor: pointer;
     }
 
-    .item-card {
-      display: grid;
-      grid-template-columns: minmax(88px, 0.18fr) minmax(0, 1fr) minmax(120px, 0.2fr);
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      background: #e1eaf6;
-      box-shadow: 0 2px 7px rgba(28, 43, 69, 0.04);
+    .inventory-sort-button:hover,
+    .inventory-sort-button:focus-visible {
+      background: rgba(255,255,255,.75);
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
     }
 
-    .item-details {
-      display: grid;
-      grid-template-columns: minmax(100px, 0.8fr) minmax(180px, 2fr) minmax(90px, 0.7fr);
-      align-items: stretch;
-      min-width: 0;
-      gap: 8px;
-    }
-
-    .item-tile {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 4px;
-      min-width: 0;
-      min-height: 44px;
-      padding: 6px;
-      border: 1px solid #e0e7f2;
-      border-radius: 7px;
-      /* خانه‌های اطلاعات کالا کمی روشن‌تر از کارت اصلی و متفاوت از ورودی سفید هستند. */
-      background: #edf2f9;
-    }
-
-    .item-tile-label {
-      color: var(--muted);
-      font-size: 9px;
-      line-height: 1.45;
-    }
-
-    .item-tile-value {
-      color: var(--text);
-      font-size: 11px;
+    .inventory-sort-marker {
+      display: inline-block;
+      min-width: 1em;
+      margin-inline-start: 5px;
+      color: var(--accent);
       font-weight: 700;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
     }
+
+    .inventory-selection-cell { text-align: center; }
+    .item-select-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .inventory-code-cell {
+      direction: ltr;
+      unicode-bidi: plaintext;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+    }
+
+    .inventory-description-cell {
+      max-width: 440px;
+      overflow: hidden;
+      text-align: right;
+      text-overflow: ellipsis;
+    }
+
+    .inventory-quantity-cell { font-variant-numeric: tabular-nums; }
 
     .send-quantity-input {
-      width: 100%;
-      min-width: 0;
-      height: 30px;
-      padding: 4px;
-      border: 1px solid #d7deea;
-      border-radius: 7px;
+      width: 108px;
+      min-width: 88px;
+      height: 36px;
+      padding: 5px 8px;
+      border: 1px solid #cbd6e6;
+      border-radius: 8px;
       background: #fff;
       color: var(--text);
       font: inherit;
       font-size: 13px;
+      text-align: center;
     }
 
     .send-quantity-input:focus {
       border-color: var(--accent);
       outline: 2px solid rgba(79, 131, 227, 0.15);
     }
+
+    .inventory-date-cell { min-width: 130px; }
 
     .empty-state {
       padding: 30px 16px;
@@ -772,8 +789,6 @@
     }
 
     @media (max-width: 520px) {
-      .item-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .item-tile { min-height: 88px; }
       .inventory-toolbar { align-items: flex-start; }
       .sort-controls { width: 100%; }
     }
@@ -800,9 +815,6 @@
     /* Center text throughout boxes and form controls across the site. */
     .input-panel,
     .preview-panel,
-    .item-card,
-    .item-details,
-    .item-tile,
     .field-group,
     .field-hint,
     .feedback,
@@ -955,20 +967,7 @@
           </div>
           <div class="inventory-toolbar">
             <p class="inventory-count" id="inventory-count">تعداد کالاها: ۰</p>
-            <div class="sort-controls">
-              <label for="sort-by">مرتب‌سازی بر اساس</label>
-              <select id="sort-by" name="sort-by">
-                <option value="code">کد تدارکاتی</option>
-                <option value="description">شرح کالا</option>
-                <option value="stock">تعداد موجودی</option>
-                <option value="sendQuantity">تعداد برای ارسال</option>
-              </select>
-              <label for="sort-direction">ترتیب</label>
-              <select id="sort-direction" name="sort-direction">
-                <option value="asc">صعودی</option>
-                <option value="desc">نزولی</option>
-              </select>
-            </div>
+            <p class="preview-message">برای مرتب‌سازی، عنوان هر ستون را انتخاب کنید.</p>
           </div>
 
           <div class="inventory-management-actions" aria-label="مدیریت، ارسال و حذف کالاها">
@@ -983,7 +982,21 @@
           </div>
 
           <div class="empty-state" id="inventory-empty">هنوز کالایی وارد نشده است. ابتدا از سکشن «ورودی کالا ها» کالا اضافه کنید.</div>
-          <div class="inventory-grid" id="inventory-grid" aria-live="polite"></div>
+          <div class="inventory-table-wrap">
+            <table class="inventory-table" aria-label="فهرست کالاهای موجود">
+              <thead>
+                <tr>
+                  <th scope="col">انتخاب</th>
+                  <th scope="col" aria-sort="ascending"><button class="inventory-sort-button" type="button" data-inventory-sort="code">کد تدارکاتی <span class="inventory-sort-marker" aria-hidden="true">↑</span></button></th>
+                  <th scope="col"><button class="inventory-sort-button" type="button" data-inventory-sort="description">شرح کالا <span class="inventory-sort-marker" aria-hidden="true">↕</span></button></th>
+                  <th scope="col"><button class="inventory-sort-button" type="button" data-inventory-sort="stock">تعداد موجودی <span class="inventory-sort-marker" aria-hidden="true">↕</span></button></th>
+                  <th scope="col"><button class="inventory-sort-button" type="button" data-inventory-sort="sendQuantity">تعداد برای ارسال <span class="inventory-sort-marker" aria-hidden="true">↕</span></button></th>
+                  <th scope="col"><button class="inventory-sort-button" type="button" data-inventory-sort="entryDate">تاریخ ورود <span class="inventory-sort-marker" aria-hidden="true">↕</span></button></th>
+                </tr>
+              </thead>
+              <tbody id="inventory-grid" aria-live="polite"></tbody>
+            </table>
+          </div>
           <p id="inventory-feedback" class="feedback" role="status" aria-live="polite"></p>
         </section>
 
@@ -1131,8 +1144,7 @@
     const SHIPMENT_KEY = 'anbar.shipments.v1';
     const selectedItemCodes = new Set();
     const inputFeedback = document.getElementById('input-feedback');
-    const sortBy = document.getElementById('sort-by');
-    const sortDirection = document.getElementById('sort-direction');
+    let inventorySort = { key: 'code', direction: 'asc' };
     const itemFormInputs = {
       code: document.getElementById('supply-code'),
       description: document.getElementById('item-description'),
@@ -1513,7 +1525,8 @@
             stock: Number(item.stock),
             sendQuantity: item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
               ? ''
-              : Number(item.sendQuantity)
+              : Number(item.sendQuantity),
+            entryTimestamp: typeof item.entryTimestamp === 'string' ? item.entryTimestamp : ''
           }));
       } catch (error) {
         return [];
@@ -1874,6 +1887,7 @@
       let updated = 0;
       let skipped = 0;
       const incomingItems = new Map();
+      const entryTimestamp = new Date().toISOString();
 
       rows.forEach((row) => {
         if (!Array.isArray(row) || row.every(value => String(value ?? '').trim() === '')) return;
@@ -1889,9 +1903,10 @@
         if (existing) {
           existing.description = item.description;
           existing.stock = item.stock;
+          existing.entryTimestamp = entryTimestamp;
           updated += 1;
         } else {
-          inventoryItems.push({ ...item, sendQuantity: '' });
+          inventoryItems.push({ ...item, sendQuantity: '', entryTimestamp });
           added += 1;
         }
       });
@@ -1911,22 +1926,6 @@
       target.textContent = messages.length
         ? messages.join('؛ ') + '.'
         : 'داده معتبر جدیدی برای افزودن پیدا نشد.';
-    }
-
-    function createTile(label, value) {
-      const tile = document.createElement('div');
-      tile.className = 'item-tile';
-
-      const title = document.createElement('span');
-      title.className = 'item-tile-label';
-      title.textContent = label;
-
-      const text = document.createElement('strong');
-      text.className = 'item-tile-value';
-      text.textContent = value === '' || value === null || value === undefined ? '—' : String(value);
-
-      tile.append(title, text);
-      return tile;
     }
 
     function updateSelectionControls() {
@@ -1997,31 +1996,45 @@
     document.getElementById('shipment-cancel').addEventListener('click', closeShipmentDialog);
 
     function renderInventory() {
-      const direction = sortDirection.value === 'desc' ? -1 : 1;
-      const key = sortBy.value;
+      const { key, direction } = inventorySort;
+      const multiplier = direction === 'desc' ? -1 : 1;
       const searchTerm = toEnglishDigits(inventorySearchInput.value).trim().toLocaleLowerCase('fa');
       inventorySearchQuery.textContent = inventorySearchInput.value.trim() || '—';
+
       const sortedItems = [...inventoryItems].sort((first, second) => {
+        if (key === 'entryDate') {
+          const firstDate = first.entryTimestamp ? Date.parse(first.entryTimestamp) : NaN;
+          const secondDate = second.entryTimestamp ? Date.parse(second.entryTimestamp) : NaN;
+          const firstMissing = !Number.isFinite(firstDate);
+          const secondMissing = !Number.isFinite(secondDate);
+          if (firstMissing !== secondMissing) return firstMissing ? 1 : -1;
+          if (firstMissing && secondMissing) return String(first.code).localeCompare(String(second.code), 'fa', { numeric: true });
+          return (firstDate - secondDate) * multiplier;
+        }
+
         const a = first[key] ?? '';
         const b = second[key] ?? '';
-        let result;
-
+        let comparison;
         if (key === 'stock' || key === 'sendQuantity') {
-          result = Number(a || 0) - Number(b || 0);
+          comparison = (Number(a) || 0) - (Number(b) || 0);
         } else {
-          result = String(a).localeCompare(String(b), 'fa', {
+          comparison = String(a).localeCompare(String(b), 'fa', {
             numeric: true,
             sensitivity: 'base'
           });
         }
-        return result * direction;
+        return comparison * multiplier;
       });
 
       const filteredItems = sortedItems.filter(item => {
         if (!searchTerm) return true;
-        const searchable = toEnglishDigits([item.code, item.description, item.stock, item.sendQuantity].join(' ')).toLocaleLowerCase('fa');
+        const searchable = toEnglishDigits([
+          item.code, item.description, item.stock, item.sendQuantity,
+          item.entryTimestamp ? solarDateTime(new Date(item.entryTimestamp)).date : ''
+        ].join(' ')).toLocaleLowerCase('fa');
         return searchable.includes(searchTerm);
       });
+
       inventoryGrid.replaceChildren();
       inventoryCount.textContent = 'تعداد کالاها: ' + toEnglishDigits(inventoryItems.length) +
         (searchTerm ? '؛ نتیجه جست‌وجو: ' + toEnglishDigits(filteredItems.length) : '');
@@ -2029,16 +2042,14 @@
       if (inventoryItems.length && !filteredItems.length) {
         inventoryEmpty.textContent = 'کالایی با عبارت جست‌وجوشده پیدا نشد؛ عبارت را تغییر دهید یا پاک کنید.';
       } else {
-        inventoryEmpty.textContent = 'هنوز کالایی وارد نشده است. ابتدا از سکشن «ورودی کالا ها» کالا اضافه کنید.';
+        inventoryEmpty.textContent = 'هنوز کالایی وارد نشده است. ابتدا از سکشن «ورودی کالاها» کالا اضافه کنید.';
       }
 
-      filteredItems.forEach((item, index) => {
-        const card = document.createElement('article');
-        card.className = 'item-card';
-        card.setAttribute('aria-label', 'کالا ' + item.code);
+      filteredItems.forEach(item => {
+        const row = document.createElement('tr');
 
-        const selectionLabel = document.createElement('label');
-        selectionLabel.className = 'item-selection-label';
+        const selectionCell = document.createElement('td');
+        selectionCell.className = 'inventory-selection-cell';
         const selectionCheckbox = document.createElement('input');
         selectionCheckbox.type = 'checkbox';
         selectionCheckbox.className = 'item-select-checkbox';
@@ -2049,24 +2060,22 @@
           else selectedItemCodes.delete(item.code);
           updateSelectionControls();
         });
-        const selectionText = document.createElement('span');
-        selectionText.textContent = 'انتخاب کالا';
-        selectionLabel.append(selectionCheckbox, selectionText);
+        selectionCell.append(selectionCheckbox);
 
-        const details = document.createElement('div');
-        details.className = 'item-details';
-        details.append(
-          createTile('کد تدارکاتی', item.code),
-          createTile('شرح کالا', item.description),
-          createTile('تعداد موجودی', item.stock)
-        );
+        const codeCell = document.createElement('td');
+        codeCell.className = 'inventory-code-cell';
+        codeCell.textContent = item.code;
 
-        const sendTile = document.createElement('label');
-        sendTile.className = 'item-tile';
-        const sendLabel = document.createElement('span');
-        sendLabel.className = 'item-tile-label';
-        sendLabel.textContent = 'تعداد برای ارسال';
+        const descriptionCell = document.createElement('td');
+        descriptionCell.className = 'inventory-description-cell';
+        descriptionCell.textContent = item.description;
+        descriptionCell.title = item.description;
 
+        const stockCell = document.createElement('td');
+        stockCell.className = 'inventory-quantity-cell';
+        stockCell.textContent = toEnglishDigits(item.stock);
+
+        const sendCell = document.createElement('td');
         const sendInput = document.createElement('input');
         sendInput.className = 'send-quantity-input';
         sendInput.type = 'number';
@@ -2087,17 +2096,55 @@
           item.sendQuantity = numericValue;
           saveInventory();
           inventoryFeedback.textContent = '';
-          if (sortBy.value === 'sendQuantity') renderInventory();
+          if (inventorySort.key === 'sendQuantity') renderInventory();
         });
+        sendCell.append(sendInput);
 
-        sendTile.append(sendLabel, sendInput);
-        details.append(sendTile);
-        card.append(selectionLabel, details);
-        inventoryGrid.append(card);
+        const entryDateCell = document.createElement('td');
+        entryDateCell.className = 'inventory-date-cell date-time-cell';
+        if (item.entryTimestamp && Number.isFinite(Date.parse(item.entryTimestamp))) {
+          const dateTime = solarDateTime(new Date(item.entryTimestamp));
+          const dateText = document.createElement('span');
+          dateText.className = 'date-part';
+          dateText.textContent = dateTime.date;
+          const timeText = document.createElement('span');
+          timeText.className = 'time-part';
+          timeText.textContent = dateTime.time;
+          entryDateCell.append(dateText, timeText);
+          entryDateCell.dataset.sortValue = item.entryTimestamp;
+        } else {
+          entryDateCell.textContent = 'نامشخص';
+          entryDateCell.dataset.sortValue = '';
+        }
+
+        row.append(selectionCell, codeCell, descriptionCell, stockCell, sendCell, entryDateCell);
+        inventoryGrid.append(row);
+      });
+
+      document.querySelectorAll('[data-inventory-sort]').forEach(button => {
+        const active = button.dataset.inventorySort === key;
+        const marker = button.querySelector('.inventory-sort-marker');
+        if (marker) marker.textContent = active ? (direction === 'asc' ? '↑' : '↓') : '↕';
+        const heading = button.closest('th');
+        if (heading) heading.setAttribute('aria-sort', active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none');
+        button.setAttribute('aria-label', 'مرتب‌سازی بر اساس ' + button.textContent.replace(/[↑↓↕]/g, '').trim() +
+          (active ? (direction === 'asc' ? '، صعودی' : '، نزولی') : ''));
       });
 
       updateSelectionControls();
     }
+
+    document.querySelectorAll('[data-inventory-sort]').forEach(button => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.inventorySort;
+        if (inventorySort.key === key) {
+          inventorySort.direction = inventorySort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          inventorySort = { key, direction: key === 'entryDate' ? 'desc' : 'asc' };
+        }
+        renderInventory();
+      });
+    });
 
     inventorySearchInput.addEventListener('input', renderInventory);
 
@@ -2235,9 +2282,6 @@
         event.target.value = '';
       }
     });
-
-    sortBy.addEventListener('change', renderInventory);
-    sortDirection.addEventListener('change', renderInventory);
 
     renderInventory();
     renderSinglePreview();
