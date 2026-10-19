@@ -1002,6 +1002,469 @@
       .login-choice { grid-template-columns:1fr; }
     }
 
+  
+    /* Responsive layout improvements: October 2026 */
+    html {
+      max-width: 100%;
+      scroll-padding-top: 150px;
+    }
+
+    body {
+      max-width: 100%;
+      overflow-x: clip;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    img, video, canvas, svg {
+      max-width: 100%;
+    }
+
+    .layout, .main, .sections, .section-card,
+    .input-panels, .input-panel, .settings-grid,
+    .settings-box, .management-grid, .inventory-toolbar,
+    .inventory-management-actions, .inventory-action-group,
+    .delete-actions, .preview-panel, .shared-input-preview {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .section-card, .input-panel, .settings-box,
+    .login-card, .backup-setup-card, .duplicate-dialog,
+    .shipment-dialog {
+      overflow-wrap: anywhere;
+    }
+
+    .action-button, button, input, select, textarea {
+      max-width: 100%;
+      touch-action: manipulation;
+    }
+
+    .action-button {
+      min-height: 44px;
+    }
+
+    .field-group input,
+    .field-group textarea,
+    .inventory-search-panel input,
+    .shipment-meta select {
+      min-width: 0;
+    }
+
+    .inventory-table-wrap,
+    .entry-history-table-wrap,
+    .preview-table-wrap,
+    .user-table-wrap,
+    .shipment-items,
+    .bulk-preview-scroll,
+    .sortable-table-wrap,
+    .duplicate-table-wrap {
+      max-width: 100%;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .preview-table,
+    .sortable-data-table,
+    .user-table {
+      max-width: 100%;
+    }
+
+    .empty-state, .field-hint, .feedback, .preview-message,
+    .search-live-text, .settings-log-row {
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 1080px) {
+      .sidebar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+          "brand session"
+          "nav nav";
+        align-items: center;
+        gap: 8px 14px;
+        padding: 10px 18px;
+      }
+
+      .brand {
+        grid-area: brand;
+        min-width: 0;
+        margin: 0;
+        white-space: normal;
+      }
+
+      .brand h1 {
+        font-size: 18px;
+        line-height: 1.5;
+      }
+
+      .brand p {
+        font-size: 11px;
+        line-height: 1.5;
+      }
+
+      .session-tools {
+        grid-area: session;
+        justify-content: flex-start;
+        min-width: 0;
+        max-width: 100%;
+        gap: 8px;
+      }
+
+      #session-username {
+        max-width: 130px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+      }
+
+      .session-tools .logout-button {
+        min-height: 38px;
+        padding: 6px 10px;
+        white-space: nowrap;
+      }
+
+      .sidebar nav {
+        grid-area: nav;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .nav-list {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 6px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 2px 0 6px;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .nav-list > li {
+        flex: 0 0 auto;
+      }
+
+      .nav-link {
+        min-height: 40px;
+        white-space: nowrap;
+      }
+
+      .main {
+        padding-top: 152px;
+        padding-right: clamp(14px, 3vw, 28px);
+        padding-left: clamp(14px, 3vw, 28px);
+      }
+
+      .input-panels {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .input-panel {
+        padding: clamp(14px, 2vw, 22px);
+      }
+
+      .settings-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .settings-grid > .settings-box:nth-child(1),
+      .settings-grid > .settings-box:nth-child(2),
+      .settings-grid > .settings-box:nth-child(5) {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 760px) {
+      html {
+        scroll-padding-top: 138px;
+      }
+
+      .main {
+        padding: 140px 14px 26px;
+      }
+
+      .section-card {
+        min-height: 0;
+        padding: 18px 14px;
+        border-radius: 14px;
+      }
+
+      .section-heading {
+        align-items: flex-start;
+      }
+
+      .section-card h3 {
+        font-size: 17px;
+      }
+
+      .input-panels {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .input-panel {
+        padding: 16px;
+      }
+
+      .shared-preview-actions {
+        justify-content: stretch;
+      }
+
+      .shared-preview-actions .action-button {
+        width: 100%;
+      }
+
+      .inventory-toolbar,
+      .inventory-management-actions,
+      .inventory-action-group,
+      .delete-actions {
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+
+      .inventory-action-group,
+      .delete-actions {
+        width: 100%;
+      }
+
+      .inventory-action-group .action-button,
+      .delete-actions .action-button {
+        flex: 1 1 160px;
+      }
+
+      .entry-history-pagination {
+        align-items: stretch;
+      }
+
+      .entry-history-pagination .action-button {
+        flex: 1 1 120px;
+      }
+
+      .management-grid,
+      .settings-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .settings-grid > .settings-box,
+      .settings-grid > .settings-box:nth-child(n) {
+        grid-column: 1 / -1;
+      }
+
+      .login-overlay,
+      .backup-setup-gate {
+        padding: 12px;
+      }
+
+      .login-card {
+        border-radius: 16px;
+      }
+
+      .duplicate-dialog,
+      .shipment-dialog {
+        width: calc(100% - 16px);
+        max-height: 92dvh;
+        border-radius: 12px;
+      }
+
+      .duplicate-dialog-header,
+      .shipment-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 12px 14px;
+      }
+
+      .duplicate-dialog-body,
+      .shipment-body {
+        max-height: calc(92dvh - 130px);
+        padding: 12px;
+      }
+
+      .duplicate-dialog-footer,
+      .shipment-footer {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px 12px;
+      }
+
+      .shipment-meta {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      html {
+        scroll-padding-top: 124px;
+      }
+
+      .sidebar {
+        gap: 7px 8px;
+        padding: 9px 10px;
+      }
+
+      .brand h1 {
+        font-size: 16px;
+      }
+
+      .brand p {
+        display: none;
+      }
+
+      #session-username {
+        max-width: 80px;
+      }
+
+      .session-tools {
+        gap: 5px;
+      }
+
+      .session-tools .logout-button {
+        min-height: 36px;
+        padding: 5px 8px;
+        font-size: 11px;
+      }
+
+      .nav-link {
+        gap: 6px;
+        padding: 6px 8px;
+        font-size: 12px;
+      }
+
+      .nav-number {
+        width: 24px;
+        height: 24px;
+      }
+
+      .main {
+        padding: 126px 10px 20px;
+      }
+
+      .section-card {
+        padding: 14px 10px;
+      }
+
+      .section-icon {
+        width: 34px;
+        height: 34px;
+        flex-basis: 34px;
+        border-radius: 10px;
+      }
+
+      .input-panel,
+      .settings-box {
+        padding: 13px;
+      }
+
+      .field-group input,
+      .field-group textarea,
+      .inventory-search-panel input,
+      .shipment-meta select {
+        font-size: 16px;
+      }
+
+      .action-button {
+        padding: 9px 11px;
+        font-size: 12px;
+      }
+
+      .status {
+        max-width: 100%;
+        white-space: normal;
+      }
+
+      .login-card {
+        padding: 20px 16px;
+      }
+
+      .login-card h2 {
+        font-size: 21px;
+      }
+
+      .login-choice {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .preview-panel {
+        padding: 10px;
+      }
+
+      .sortable-data-table th,
+      .sortable-data-table td,
+      .preview-table th,
+      .preview-table td {
+        padding: 6px;
+      }
+
+      .duplicate-dialog-header h3,
+      .shipment-header h3 {
+        font-size: 15px;
+      }
+    }
+
+    @media (max-width: 350px) {
+      .main {
+        padding-right: 7px;
+        padding-left: 7px;
+      }
+
+      .section-card {
+        padding-right: 8px;
+        padding-left: 8px;
+      }
+
+      .session-tools #session-username {
+        display: none;
+      }
+
+      .inventory-action-group,
+      .delete-actions {
+        flex-direction: column;
+      }
+
+      .inventory-action-group .action-button,
+      .delete-actions .action-button {
+        width: 100%;
+      }
+    }
+
+    @media (min-width: 1081px) {
+      .sidebar {
+        flex-wrap: nowrap;
+      }
+
+      .session-tools {
+        flex: 0 1 auto;
+      }
+
+      .nav-list {
+        justify-content: flex-start;
+      }
+
+      .input-panels {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .main {
+        padding-right: clamp(24px, 4vw, 64px);
+        padding-left: clamp(24px, 4vw, 64px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *, *::before, *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
   </style>
 </head>
 <body>
