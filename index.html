@@ -1658,6 +1658,12 @@
                 <button class="action-button secondary" id="shipment-history-next" type="button" disabled>بعدی</button>
               </div>
             </article>
+            <article class="settings-box" data-location-manager>
+              <h4>مدیریت محل‌های ارسال</h4>
+              <p>ایجاد محل و تعریف زیرمجموعه‌ها؛ زیرمجموعه‌ها را با ویرگول جدا کنید.</p>
+              <form id="location-create-form"><div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120"></div><div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500"></div><button class="action-button" type="submit">ذخیره محل</button></form>
+              <p class="feedback" id="location-manager-feedback" role="status"></p><div id="location-manager-list"></div>
+            </article>
             <article class="settings-box">
               <h4>بکاپ خودکار فایل JSON</h4>
               <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
@@ -1724,6 +1730,7 @@
                   <label><input id="permission-shipment" type="checkbox"> دسترسی ارسال کالا</label>
                   <label><input id="permission-entry-history" type="checkbox"> مشاهده تاریخچه ورود</label>
                   <label><input id="permission-shipment-history" type="checkbox"> مشاهده تاریخچه خروج</label>
+                  <label><input id="permission-manage-locations" type="checkbox"> مدیریت محل‌های ارسال</label>
                 </div>
                 <button class="action-button" type="submit">ایجاد کاربر</button>
                 <p class="feedback" id="management-feedback" role="status" aria-live="polite"></p>
@@ -1852,7 +1859,7 @@
       const permissions = currentSession.permissions || {};
       if (sectionId === 'section-1') return Boolean(permissions.entry);
       if (sectionId === 'section-2') return Boolean(permissions.shipment);
-      if (sectionId === 'section-3') return Boolean(permissions.entryHistory || permissions.shipmentHistory);
+      if (sectionId === 'section-3') return Boolean(permissions.entryHistory || permissions.shipmentHistory || permissions.manageLocations);
       return false;
     }
     function applySessionAccess() {
@@ -1863,6 +1870,7 @@
       const sessionUsername = document.getElementById('session-username');
       if (logoutButton) logoutButton.hidden = !currentSession;
       if (sessionUsername) sessionUsername.textContent = currentSession ? currentSession.username : '';
+      document.querySelectorAll('[data-location-manager]').forEach(panel => { panel.hidden = !isAdmin && !(currentSession && currentSession.permissions && currentSession.permissions.manageLocations); });
       document.querySelectorAll('[data-history-permission]').forEach(panel => {
         const permission = panel.getAttribute('data-history-permission');
         panel.hidden = !isAdmin && !(currentSession && currentSession.permissions && currentSession.permissions[permission]);
@@ -2943,6 +2951,9 @@
     function saveShipmentLocations(a){try{localStorage.setItem(LOCATION_KEY,JSON.stringify(a));return true;}catch(e){return false;}}
     function renderShipmentLocationOptions(){const l=document.getElementById('shipment-location-options');l.replaceChildren();loadShipmentLocations().forEach(x=>{const o=document.createElement('option');o.value=x.name;l.append(o);});updateShipmentSublocations();}
     function updateShipmentSublocations(){const r=loadShipmentLocations().find(x=>normLocation(x.name)===normLocation(shipmentLocationInput.value));const l=document.getElementById('shipment-sublocation-options');l.replaceChildren();(r?r.sublocations:[]).forEach(x=>{const o=document.createElement('option');o.value=x;l.append(o);});shipmentSublocationGroup.hidden=!(r&&r.sublocations.length);if(!r||!r.sublocations.length)shipmentSublocationInput.value='';}
+    function renderLocationManager(){const root=document.getElementById('location-manager-list');root.replaceChildren();const rows=loadShipmentLocations();if(!rows.length){root.textContent='هنوز محل ارسالی ثبت نشده است.';return;}rows.forEach(r=>{const p=document.createElement('p');p.textContent=r.name+' — زیرمجموعه‌ها: '+(r.sublocations.join('، ')||'ندارد');const b=document.createElement('button');b.type='button';b.className='action-button secondary';b.textContent='حذف محل';b.onclick=()=>{if(!confirm('محل و زیرمجموعه‌هایش حذف شوند؟'))return;saveShipmentLocations(loadShipmentLocations().filter(x=>normLocation(x.name)!==normLocation(r.name)));renderLocationManager();renderShipmentLocationOptions();};p.append(b);root.append(p);});}
+    document.getElementById('location-create-form').addEventListener('submit',e=>{e.preventDefault();if(!currentSession||(currentSession.role!=='admin'&&!currentSession.permissions.manageLocations))return;const name=document.getElementById('new-location-name').value.trim(),subs=document.getElementById('new-location-subs').value.split(',').map(x=>x.trim()).filter(Boolean),rows=loadShipmentLocations(),fb=document.getElementById('location-manager-feedback');if(!name){fb.textContent='نام محل الزامی است.';return;}if(rows.some(x=>normLocation(x.name)===normLocation(name))){fb.textContent='این محل قبلاً ثبت شده است.';return;}rows.push({name,sublocations:[...new Set(subs)]});if(saveShipmentLocations(rows)){e.target.reset();fb.textContent='محل ارسال ذخیره شد.';renderLocationManager();renderShipmentLocationOptions();}});
+    renderLocationManager();
     shipmentLocationInput.addEventListener('input',updateShipmentSublocations);shipmentLocationInput.addEventListener('change',updateShipmentSublocations);renderShipmentLocationOptions();
     openShipmentDialogButton.addEventListener('click', openShipmentDialog);
     shipmentForm.addEventListener('submit', commitShipment);
@@ -3682,14 +3693,15 @@
         entry: document.getElementById('permission-entry').checked,
         shipment: document.getElementById('permission-shipment').checked,
         entryHistory: document.getElementById('permission-entry-history').checked,
-        shipmentHistory: document.getElementById('permission-shipment-history').checked
+        shipmentHistory: document.getElementById('permission-shipment-history').checked,
+        manageLocations: document.getElementById('permission-manage-locations').checked
       };
       const feedback = document.getElementById('management-feedback');
       if (!username || !password) {
         feedback.textContent = 'نام کاربری و رمز عبور الزامی است.';
         return;
       }
-      if (!permissions.entry && !permissions.shipment && !permissions.entryHistory && !permissions.shipmentHistory) {
+      if (!permissions.entry && !permissions.shipment && !permissions.entryHistory && !permissions.shipmentHistory && !permissions.manageLocations) {
         feedback.textContent = 'حداقل یکی از چهار دسترسی را انتخاب کنید.';
         return;
       }
@@ -3733,7 +3745,8 @@
           ['entry', 'ورود کالا'],
           ['shipment', 'ارسال کالا'],
           ['entryHistory', 'تاریخچه ورود'],
-          ['shipmentHistory', 'تاریخچه خروج']
+          ['shipmentHistory', 'تاریخچه خروج'],
+          ['manageLocations', 'مدیریت محل‌های ارسال']
         ];
         const checks = options.map(([key, label]) =>
           '<label class="managed-permission-option"><input type="checkbox" data-edit-permission="' + key + '"' + (permissions[key] ? ' checked' : '') + '> ' + label + '</label>'
