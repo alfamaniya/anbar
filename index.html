@@ -594,11 +594,6 @@
       cursor: pointer;
     }
 
-    .delete-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
 
     .action-button.delete-selected-button {
       border-color: #c03939;
@@ -631,7 +626,6 @@
     .shipment-note { margin:10px 0 0; color:var(--muted); font-size:12px; }
     .shipment-footer { justify-content:flex-end; border-top:1px solid var(--border); border-bottom:0; }
     .shipment-close { border-color:#cbd5e4; background:#fff; color:var(--text); }
-    .inventory-action-group { display:flex; align-items:center; justify-content:space-between; flex:1; flex-wrap:wrap; gap:12px; }
     .shipment-feedback { color:#a52222; font-size:13px; margin:10px 0 0; }
     @media(max-width:650px) {
       .shipment-line,.shipment-meta { grid-template-columns:1fr; }
@@ -1239,19 +1233,12 @@
 
       .inventory-toolbar,
       .inventory-management-actions,
-      .inventory-action-group,
-      .delete-actions {
-        align-items: stretch;
-        justify-content: flex-start;
-      }
+      .inventory-action-buttons,
 
-      .inventory-action-group,
-      .delete-actions {
-        width: 100%;
-      }
+      .inventory-action-buttons,
 
-      .inventory-action-group .action-button,
-      .delete-actions .action-button {
+      .inventory-action-buttons .action-button,
+      .inventory-action-buttons .action-button {
         flex: 1 1 160px;
       }
 
@@ -1439,13 +1426,10 @@
         display: none;
       }
 
-      .inventory-action-group,
-      .delete-actions {
-        flex-direction: column;
-      }
+      .inventory-action-buttons,
 
-      .inventory-action-group .action-button,
-      .delete-actions .action-button {
+      .inventory-action-buttons .action-button,
+      .inventory-action-buttons .action-button {
         width: 100%;
       }
     }
@@ -1959,7 +1943,7 @@
         <div class="shipment-items" id="shipment-items"></div>
         <div class="shipment-meta">
           <div class="field-group"><label for="shipment-location">محل ارسال</label><input id="shipment-location" list="shipment-location-options" required maxlength="120" autocomplete="off"><datalist id="shipment-location-options"></datalist></div>
-<div class="field-group" id="shipment-sublocation-group" hidden><label for="shipment-sublocation">زیرمجموعه محل ارسال</label><input id="shipment-sublocation" list="shipment-sublocation-options" maxlength="120" autocomplete="off"><datalist id="shipment-sublocation-options"></datalist></div>
+<div class="field-group" id="shipment-sublocation-group"><label for="shipment-sublocation">زیرمجموعه محل ارسال (اختیاری)</label><input id="shipment-sublocation" list="shipment-sublocation-options" maxlength="120" autocomplete="off"><datalist id="shipment-sublocation-options"></datalist></div>
           <div class="field-group"><label for="shipment-voucher">شماره حواله</label><input id="shipment-voucher" type="text" maxlength="80" placeholder="خالی بماند تا خودکار ساخته شود"></div>
           <div class="field-group"><label for="shipment-exit-number">شماره خروج کالا</label><input id="shipment-exit-number" type="text" maxlength="80" placeholder="خالی بماند تا خودکار ساخته شود"></div>
         </div>
@@ -2369,7 +2353,7 @@
       });
       wrapper.append(table); shipmentItemsContainer.append(wrapper);
       enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
-      shipmentLocationInput.value = ''; shipmentSublocationInput.value = ''; shipmentSublocationGroup.hidden=true; shipmentVoucherInput.value = ''; shipmentExitInput.value = ''; renderShipmentLocationOptions();
+      shipmentLocationInput.value = ''; shipmentSublocationInput.value = ''; shipmentSublocationGroup.hidden = false; shipmentVoucherInput.value = ''; shipmentExitInput.value = ''; renderShipmentLocationOptions();
       if (typeof shipmentDialog.showModal === 'function') shipmentDialog.showModal();
       else shipmentDialog.setAttribute('open', '');
     }
@@ -3260,10 +3244,8 @@
         option.value = name;
         list.append(option);
       });
-      shipmentSublocationGroup.hidden = !(selectedLocation && selectedLocation.sublocations.length);
-      if (!selectedLocation || !selectedLocation.sublocations.length) {
-        shipmentSublocationInput.value = '';
-      }
+      // ورودی زیرمجموعه همیشه قابل استفاده است؛ فهرست ذخیره‌شده فقط پیشنهادها را فراهم می‌کند.
+      shipmentSublocationGroup.hidden = false;
     }
 
     function renderLocationManager() {
