@@ -2427,6 +2427,62 @@
     const restoreFeedback = document.getElementById('restore-feedback');
     let pendingRestorePayload = null;
 
+    const normalizedKey = value => String(value ?? '').trim().replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).toLocaleLowerCase('fa');
+    const uniqueValues = (records, field) => new Set(records.map(record => normalizedKey(record && record[field])).filter(Boolean));
+    const mergeUniqueRecords = (existing, incoming, fields, conflicts, label) => {
+      const seen = new Set();
+      existing.forEach(record => fields.forEach(field => {
+        const value = normalizedKey(record && record[field]);
+        if (value) seen.add(field + ':' + value);
+      }));
+      const accepted = [];
+      incoming.forEach((record, index) => {
+        const duplicateFields = fields.filter(field => {
+          const value = normalizedKey(record && record[field]);
+          return value && seen.has(field + ':' + value);
+        });
+        if (duplicateFields.length) {
+          conflicts.push(label + ' ردیف ' + (index + 1) + ': ' + duplicateFields.map(field => {
+            const names = { code: 'کد کالا', entryNumber: 'شماره ورود', exitNumber: 'شماره خروج', voucherNumber: 'شماره حواله' };
+            return names[field] + ' «' + record[field] + '»';
+          }).join(' و '));
+          return;
+        }
+        accepted.push(record);
+        fields.forEach(field => {
+          const value = normalizedKey(record && record[field]);
+          if (value) seen.add(field + ':' + value);
+        });
+      });
+      return accepted;
+    };
+
+    function analyzeRestorePayload(payload) {
+      const conflicts = [];
+      const currentInventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      const currentEntries = loadEntryHistory();
+      const currentShipments = loadShipments();
+      const incomingInventory = mergeUniqueRecords(currentInventory, payload.inventory, ['code'], conflicts, 'کالای تکراری');
+      const incomingEntries = mergeUniqueRecords(currentEntries, payload.entryHistory || [], ['entryNumber'], conflicts, 'ورود تکراری');
+      // اگر شماره خروج یا شماره حواله تکراری باشد، کل رکورد ارسال وارد نمی‌شود.
+      const incomingShipments = mergeUniqueRecords(currentShipments, payload.shipments, ['exitNumber', 'voucherNumber'], conflicts, 'ارسال دارای شماره تکراری');
+      const currentActivity = loadActivityLog();
+      const incomingActivity = (payload.activityLog || []).filter(record => {
+        const signature = JSON.stringify(record);
+        const exists = currentActivity.some(item => JSON.stringify(item) === signature);
+        if (exists) conflicts.push('رخداد تکراری در لاگ فعالیت: ' + String(record && (record.action || record.title) || 'بدون عنوان'));
+        return !exists;
+      });
+      return {
+        conflicts,
+        inventory: currentInventory.concat(incomingInventory),
+        entryHistory: currentEntries.concat(incomingEntries).slice(0, 1000),
+        shipments: currentShipments.concat(incomingShipments),
+        activityLog: currentActivity.concat(incomingActivity).slice(0, 100),
+        counts: { inventory: incomingInventory.length, entries: incomingEntries.length, shipments: incomingShipments.length, activity: incomingActivity.length }
+      };
+    }
+
     restoreFileInput.addEventListener('change', async () => {
       pendingRestorePayload = null;
       restoreBackupButton.disabled = true;
@@ -2436,18 +2492,31 @@
       try {
         const payload = JSON.parse(await file.text());
         if (!payload || !Array.isArray(payload.inventory) ||
-            (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) || !Array.isArray(payload.shipments) ||
-            !Array.isArray(payload.activityLog)) {
+            (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) ||
+            !Array.isArray(payload.shipments) || !Array.isArray(payload.activityLog)) {
           throw new Error('invalid backup structure');
         }
         const validInventory = payload.inventory.every(item =>
           item && typeof item.code === 'string' && typeof item.description === 'string' &&
           Number.isFinite(Number(item.stock)) && Number(item.stock) >= 0
         );
-        if (!validInventory) throw new Error('invalid inventory');
-        pendingRestorePayload = payload;
+        const validEntries = (payload.entryHistory || []).every(item => item && typeof item.entryNumber === 'string');
+        const validShipments = payload.shipments.every(item => item && typeof item === 'object');
+        if (!validInventory || !validEntries || !validShipments) throw new Error('invalid backup records');
+
+        const analysis = analyzeRestorePayload(payload);
+        pendingRestorePayload = { payload, analysis };
         restoreBackupButton.disabled = false;
-        restoreFeedback.textContent = 'فایل معتبر است. برای جایگزینی اطلاعات فعلی، دکمه بازگردانی را بزنید.';
+        const summary = [
+          'بررسی فایل انجام شد.',
+          'کالاهای جدید: ' + analysis.counts.inventory,
+          'شماره‌های ورود جدید: ' + analysis.counts.entries,
+          'ارسال‌های جدید: ' + analysis.counts.shipments,
+          'رخدادهای جدید: ' + analysis.counts.activity,
+          'مغایرت‌ها و موارد تکراری: ' + analysis.conflicts.length,
+          'اطلاعات فعلی حذف نمی‌شود؛ فقط رکوردهای جدید اضافه خواهند شد.'
+        ];
+        restoreFeedback.textContent = summary.join('\n');
       } catch (error) {
         restoreFeedback.textContent = 'فایل انتخاب‌شده معتبر نیست یا با ساختار بکاپ این برنامه سازگار نیست.';
       }
@@ -2455,17 +2524,31 @@
 
     restoreBackupButton.addEventListener('click', () => {
       if (!pendingRestorePayload) return;
-      const confirmed = window.confirm('اطلاعات فعلی این مرورگر با اطلاعات فایل بکاپ جایگزین شود؟ این عملیات قابل بازگشت خودکار نیست.');
+      // تحلیل را در لحظه تأیید دوباره انجام می‌دهیم تا تغییرات پس از انتخاب فایل هم لحاظ شود.
+      const analysis = analyzeRestorePayload(pendingRestorePayload.payload);
+      const mismatchLines = analysis.conflicts.length
+        ? analysis.conflicts.slice(0, 80).map((item, index) => (index + 1) + '. ' + item)
+        : ['هیچ مورد تکراری یا مغایرتی پیدا نشد.'];
+      if (analysis.conflicts.length > 80) mismatchLines.push('... و ' + (analysis.conflicts.length - 80) + ' مورد دیگر');
+      window.alert('گزارش مغایرت‌های فایل بکاپ\n\n' + mismatchLines.join('\n'));
+      const confirmed = window.confirm(
+        'نتیجه بررسی:\n' +
+        'کالاهای قابل افزودن: ' + analysis.counts.inventory + '\n' +
+        'ورودی‌های قابل افزودن: ' + analysis.counts.entries + '\n' +
+        'ارسال‌های قابل افزودن: ' + analysis.counts.shipments + '\n' +
+        'مغایرت‌ها/موارد تکراری: ' + analysis.conflicts.length + '\n\n' +
+        'اطلاعات فعلی حفظ می‌شود و فقط موارد غیرتکراری اضافه می‌شوند. ادامه می‌دهید؟'
+      );
       if (!confirmed) return;
-      const payload = pendingRestorePayload;
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.inventory));
-        localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify((Array.isArray(payload.entryHistory) ? payload.entryHistory : []).slice(0, 1000)));
-        localStorage.setItem(SHIPMENT_KEY, JSON.stringify(payload.shipments));
-        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(payload.activityLog.slice(0, 100)));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis.inventory));
+        localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(analysis.entryHistory));
+        localStorage.setItem(SHIPMENT_KEY, JSON.stringify(analysis.shipments));
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(analysis.activityLog));
+        restoreFeedback.textContent = 'بازگردانی تکمیل شد؛ اطلاعات قبلی حفظ و فقط موارد غیرتکراری اضافه شدند.';
         window.location.reload();
       } catch (error) {
-        restoreFeedback.textContent = 'بازگردانی انجام نشد؛ ممکن است فضای ذخیره‌سازی مرورگر کافی نباشد.';
+        restoreFeedback.textContent = 'بازگردانی کامل نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید. اطلاعات ممکن است به‌طور کامل ذخیره نشده باشد.';
       }
     });
 
