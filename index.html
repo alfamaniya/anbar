@@ -600,14 +600,12 @@
       gap: 8px;
     }
 
-    .action-button.delete-selected-button,
-    .action-button.delete-all-button {
+    .action-button.delete-selected-button {
       border-color: #c03939;
       background: #c03939;
     }
 
-    .action-button.delete-selected-button:hover:not(:disabled),
-    .action-button.delete-all-button:hover:not(:disabled) {
+    .action-button.delete-selected-button:hover:not(:disabled) {
       background: #a52e2e;
     }
 
@@ -1487,6 +1485,95 @@
       }
     }
 
+
+    /* Compact controls, improved reports pagination, users and location management. */
+    .inventory-search-panel {
+      display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
+      gap: 6px 10px; margin: 10px 0 14px; padding: 7px 10px; border-radius: 9px;
+    }
+    .inventory-search-panel > label { font-size: 12px; white-space: nowrap; }
+    .inventory-search-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .inventory-search-panel .inventory-search-control input {
+      min-height: 34px; height: 34px; padding: 4px 10px; line-height: 1.4; font-size: 13px;
+    }
+    .search-clear-button {
+      flex: 0 0 32px; width: 32px; height: 32px; min-height: 32px; padding: 0;
+      border: 1px solid #c5d2e4; border-radius: 7px; background: #fff; color: #45566d;
+      font-size: 22px; line-height: 1; cursor: pointer;
+    }
+    .search-clear-button:hover { background: #edf3fb; color: #17253b; }
+    .inventory-search-panel .search-live-text { grid-column: 1 / -1; margin: 0; font-size: 11px; line-height: 1.4; }
+    .inventory-management-actions { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:9px 12px; }
+    .inventory-action-buttons { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    .inventory-action-buttons .action-button,.inventory-management-actions .action-button { min-height:36px; padding:6px 12px; }
+
+    .reports-grid .settings-box .preview-panel { max-height:none; overflow:visible; margin-top:10px; }
+    .reports-grid .entry-history-table-wrap { width:100%; overflow-x:auto; overscroll-behavior-x:contain; }
+    .reports-grid .entry-history-pagination {
+      position:static; display:flex; align-items:center; justify-content:space-between; gap:10px;
+      margin-top:12px; padding-top:10px; border-top:1px solid #c5d2e4;
+    }
+    .reports-grid .entry-history-pagination .action-button { min-height:34px; padding:5px 13px; }
+
+    .backup-folder-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; width:100%; }
+    .backup-folder-actions .action-button { width:100%; max-width:none; margin:0; }
+    .location-create-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; }
+    .location-create-form .field-group { margin:0; }
+    .location-create-form > .action-button { grid-column:1 / -1; justify-self:start; }
+    .saved-locations-section { display:grid; gap:8px; margin-top:8px; padding-top:14px; border-top:1px solid #b6c9e2; }
+    .saved-locations-section h5 { margin:0; font-size:14px; }
+    .location-list { display:grid; gap:8px; }
+    .location-list-empty { margin:0; padding:12px; border:1px dashed #a9bdd8; border-radius:9px; text-align:center; }
+    .location-record { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px; border:1px solid #b6c9e2; border-radius:10px; background:rgba(255,255,255,.5); }
+    .location-record-details { min-width:0; display:grid; gap:3px; }
+    .location-record h6 { margin:0; font-size:13px; overflow-wrap:anywhere; }
+    .location-record p { margin:0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+    .location-record .location-delete-button { flex:0 0 auto; min-height:34px; padding:5px 10px; }
+
+    .permission-fieldset { min-width:0; margin:16px 0; padding:12px; border:1px solid #bfd0e7; border-radius:12px; background:#edf3fb; }
+    .permission-fieldset legend { padding:0 8px; color:var(--text); font-size:13px; font-weight:700; }
+    .permission-fieldset .permission-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; }
+    .permission-fieldset .permission-option {
+      display:flex; align-items:center; justify-content:flex-start; gap:8px; min-width:0; margin:0;
+      padding:9px 10px; border:1px solid #ccd8e8; border-radius:9px; background:#fff;
+      text-align:right; line-height:1.5; cursor:pointer;
+    }
+    .permission-fieldset .permission-option input { flex:0 0 17px; width:17px; height:17px; min-height:17px; margin:0; accent-color:var(--accent); }
+    .permission-fieldset .permission-option span { font-size:12px; }
+
+    .managed-users-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:22px; padding:14px 16px; border:1px solid #b6c9e2; border-radius:12px 12px 0 0; background:#e5edf8; }
+    .managed-users-heading h3 { margin:0; font-size:16px; }
+    .managed-users-heading p { margin:3px 0 0; font-size:12px; color:var(--muted); }
+    .managed-users-count { flex:0 0 auto; padding:5px 10px; border:1px solid #c5d5e8; border-radius:999px; background:#fff; color:#34445b; font-size:12px; font-weight:700; }
+    .user-table-wrap { margin-top:0; border:1px solid #b6c9e2; border-top:0; border-radius:0 0 12px 12px; background:#fff; }
+    .user-table thead th { position:sticky; top:0; z-index:1; }
+    .user-table tbody tr:nth-child(even) { background:#f0f5fb; }
+    .user-table tbody tr:hover { background:#e2edfb; }
+    .user-table td { vertical-align:middle; }
+    .user-table td:last-child { min-width:190px; }
+    .managed-user-editor .permission-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .managed-user-editor .managed-permission-option { padding:8px 10px; border:1px solid #ccd8e8; border-radius:8px; background:#fff; text-align:right; }
+
+    .field-group input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    .field-group select,.shipment-meta input,.shipment-meta select,.inventory-search-control input,.location-create-form input {
+      min-height:36px; height:36px; padding:6px 10px; line-height:1.4; font-size:13px;
+    }
+    .permission-fieldset .permission-option input { height:17px; min-height:17px; padding:0; }
+    .shipment-items-table input { min-height:36px; height:36px; padding:5px 7px; line-height:1.4; font-size:13px; }
+    .settings-log-table { min-width:760px; }
+    .settings-log-table th,.settings-log-table td { white-space:normal; vertical-align:top; overflow-wrap:anywhere; }
+    #backup-log-results .bulk-preview-scroll { max-height:380px; }
+
+    @media (max-width:700px) {
+      .inventory-search-panel { grid-template-columns:1fr; gap:5px; }
+      .inventory-search-panel > label { white-space:normal; }
+      .inventory-search-control { width:100%; }
+      .inventory-management-actions { align-items:stretch; }
+      .inventory-action-buttons { width:100%; }
+      .inventory-action-buttons .action-button { flex:1 1 140px; }
+      .backup-folder-actions,.location-create-form,.permission-fieldset .permission-options,.managed-user-editor .permission-options { grid-template-columns:1fr; }
+      .location-record { align-items:flex-start; }
+    }
   </style>
 </head>
 <body>
@@ -1585,24 +1672,24 @@
             <h3 id="title-2">مشاهده کالاهای موجود و ارسال</h3>
           </div>
 
-          <div class="inventory-search-panel">
-            <label for="inventory-search">جست‌وجوی پیشرفته کالاها</label>
-            <input id="inventory-search" type="search" autocomplete="off" placeholder="کد، شرح کالا یا عددی از اطلاعات کالا را تایپ کنید">
-            <p class="search-live-text" aria-live="polite">عبارت جست‌وجو: <strong id="inventory-search-query">—</strong></p>
+          <div class="inventory-search-panel" role="search" aria-label="جست‌وجوی موجودی">
+            <label for="inventory-search">جست‌وجو</label>
+            <div class="inventory-search-control">
+              <input id="inventory-search" type="search" autocomplete="off" placeholder="جست‌وجو بر اساس کد یا شرح کالا">
+              <button class="search-clear-button" id="clear-inventory-search" type="button" aria-label="پاک کردن عبارت جست‌وجو" title="پاک کردن عبارت جست‌وجو">×</button>
+            </div>
+            <p class="search-live-text" aria-live="polite">نتیجه جست‌وجو: <strong id="inventory-search-query">—</strong></p>
           </div>
           <div class="inventory-toolbar">
             <p class="inventory-count" id="inventory-count">تعداد کالاها: ۰</p>
             <p class="preview-message">برای مرتب‌سازی، عنوان هر ستون را انتخاب کنید.</p>
           </div>
 
-          <div class="inventory-management-actions" aria-label="مدیریت، ارسال و حذف کالاها">
-            <div class="inventory-action-group">
-              <label class="select-all-label" for="select-all-items"><input id="select-all-items" type="checkbox"> انتخاب همه کالاها</label>
-              <button class="action-button" id="open-shipment-dialog" type="button">تأیید ارسال</button>
-            </div>
-            <div class="delete-actions">
+          <div class="inventory-management-actions" aria-label="انتخاب، ارسال و حذف کالاهای انتخاب‌شده">
+            <label class="select-all-label" for="select-all-items"><input id="select-all-items" type="checkbox"> انتخاب همه کالاها</label>
+            <div class="inventory-action-buttons">
               <button class="action-button delete-selected-button" id="delete-selected-items" type="button" disabled>حذف انتخاب‌شده‌ها (۰)</button>
-              <button class="action-button delete-all-button" id="delete-all-items" type="button" disabled>حذف کلی</button>
+              <button class="action-button" id="open-shipment-dialog" type="button">تأیید ارسال</button>
             </div>
           </div>
 
@@ -1633,14 +1720,26 @@
           <div class="settings-grid">
             <article class="settings-box" data-location-manager>
               <h4>مدیریت محل‌های ارسال</h4>
-              <p>ایجاد محل و تعریف زیرمجموعه‌ها؛ زیرمجموعه‌ها را با ویرگول جدا کنید.</p>
-              <form id="location-create-form"><div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120"></div><div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500"></div><button class="action-button" type="submit">ذخیره محل</button></form>
-              <p class="feedback" id="location-manager-feedback" role="status"></p><div id="location-manager-list"></div>
+              <p>محل و زیرمجموعه را اضافه کنید؛ در ارسال‌های بعدی نیز قابل انتخاب خواهند بود.</p>
+              <form id="location-create-form" class="location-create-form">
+                <div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120" autocomplete="off"></div>
+                <div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500" placeholder="چند زیرمجموعه را با ویرگول جدا کنید"></div>
+                <button class="action-button" type="submit">ذخیره محل</button>
+              </form>
+              <p class="feedback" id="location-manager-feedback" role="status" aria-live="polite"></p>
+              <div class="saved-locations-section">
+                <h5>محل‌های ذخیره‌شده</h5>
+                <p class="field-hint">هر محل را از فهرست زیر به‌صورت دستی حذف کنید؛ سوابق ارسال قبلی باقی می‌مانند.</p>
+                <div id="location-manager-list" class="location-list" aria-live="polite"></div>
+              </div>
             </article>
             <article class="settings-box" data-admin-settings>
               <h4>بکاپ خودکار فایل JSON</h4>
               <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
-              <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه بکاپ ذخیره‌شده / انتخاب پوشه</button>
+              <div class="backup-folder-actions">
+                <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه ذخیره‌شده</button>
+                <button class="action-button secondary" id="change-backup-folder" type="button">انتخاب یا تغییر پوشه بکاپ</button>
+              </div>
               <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
               <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
             </article>
@@ -1656,9 +1755,9 @@
               <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
             </article>
             <article class="settings-box" data-admin-settings>
-              <h4>لاگ بکاپ خودکار</h4>
-              <p>فهرست رخدادهای ورود، تغییر و حذف کالاها؛ این جدول تاریخچه جداگانه هر بار نوشتن فایل بکاپ را ثبت نمی‌کند.</p>
-              <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ</button>
+              <h4>لاگ سایت</h4>
+              <p>تاریخچه رویدادهای سامانه شامل ورود و خروج کاربران، ثبت و ارسال کالا، مدیریت محل‌ها، حساب‌ها و دسترسی‌ها، و تغییر پوشه بکاپ؛ همراه با زمان، کاربر و جزئیات.</p>
+              <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ سایت</button>
               <div class="preview-panel" id="backup-log-results" aria-live="polite"><p class="preview-empty">هنوز رخدادی ثبت نشده است.</p></div>
             </article>
           </div>
@@ -1685,11 +1784,11 @@
                     <tbody id="entry-history-body"><tr><td colspan="4" class="preview-empty">هنوز ورودی ثبت نشده است.</td></tr></tbody>
                   </table>
                 </div>
-                <div class="entry-history-pagination">
-                  <button class="action-button secondary" id="entry-history-prev" type="button" disabled>قبلی</button>
-                  <span id="entry-history-page" aria-live="polite">صفحه ۱</span>
-                  <button class="action-button secondary" id="entry-history-next" type="button" disabled>بعدی</button>
-                </div>
+              </div>
+              <div class="entry-history-pagination">
+                <button class="action-button secondary" id="entry-history-prev" type="button" disabled>قبلی</button>
+                <span id="entry-history-page" aria-live="polite">صفحه ۱</span>
+                <button class="action-button secondary" id="entry-history-next" type="button" disabled>بعدی</button>
               </div>
             </article>
             <article class="settings-box entry-history-panel" data-history-permission="shipmentHistory">
@@ -1743,13 +1842,16 @@
                   <label for="new-user-password">رمز عبور</label>
                   <input id="new-user-password" name="password" type="password" autocomplete="new-password" required minlength="4" maxlength="100">
                 </div>
-                <div class="permission-options">
-                  <label><input id="permission-entry" type="checkbox" checked> دسترسی ورود کالا</label>
-                  <label><input id="permission-shipment" type="checkbox"> دسترسی ارسال کالا</label>
-                  <label><input id="permission-entry-history" type="checkbox"> مشاهده تاریخچه ورود</label>
-                  <label><input id="permission-shipment-history" type="checkbox"> مشاهده تاریخچه خروج</label>
-                  <label><input id="permission-manage-locations" type="checkbox"> مدیریت محل‌های ارسال</label>
-                </div>
+                <fieldset class="permission-fieldset">
+                  <legend>تعیین دسترسی‌ها</legend>
+                  <div class="permission-options">
+                    <label class="permission-option"><input id="permission-entry" type="checkbox" checked><span>ورود کالا</span></label>
+                    <label class="permission-option"><input id="permission-shipment" type="checkbox"><span>ارسال کالا</span></label>
+                    <label class="permission-option"><input id="permission-entry-history" type="checkbox"><span>تاریخچه ورود</span></label>
+                    <label class="permission-option"><input id="permission-shipment-history" type="checkbox"><span>تاریخچه خروج</span></label>
+                    <label class="permission-option"><input id="permission-manage-locations" type="checkbox"><span>مدیریت محل‌های ارسال</span></label>
+                  </div>
+                </fieldset>
                 <button class="action-button" type="submit">ایجاد کاربر</button>
                 <p class="feedback" id="management-feedback" role="status" aria-live="polite"></p>
               </form>
@@ -1759,6 +1861,13 @@
               <p>«ورود کالا» اجازه ثبت کالا، «ارسال کالا» اجازه ثبت ارسال، «مشاهده تاریخچه ورود» اجازه مشاهده سوابق ورود و «مشاهده تاریخچه خروج» اجازه مشاهده سوابق خروج را می‌دهد. این مجوزها مستقل از هم قابل انتخاب‌اند.</p>
               <p class="field-hint">حساب مدیر به همه بخش‌ها دسترسی دارد و از این فهرست حذف نمی‌شود.</p>
             </article>
+          </div>
+          <div class="managed-users-heading">
+            <div>
+              <h3>کاربران ثبت‌شده</h3>
+              <p>دسترسی‌ها را بررسی، مجوزها را ویرایش یا حساب را حذف کنید.</p>
+            </div>
+            <span id="managed-users-count" class="managed-users-count">۰ کاربر</span>
           </div>
           <div class="user-table-wrap">
             <table class="user-table" aria-label="فهرست کاربران و دسترسی‌ها">
@@ -1922,7 +2031,6 @@
     const inventoryFeedback = document.getElementById('inventory-feedback');
     const selectAllItems = document.getElementById('select-all-items');
     const deleteSelectedItemsButton = document.getElementById('delete-selected-items');
-    const deleteAllItemsButton = document.getElementById('delete-all-items');
     const openShipmentDialogButton = document.getElementById('open-shipment-dialog');
     const shipmentDialog = document.getElementById('shipment-dialog');
     const shipmentForm = document.getElementById('shipment-form');
@@ -2914,7 +3022,6 @@
       selectAllItems.disabled = inventoryItems.length === 0;
       deleteSelectedItemsButton.disabled = selectedCount === 0;
       deleteSelectedItemsButton.textContent = 'حذف انتخاب‌شده‌ها (' + toEnglishDigits(selectedCount) + ')';
-      deleteAllItemsButton.disabled = inventoryItems.length === 0;
     }
 
     selectAllItems.addEventListener('change', () => {
@@ -2947,23 +3054,6 @@
       saveInventory();
       renderInventory();
       inventoryFeedback.textContent = toEnglishDigits(beforeCount - inventoryItems.length) + ' کالای انتخاب‌شده حذف شد.';
-    });
-
-    deleteAllItemsButton.addEventListener('click', () => {
-      if (!inventoryItems.length) return;
-
-      const confirmed = window.confirm(
-        'هشدار: تمام ' + toEnglishDigits(inventoryItems.length) +
-        ' کالا حذف می‌شوند. این عمل قابل بازگشت نیست. آیا ادامه می‌دهید؟'
-      );
-      if (!confirmed) return;
-
-      const removedCount = inventoryItems.length;
-      inventoryItems.splice(0, inventoryItems.length);
-      selectedItemCodes.clear();
-      saveInventory();
-      renderInventory();
-      inventoryFeedback.textContent = 'تمام کالاها (' + toEnglishDigits(removedCount) + ') حذف شدند.';
     });
 
     function normLocation(v){return String(v||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('fa');}
