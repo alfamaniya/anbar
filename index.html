@@ -2104,7 +2104,15 @@
       };
       const records = loadEntryHistory();
       records.unshift(record);
-      if (saveEntryHistory(records)) renderEntryHistory();
+      if (saveEntryHistory(records)) {
+        renderEntryHistory();
+        const itemDetails = items.map(item =>
+          String(item.code || 'بدون کد') + ' (' + String(item.description || 'بدون شرح') + '): ' + toEnglishDigits(item.stock)
+        ).join('؛ ');
+        recordActivity('ثبت ورود کالا', 'شماره ورود: ' + record.entryNumber +
+          '؛ تعداد اقلام: ' + items.length + '؛ تعداد کل: ' + toEnglishDigits(record.pieceCount) +
+          '؛ جزئیات اقلام: ' + itemDetails);
+      }
     }
 
     function renderEntryHistory() {
@@ -2369,69 +2377,205 @@
       if(typeof shipmentDialog.close==='function'&&shipmentDialog.open)shipmentDialog.close();else shipmentDialog.removeAttribute('open');
     }
     function commitShipment(event) {
-      event.preventDefault();shipmentFeedback.textContent='';
-      const location=shipmentLocationInput.value.trim();
-      if(!location){shipmentFeedback.textContent='لطفاً محل ارسال را وارد کنید.';shipmentLocationInput.focus();return;}
-      const locationRows=loadShipmentLocations();let locationRow=locationRows.find(x=>normLocation(x.name)===normLocation(location));const sublocation=shipmentSublocationInput.value.trim();
-      if(locationRow&&locationRow.sublocations.length&&!sublocation){shipmentFeedback.textContent='برای این محل، زیرمجموعه را انتخاب یا وارد کنید.';shipmentSublocationInput.focus();return;}
-      if(!locationRow){locationRow={name:location,sublocations:[]};locationRows.push(locationRow);}if(sublocation&&!locationRow.sublocations.some(x=>normLocation(x)===normLocation(sublocation)))locationRow.sublocations.push(sublocation);saveShipmentLocations(locationRows);renderShipmentLocationOptions();
-      const quantities=[];
-      for(const input of shipmentItemsContainer.querySelectorAll('.shipment-quantity')){
-        const item=inventoryItems.find(candidate=>candidate.code===input.dataset.code);
-        const quantity=normalizeStock(input.value);
-        if(!item||!Number.isFinite(quantity)||quantity<=0||quantity>item.stock){
-          shipmentFeedback.textContent='تعداد ارسالی باید بیشتر از صفر و حداکثر برابر موجودی فعلی باشد. مقدار ردیف مشخص‌شده را اصلاح کنید.';input.focus();return;
-        }
-        quantities.push({item,quantity});
-      }
-      if(!quantities.length){shipmentFeedback.textContent='هیچ کالایی برای ارسال وجود ندارد.';return;}
-      const now=new Date(), generatedAt=solarDateTime(now), epoch=now.getTime(), existing=loadShipments();
-      const voucher=shipmentVoucherInput.value.trim()||makeShipmentNumber('حواله',now,epoch);
-      const exitNumber=shipmentExitInput.value.trim()||makeShipmentNumber('خروج',now,epoch+1);
-      if(existing.some(record=>record.voucherNumber===voucher)){shipmentFeedback.textContent='این شماره حواله قبلاً ثبت شده است. شماره دیگری وارد کنید.';shipmentVoucherInput.focus();return;}
-      if(existing.some(record=>record.exitNumber===exitNumber)){shipmentFeedback.textContent='این شماره خروج قبلاً ثبت شده است. شماره دیگری وارد کنید.';shipmentExitInput.focus();return;}
-      const shipment={id:'shipment-'+epoch,date:generatedAt.date,time:generatedAt.time,timestamp:now.toISOString(),location,sublocation,voucherNumber:voucher,exitNumber,items:quantities.map(({item,quantity})=>({code:item.code,description:item.description,quantity}))};
-      if(!saveShipments([shipment,...existing]))return;
-      quantities.forEach(({item,quantity})=>{item.stock=Number((item.stock-quantity).toFixed(8));item.sendQuantity='';});
-      if(!saveInventory()){
-        quantities.forEach(({item,quantity})=>{item.stock=Number((item.stock+quantity).toFixed(8));item.sendQuantity=quantity;});
-        saveShipments(existing);renderInventory();shipmentFeedback.textContent='ذخیره موجودی انجام نشد؛ ارسال ثبت نشد. دوباره تلاش کنید.';return;
-      }
-      recordActivity('ثبت ارسال کالا','محل: '+location+'؛ شماره حواله: '+voucher+'؛ شماره خروج: '+exitNumber+'؛ تعداد ردیف کالا: '+quantities.length);
-      selectedItemCodes.clear();renderInventory();renderShipmentHistory();closeShipmentDialog();
-      inventoryFeedback.textContent='ارسال با موفقیت ثبت شد. شماره حواله: '+voucher+'؛ شماره خروج: '+exitNumber;
-    }
+      event.preventDefault();
+      shipmentFeedback.textContent = '';
 
+      const location = shipmentLocationInput.value.trim();
+      const sublocation = shipmentSublocationInput.value.trim();
+      if (!location) {
+        shipmentFeedback.textContent = 'لطفاً محل ارسال را وارد کنید.';
+        shipmentLocationInput.focus();
+        return;
+      }
+
+      const quantities = [];
+      for (const input of shipmentItemsContainer.querySelectorAll('.shipment-quantity')) {
+        const item = inventoryItems.find(candidate => candidate.code === input.dataset.code);
+        const quantity = normalizeStock(input.value);
+        if (!item || !Number.isFinite(quantity) || quantity <= 0 || quantity > item.stock) {
+          shipmentFeedback.textContent = 'تعداد ارسالی باید بیشتر از صفر و حداکثر برابر موجودی فعلی باشد. مقدار ردیف مشخص‌شده را اصلاح کنید.';
+          input.focus();
+          return;
+        }
+        quantities.push({ item, quantity });
+      }
+      if (!quantities.length) {
+        shipmentFeedback.textContent = 'هیچ کالایی برای ارسال وجود ندارد.';
+        return;
+      }
+
+      const now = new Date();
+      const generatedAt = solarDateTime(now);
+      const epoch = now.getTime();
+      const existingShipments = loadShipments();
+      const voucher = shipmentVoucherInput.value.trim() || makeShipmentNumber('حواله', now, epoch);
+      const exitNumber = shipmentExitInput.value.trim() || makeShipmentNumber('خروج', now, epoch + 1);
+
+      if (existingShipments.some(record => record.voucherNumber === voucher)) {
+        shipmentFeedback.textContent = 'این شماره حواله قبلاً ثبت شده است. شماره دیگری وارد کنید.';
+        shipmentVoucherInput.focus();
+        return;
+      }
+      if (existingShipments.some(record => record.exitNumber === exitNumber)) {
+        shipmentFeedback.textContent = 'این شماره خروج قبلاً ثبت شده است. شماره دیگری وارد کنید.';
+        shipmentExitInput.focus();
+        return;
+      }
+
+      const previousLocations = loadShipmentLocations();
+      const nextLocations = previousLocations.map(item => ({
+        name: item.name,
+        sublocations: [...item.sublocations]
+      }));
+      let locationRecord = nextLocations.find(item => normLocation(item.name) === normLocation(location));
+      const isNewLocation = !locationRecord;
+      if (!locationRecord) {
+        locationRecord = { name: location, sublocations: [] };
+        nextLocations.push(locationRecord);
+      }
+
+      if (locationRecord.sublocations.length && !sublocation) {
+        shipmentFeedback.textContent = 'برای این محل، زیرمجموعه را انتخاب یا وارد کنید.';
+        shipmentSublocationInput.focus();
+        return;
+      }
+      const isNewSublocation = Boolean(sublocation) &&
+        !locationRecord.sublocations.some(item => normLocation(item) === normLocation(sublocation));
+      if (isNewSublocation) locationRecord.sublocations.push(sublocation);
+      if (!saveShipmentLocations(nextLocations)) {
+        shipmentFeedback.textContent = 'ذخیره محل ارسال ممکن نشد؛ ارسال ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید.';
+        return;
+      }
+
+      const shipment = {
+        id: 'shipment-' + epoch,
+        date: generatedAt.date,
+        time: generatedAt.time,
+        timestamp: now.toISOString(),
+        location,
+        sublocation,
+        voucherNumber: voucher,
+        exitNumber,
+        items: quantities.map(({ item, quantity }) => ({
+          code: item.code,
+          description: item.description,
+          quantity
+        }))
+      };
+
+      if (!saveShipments([shipment, ...existingShipments])) {
+        saveShipmentLocations(previousLocations);
+        return;
+      }
+
+      quantities.forEach(({ item, quantity }) => {
+        item.stock = Number((item.stock - quantity).toFixed(8));
+        item.sendQuantity = '';
+      });
+
+      if (!saveInventory()) {
+        quantities.forEach(({ item, quantity }) => {
+          item.stock = Number((item.stock + quantity).toFixed(8));
+          item.sendQuantity = quantity;
+        });
+        saveShipments(existingShipments);
+        saveShipmentLocations(previousLocations);
+        renderShipmentLocationOptions();
+        renderLocationManager();
+        renderInventory();
+        shipmentFeedback.textContent = 'ذخیره موجودی انجام نشد؛ ارسال ثبت نشد. دوباره تلاش کنید.';
+        return;
+      }
+
+      const itemDetails = quantities.map(({ item, quantity }) =>
+        item.code + ' (' + item.description + '): ' + toEnglishDigits(quantity)
+      ).join('؛ ');
+      if (isNewLocation || isNewSublocation) {
+        recordActivity(isNewLocation ? 'ثبت خودکار محل ارسال' : 'افزودن زیرمجموعه محل ارسال',
+          'محل: «' + location + '»؛ زیرمجموعه: «' + (sublocation || 'ندارد') + '»؛ محل در جریان ارسال ذخیره شد.');
+      }
+      recordActivity('ثبت ارسال کالا',
+        'محل: «' + location + '»؛ زیرمجموعه: «' + (sublocation || 'ندارد') +
+        '»؛ شماره حواله: ' + voucher + '؛ شماره خروج: ' + exitNumber +
+        '؛ تعداد ردیف: ' + quantities.length + '؛ جزئیات کالاها: ' + itemDetails);
+
+      renderShipmentLocationOptions();
+      renderLocationManager();
+      selectedItemCodes.clear();
+      renderInventory();
+      renderShipmentHistory();
+      closeShipmentDialog();
+      inventoryFeedback.textContent = 'ارسال با موفقیت ثبت شد. شماره حواله: ' + voucher + '؛ شماره خروج: ' + exitNumber;
+      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+    }
 
     function recordActivity(action, details) {
       try {
+        const now = new Date();
         const logs = loadActivityLog();
-        logs.unshift({ action, details, timestamp: new Date().toISOString(), solarDate: new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) });
-        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(logs.slice(0, 500)));
-      } catch (error) { /* keep inventory actions usable if log storage is unavailable */ }
+        logs.unshift({
+          action: String(action || 'تغییر نامشخص'),
+          details: String(details || 'جزئیاتی ثبت نشده است.'),
+          actor: currentSession && currentSession.username ? currentSession.username : 'سیستم',
+          timestamp: now.toISOString(),
+          solarDate: new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+            year: 'numeric', month: '2-digit', day: '2-digit'
+          }).format(now)
+        });
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(logs.slice(0, 1000)));
+      } catch (error) {
+        /* ثبت لاگ نباید مانع ادامه عملیات اصلی شود. */
+      }
     }
+
     function renderActivityResults(target, logs, emptyText) {
       target.replaceChildren();
-      if (!logs.length) { const p = document.createElement('p'); p.className = 'preview-empty'; p.textContent = emptyText; target.append(p); return; }
-      const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap bulk-preview-scroll';
-      const { table, tbody } = createDataTable(['تاریخ و ساعت', 'عملیات', 'جزئیات'], 'settings-log-table');
-      logs.slice(0, 100).forEach(log => {
-        const tr = document.createElement('tr');
+      if (!logs.length) {
+        const empty = document.createElement('p');
+        empty.className = 'preview-empty';
+        empty.textContent = emptyText;
+        target.append(empty);
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-table-wrap bulk-preview-scroll';
+      const { table, tbody } = createDataTable(['تاریخ و ساعت', 'کاربر', 'عملیات', 'جزئیات'], 'settings-log-table');
+
+      logs.slice(0, 1000).forEach(log => {
+        const row = document.createElement('tr');
         const dateCell = document.createElement('td');
         const timestamp = log.timestamp ? new Date(log.timestamp) : null;
         if (timestamp && Number.isFinite(timestamp.getTime())) {
           const dateTime = solarDateTime(timestamp);
-          const date = document.createElement('span'); date.className = 'date-part'; date.textContent = dateTime.date;
-          const time = document.createElement('span'); time.className = 'time-part'; time.textContent = dateTime.time;
-          dateCell.className = 'date-time-cell'; dateCell.append(date, time); dateCell.dataset.sortValue = log.timestamp;
-        } else { dateCell.textContent = log.solarDate || '—'; }
-        const actionCell = document.createElement('td'); actionCell.textContent = log.action || '—';
-        const detailsCell = document.createElement('td'); detailsCell.textContent = log.details || '—';
-        tr.append(dateCell, actionCell, detailsCell); tbody.append(tr);
+          const date = document.createElement('span');
+          date.className = 'date-part';
+          date.textContent = dateTime.date;
+          const time = document.createElement('span');
+          time.className = 'time-part';
+          time.textContent = dateTime.time;
+          dateCell.className = 'date-time-cell';
+          dateCell.append(date, time);
+          dateCell.dataset.sortValue = log.timestamp;
+        } else {
+          dateCell.textContent = log.solarDate || '—';
+        }
+
+        const actorCell = document.createElement('td');
+        actorCell.textContent = log.actor || '—';
+        const actionCell = document.createElement('td');
+        actionCell.textContent = log.action || '—';
+        const detailsCell = document.createElement('td');
+        detailsCell.textContent = log.details || '—';
+        row.append(dateCell, actorCell, actionCell, detailsCell);
+        tbody.append(row);
       });
-      wrapper.append(table); target.append(wrapper);
+
+      wrapper.append(table);
+      target.append(wrapper);
       enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'desc' });
     }
+
     const bulkPreview = document.getElementById('bulk-preview');
     const excelPreview = document.getElementById('excel-preview');
     const singlePreview = document.getElementById('single-preview');
@@ -2475,6 +2619,12 @@
     }
 
     const inventoryItems = loadInventory();
+
+    document.getElementById('clear-inventory-search').addEventListener('click', () => {
+      inventorySearchInput.value = '';
+      renderInventory();
+      inventorySearchInput.focus();
+    });
 
     function saveInventory() {
       try {
@@ -3046,23 +3196,164 @@
       );
       if (!confirmed) return;
 
+      const removedItems = inventoryItems.filter(item => codesToDelete.has(item.code));
       const beforeCount = inventoryItems.length;
       for (let index = inventoryItems.length - 1; index >= 0; index -= 1) {
         if (codesToDelete.has(inventoryItems[index].code)) inventoryItems.splice(index, 1);
       }
       selectedItemCodes.clear();
-      saveInventory();
+      if (saveInventory()) {
+        recordActivity('حذف کالاهای انتخاب‌شده',
+          'تعداد حذف‌شده: ' + toEnglishDigits(beforeCount - inventoryItems.length) +
+          '؛ اقلام: ' + removedItems.map(item => item.code + ' (' + item.description + ')؛ موجودی: ' + toEnglishDigits(item.stock)).join('؛ '));
+      }
       renderInventory();
       inventoryFeedback.textContent = toEnglishDigits(beforeCount - inventoryItems.length) + ' کالای انتخاب‌شده حذف شد.';
     });
 
-    function normLocation(v){return String(v||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('fa');}
-    function loadShipmentLocations(){try{const a=JSON.parse(localStorage.getItem(LOCATION_KEY)||'[]');return Array.isArray(a)?a.filter(x=>x&&x.name).map(x=>({name:String(x.name),sublocations:Array.isArray(x.sublocations)?x.sublocations.map(String):[]})):[];}catch(e){return[];}}
-    function saveShipmentLocations(a){try{localStorage.setItem(LOCATION_KEY,JSON.stringify(a));return true;}catch(e){return false;}}
-    function renderShipmentLocationOptions(){const l=document.getElementById('shipment-location-options');l.replaceChildren();loadShipmentLocations().forEach(x=>{const o=document.createElement('option');o.value=x.name;l.append(o);});updateShipmentSublocations();}
-    function updateShipmentSublocations(){const r=loadShipmentLocations().find(x=>normLocation(x.name)===normLocation(shipmentLocationInput.value));const l=document.getElementById('shipment-sublocation-options');l.replaceChildren();(r?r.sublocations:[]).forEach(x=>{const o=document.createElement('option');o.value=x;l.append(o);});shipmentSublocationGroup.hidden=!(r&&r.sublocations.length);if(!r||!r.sublocations.length)shipmentSublocationInput.value='';}
-    function renderLocationManager(){const root=document.getElementById('location-manager-list');root.replaceChildren();const rows=loadShipmentLocations();if(!rows.length){root.textContent='هنوز محل ارسالی ثبت نشده است.';return;}rows.forEach(r=>{const p=document.createElement('p');p.textContent=r.name+' — زیرمجموعه‌ها: '+(r.sublocations.join('، ')||'ندارد');const b=document.createElement('button');b.type='button';b.className='action-button secondary';b.textContent='حذف محل';b.onclick=()=>{if(!confirm('محل و زیرمجموعه‌هایش حذف شوند؟'))return;saveShipmentLocations(loadShipmentLocations().filter(x=>normLocation(x.name)!==normLocation(r.name)));renderLocationManager();renderShipmentLocationOptions();};p.append(b);root.append(p);});}
-    document.getElementById('location-create-form').addEventListener('submit',e=>{e.preventDefault();if(!currentSession||(currentSession.role!=='admin'&&!currentSession.permissions.manageLocations))return;const name=document.getElementById('new-location-name').value.trim(),subs=document.getElementById('new-location-subs').value.split(',').map(x=>x.trim()).filter(Boolean),rows=loadShipmentLocations(),fb=document.getElementById('location-manager-feedback');if(!name){fb.textContent='نام محل الزامی است.';return;}if(rows.some(x=>normLocation(x.name)===normLocation(name))){fb.textContent='این محل قبلاً ثبت شده است.';return;}rows.push({name,sublocations:[...new Set(subs)]});if(saveShipmentLocations(rows)){e.target.reset();fb.textContent='محل ارسال ذخیره شد.';renderLocationManager();renderShipmentLocationOptions();}});
+    function normLocation(value) {
+      return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fa');
+    }
+
+    function loadShipmentLocations() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(LOCATION_KEY) || '[]');
+        return Array.isArray(stored)
+          ? stored.filter(item => item && item.name).map(item => ({
+              name: String(item.name),
+              sublocations: Array.isArray(item.sublocations) ? item.sublocations.map(String) : []
+            }))
+          : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveShipmentLocations(locations) {
+      try {
+        localStorage.setItem(LOCATION_KEY, JSON.stringify(locations));
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    function renderShipmentLocationOptions() {
+      const list = document.getElementById('shipment-location-options');
+      list.replaceChildren();
+      loadShipmentLocations().forEach(location => {
+        const option = document.createElement('option');
+        option.value = location.name;
+        list.append(option);
+      });
+      updateShipmentSublocations();
+    }
+
+    function updateShipmentSublocations() {
+      const selectedLocation = loadShipmentLocations().find(item =>
+        normLocation(item.name) === normLocation(shipmentLocationInput.value)
+      );
+      const list = document.getElementById('shipment-sublocation-options');
+      list.replaceChildren();
+      (selectedLocation ? selectedLocation.sublocations : []).forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        list.append(option);
+      });
+      shipmentSublocationGroup.hidden = !(selectedLocation && selectedLocation.sublocations.length);
+      if (!selectedLocation || !selectedLocation.sublocations.length) {
+        shipmentSublocationInput.value = '';
+      }
+    }
+
+    function renderLocationManager() {
+      const root = document.getElementById('location-manager-list');
+      if (!root) return;
+      root.replaceChildren();
+
+      const locations = loadShipmentLocations();
+      if (!locations.length) {
+        const empty = document.createElement('p');
+        empty.className = 'location-list-empty';
+        empty.textContent = 'هنوز محل ارسالی ذخیره نشده است.';
+        root.append(empty);
+        return;
+      }
+
+      locations.forEach(location => {
+        const row = document.createElement('article');
+        row.className = 'location-record';
+
+        const details = document.createElement('div');
+        details.className = 'location-record-details';
+        const title = document.createElement('h6');
+        title.textContent = location.name;
+        const sublocations = document.createElement('p');
+        sublocations.textContent = 'زیرمجموعه‌ها: ' + (location.sublocations.join('، ') || 'ندارد');
+        details.append(title, sublocations);
+
+        const removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.className = 'action-button secondary location-delete-button';
+        removeButton.textContent = 'حذف محل';
+        removeButton.setAttribute('aria-label', 'حذف محل ' + location.name);
+        removeButton.addEventListener('click', () => {
+          if (!window.confirm('محل «' + location.name + '» و زیرمجموعه‌های آن از فهرست محل‌های ذخیره‌شده حذف شود؟ سوابق ارسال قبلی حذف نمی‌شوند.')) return;
+          const remainingLocations = loadShipmentLocations().filter(item =>
+            normLocation(item.name) !== normLocation(location.name)
+          );
+          if (!saveShipmentLocations(remainingLocations)) {
+            document.getElementById('location-manager-feedback').textContent =
+              'حذف محل انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
+            return;
+          }
+          recordActivity('حذف محل ارسال',
+            'محل: «' + location.name + '»؛ زیرمجموعه‌ها: ' +
+            (location.sublocations.join('، ') || 'ندارد') + '؛ سوابق ارسال قبلی حفظ شدند.');
+          document.getElementById('location-manager-feedback').textContent = 'محل انتخاب‌شده حذف شد.';
+          renderLocationManager();
+          renderShipmentLocationOptions();
+          renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+        });
+
+        row.append(details, removeButton);
+        root.append(row);
+      });
+    }
+
+    document.getElementById('location-create-form').addEventListener('submit', event => {
+      event.preventDefault();
+      if (!currentSession || (currentSession.role !== 'admin' && !currentSession.permissions.manageLocations)) return;
+
+      const name = document.getElementById('new-location-name').value.trim();
+      const sublocations = [...new Set(document.getElementById('new-location-subs').value.split(',').map(value => value.trim()).filter(Boolean))];
+      const locations = loadShipmentLocations();
+      const feedback = document.getElementById('location-manager-feedback');
+
+      if (!name) {
+        feedback.textContent = 'نام محل الزامی است.';
+        return;
+      }
+      if (locations.some(item => normLocation(item.name) === normLocation(name))) {
+        feedback.textContent = 'این محل قبلاً ثبت شده است. برای افزودن زیرمجموعه، محل را هنگام ارسال انتخاب کنید.';
+        return;
+      }
+
+      locations.push({ name, sublocations });
+      if (!saveShipmentLocations(locations)) {
+        feedback.textContent = 'ذخیره محل انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
+        return;
+      }
+
+      recordActivity('ثبت محل ارسال',
+        'محل: «' + name + '»؛ زیرمجموعه‌ها: ' + (sublocations.join('، ') || 'ندارد') + '؛ منبع ثبت: مدیریت محل‌ها.');
+      event.target.reset();
+      feedback.textContent = 'محل ارسال ذخیره شد و در ارسال‌های بعدی قابل انتخاب است.';
+      renderLocationManager();
+      renderShipmentLocationOptions();
+      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+    });
+
     renderLocationManager();
     shipmentLocationInput.addEventListener('input',updateShipmentSublocations);shipmentLocationInput.addEventListener('change',updateShipmentSublocations);renderShipmentLocationOptions();
     openShipmentDialogButton.addEventListener('click', openShipmentDialog);
