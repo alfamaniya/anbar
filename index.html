@@ -1110,9 +1110,10 @@
               </div>
             </article>
             <article class="settings-box">
-              <h4>بکاپ دستی فایل JSON</h4>
-              <p>از کالاها، تاریخچه ورود و ارسال و لاگ فعالیت یک فایل پشتیبان دریافت کنید.</p>
-              <button class="action-button" id="download-json-backup" type="button">دریافت فایل بکاپ JSON</button>
+              <h4>بکاپ خودکار فایل JSON</h4>
+              <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
+              <button class="action-button" id="choose-backup-folder" type="button">انتخاب محل ذخیره بکاپ</button>
+              <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
               <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
             </article>
             <article class="settings-box">
@@ -2534,24 +2535,117 @@
     renderSinglePreview();
     openSection('section-1');
   
-    document.getElementById('download-json-backup').addEventListener('click', () => {
-      const payload = {
+    const backupFolderButton = document.getElementById('choose-backup-folder');
+    const backupFolderStatus = document.getElementById('backup-folder-status');
+    const backupFeedback = document.getElementById('backup-feedback');
+    const BACKUP_HANDLE_DB = 'anbar-backup-handle-db';
+    const BACKUP_HANDLE_STORE = 'handles';
+    let backupDirectoryHandle = null;
+    let backupWriteTimer = null;
+    let backupWriteInProgress = false;
+
+    function openBackupHandleDatabase() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(BACKUP_HANDLE_DB, 1);
+        request.onupgradeneeded = () => request.result.createObjectStore(BACKUP_HANDLE_STORE);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+    async function storeBackupDirectoryHandle(handle) {
+      const db = await openBackupHandleDatabase();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(BACKUP_HANDLE_STORE, 'readwrite');
+        tx.objectStore(BACKUP_HANDLE_STORE).put(handle, 'directory');
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    }
+    async function loadBackupDirectoryHandle() {
+      const db = await openBackupHandleDatabase();
+      const handle = await new Promise((resolve, reject) => {
+        const request = db.transaction(BACKUP_HANDLE_STORE, 'readonly').objectStore(BACKUP_HANDLE_STORE).get('directory');
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+      db.close();
+      return handle;
+    }
+    function getSolarBackupFileName(date = new Date()) {
+      const parts = new Intl.DateTimeFormat('en-u-ca-persian', { year: 'numeric', month: '2-digit' }).formatToParts(date);
+      const year = parts.find(part => part.type === 'year')?.value;
+      const month = parts.find(part => part.type === 'month')?.value;
+      return 'anbar-backup-' + year + '-' + month + '.json';
+    }
+    function buildBackupPayload() {
+      return {
         exportedAt: new Date().toISOString(),
         inventory: inventoryItems,
         entryHistory: loadEntryHistory(),
         shipments: loadShipments(),
         activityLog: loadActivityLog()
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'anbar-backup-' + new Date().toISOString().slice(0, 10) + '.json';
-      link.click();
-      URL.revokeObjectURL(url);
-      document.getElementById('backup-feedback').textContent = 'فایل بکاپ JSON آماده شد.';
-      recordActivity('بکاپ دستی JSON', 'فایل پشتیبان دانلود شد');
+    }
+    async function writeAutomaticBackup() {
+      if (!backupDirectoryHandle || backupWriteInProgress) return;
+      backupWriteInProgress = true;
+      try {
+        let permission = await backupDirectoryHandle.queryPermission({ mode: 'readwrite' });
+        if (permission !== 'granted') permission = await backupDirectoryHandle.requestPermission({ mode: 'readwrite' });
+        if (permission !== 'granted') {
+          backupFolderStatus.textContent = 'دسترسی نوشتن تأیید نشده است؛ برای ادامه، محل ذخیره را دوباره انتخاب کنید.';
+          return;
+        }
+        const fileHandle = await backupDirectoryHandle.getFileHandle(getSolarBackupFileName(), { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(new Blob([JSON.stringify(buildBackupPayload(), null, 2)], { type: 'application/json;charset=utf-8' }));
+        await writable.close();
+        backupFolderStatus.textContent = 'بکاپ خودکار فعال است؛ فایل ' + getSolarBackupFileName() + ' در پوشه انتخاب‌شده به‌روزرسانی شد.';
+        backupFeedback.textContent = 'آخرین بکاپ با موفقیت ذخیره شد.';
+      } catch (error) {
+        backupFeedback.textContent = 'ذخیره خودکار انجام نشد. دسترسی پوشه را بررسی کنید و دوباره محل ذخیره را انتخاب کنید.';
+      } finally {
+        backupWriteInProgress = false;
+      }
+    }
+    function scheduleAutomaticBackup() {
+      if (!backupDirectoryHandle) return;
+      clearTimeout(backupWriteTimer);
+      backupWriteTimer = setTimeout(writeAutomaticBackup, 350);
+    }
+    backupFolderButton.addEventListener('click', async () => {
+      if (!('showDirectoryPicker' in window)) {
+        backupFeedback.textContent = 'این مرورگر انتخاب پوشه و نوشتن خودکار در فایل را پشتیبانی نمی‌کند. از نسخه به‌روز Chrome یا Edge روی رایانه استفاده کنید.';
+        return;
+      }
+      try {
+        backupDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        await storeBackupDirectoryHandle(backupDirectoryHandle);
+        backupFolderStatus.textContent = 'محل ذخیره انتخاب شد؛ در حال ساخت بکاپ اولیه...';
+        await writeAutomaticBackup();
+        recordActivity('تنظیم بکاپ خودکار', 'محل ذخیره بکاپ تعیین شد');
+      } catch (error) {
+        if (error && error.name !== 'AbortError') backupFeedback.textContent = 'انتخاب محل ذخیره ناموفق بود؛ دوباره تلاش کنید.';
+      }
     });
+    (async () => {
+      try {
+        backupDirectoryHandle = await loadBackupDirectoryHandle();
+        if (backupDirectoryHandle) {
+          backupFolderStatus.textContent = 'محل ذخیره قبلی پیدا شد؛ برای فعال‌شدن دسترسی، دکمه انتخاب محل ذخیره را بزنید.';
+        }
+      } catch (error) {
+        backupFolderStatus.textContent = 'برای فعال‌کردن بکاپ خودکار، محل ذخیره را انتخاب کنید.';
+      }
+    })();
+
+    // هر نوشتن موفق در ذخیره‌سازی برنامه، بکاپ فایل را نیز به‌روزرسانی می‌کند.
+    const originalLocalStorageSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      originalLocalStorageSetItem.call(this, key, value);
+      if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY].includes(String(key))) scheduleAutomaticBackup();
+    };
     const restoreFileInput = document.getElementById('restore-json-file');
     const restoreBackupButton = document.getElementById('restore-json-backup');
     const restoreFeedback = document.getElementById('restore-feedback');
