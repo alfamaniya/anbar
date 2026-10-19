@@ -2057,17 +2057,37 @@
         wrapper.append(table); section.append(wrapper); duplicateDialogDetails.append(section);
         enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
       });
-      existingDuplicates.forEach(entry => {
-        const section = document.createElement('section'); section.className = 'duplicate-group';
+      if (existingDuplicates.length) {
+        const section = document.createElement('section');
+        section.className = 'duplicate-group';
         const heading = document.createElement('h4');
-        heading.textContent = 'کد موجود در انبار: ' + entry.code;
-        const details = document.createElement('p');
-        details.textContent = 'شرح فعلی: ' + entry.existing.description + '؛ موجودی فعلی: ' +
-          toEnglishDigits(entry.existing.stock) + '؛ شرح ورودی: ' + entry.incoming.description +
-          '؛ موجودی پیشنهادی: ' + toEnglishDigits(entry.incoming.stock);
-        section.append(heading, details);
+        heading.textContent = 'مقایسه موجودی فعلی با اطلاعات ورودی';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'preview-table-wrap bulk-preview-scroll';
+        const { table, tbody } = createDataTable(
+          ['کد تدارکاتی', 'شرح فعلی کالا', 'موجودی فعلی', 'شرح ورودی', 'موجودی پیشنهادی'],
+          'inventory-discrepancy-table'
+        );
+        existingDuplicates.forEach(entry => {
+          const tr = document.createElement('tr');
+          [
+            entry.code,
+            entry.existing.description,
+            toEnglishDigits(entry.existing.stock),
+            entry.incoming.description,
+            toEnglishDigits(entry.incoming.stock)
+          ].forEach(value => {
+            const td = document.createElement('td');
+            td.textContent = String(value ?? '');
+            tr.append(td);
+          });
+          tbody.append(tr);
+        });
+        wrapper.append(table);
+        section.append(heading, wrapper);
         duplicateDialogDetails.append(section);
-      });
+        enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
+      }
       if (typeof duplicateDialog.showModal === 'function') duplicateDialog.showModal();
       else alert(duplicateGroups.map(group =>
         'کد تدارکاتی ' + group[0].code + ': ' +
