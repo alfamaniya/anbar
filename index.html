@@ -1147,12 +1147,13 @@
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <dialog class="duplicate-dialog" id="duplicate-dialog" aria-labelledby="duplicate-dialog-title">
     <div class="duplicate-dialog-header">
-      <h3 id="duplicate-dialog-title">خطای کد تدارکاتی تکراری</h3>
+      <h3 id="duplicate-dialog-title">بررسی اقلام تکراری پیش از ورود</h3>
       <button class="action-button secondary duplicate-close" id="duplicate-dialog-x" type="button" aria-label="بستن پنجره">بستن ✕</button>
     </div>
     <div class="duplicate-dialog-body" id="duplicate-dialog-details"></div>
     <div class="duplicate-dialog-footer">
-      <button class="action-button duplicate-close" id="duplicate-dialog-ok" type="button">متوجه شدم</button>
+      <button class="action-button secondary" id="duplicate-import-cancel" type="button">انصراف از ورود</button>
+      <button class="action-button" id="duplicate-import-confirm" type="button">تأیید و ادامه ورود</button>
     </div>
   </dialog>
 
@@ -2032,12 +2033,13 @@
     document.getElementById('import-error-close').addEventListener('click', closeImportErrorDialog);
     document.getElementById('import-error-ok').addEventListener('click', closeImportErrorDialog);
 
-    function showDuplicateError(duplicateGroups) {
-      if (!duplicateGroups.length) return;
+    function showDuplicateError(duplicateGroups, existingDuplicates = []) {
+      if (!duplicateGroups.length && !existingDuplicates.length) return;
       duplicateDialogDetails.replaceChildren();
       const summary = document.createElement('p');
-      summary.textContent = 'در داده‌های ورودی، ' + toEnglishDigits(duplicateGroups.length) +
-        ' کد تدارکاتی تکراری شناسایی شد. آخرین ردیف معتبر هر کد ملاک اطلاعات نهایی خواهد بود. برای مرتب‌سازی روی عنوان ستون بزنید.';
+      summary.textContent = 'پیش از ثبت، ' + toEnglishDigits(duplicateGroups.length) +
+        ' کد تکراری در داده‌های ورودی و ' + toEnglishDigits(existingDuplicates.length) +
+        ' کد موجود در انبار شناسایی شد. تا زمانی که «تأیید و ادامه ورود» را نزنید، هیچ موجودی یا اطلاعاتی تغییر نمی‌کند.';
       duplicateDialogDetails.append(summary);
       duplicateGroups.forEach(group => {
         const section = document.createElement('section'); section.className = 'duplicate-group';
@@ -2056,6 +2058,17 @@
         wrapper.append(table); section.append(wrapper); duplicateDialogDetails.append(section);
         enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
       });
+      existingDuplicates.forEach(entry => {
+        const section = document.createElement('section'); section.className = 'duplicate-group';
+        const heading = document.createElement('h4');
+        heading.textContent = 'کد موجود در انبار: ' + entry.code;
+        const details = document.createElement('p');
+        details.textContent = 'شرح فعلی: ' + entry.existing.description + '؛ موجودی فعلی: ' +
+          toEnglishDigits(entry.existing.stock) + '؛ شرح ورودی: ' + entry.incoming.description +
+          '؛ موجودی پیشنهادی: ' + toEnglishDigits(entry.incoming.stock);
+        section.append(heading, details);
+        duplicateDialogDetails.append(section);
+      });
       if (typeof duplicateDialog.showModal === 'function') duplicateDialog.showModal();
       else alert(duplicateGroups.map(group =>
         'کد تدارکاتی ' + group[0].code + ': ' +
@@ -2068,7 +2081,19 @@
     }
 
     document.getElementById('duplicate-dialog-x').addEventListener('click', closeDuplicateDialog);
-    document.getElementById('duplicate-dialog-ok').addEventListener('click', closeDuplicateDialog);
+    let pendingImportConfirmation = null;
+    document.getElementById('duplicate-dialog-ok')?.addEventListener('click', closeDuplicateDialog);
+    document.getElementById('duplicate-import-cancel').addEventListener('click', () => {
+      pendingImportConfirmation = null;
+      closeDuplicateDialog();
+      inputFeedback.textContent = 'ورود لغو شد؛ اطلاعات انبار تغییری نکرد.';
+    });
+    document.getElementById('duplicate-import-confirm').addEventListener('click', () => {
+      const confirm = pendingImportConfirmation;
+      pendingImportConfirmation = null;
+      closeDuplicateDialog();
+      if (confirm) confirm();
+    });
     duplicateDialog.addEventListener('click', event => {
       if (event.target === duplicateDialog) closeDuplicateDialog();
     });
@@ -2405,21 +2430,39 @@
         inputFeedback.textContent = 'هیچ ردیف معتبری برای ثبت وجود ندارد؛ اطلاعات را اصلاح کنید.';
         return;
       }
-      const result = addOrUpdateItems(validRows);
-      showImportResult(result, inputFeedback);
-      if (invalidRows.length) showImportErrors(combinedRows);
-      else showDuplicateError(duplicateGroups);
-      pendingExcelRows = [];
-      pendingClipboardRows = [];
-      itemFormInputs.code.value = '';
-      itemFormInputs.description.value = '';
-      itemFormInputs.stock.value = '';
-      pastedDataInput.value = '';
-      renderBulkPreview([], 'داده‌های کپی‌شده', bulkPreview);
-      renderBulkPreview([], 'فایل اکسل', excelPreview);
-      renderSinglePreview();
-      renderSharedInputPreview();
-      importPreviewButton.disabled = true;
+
+      const uniqueRows = new Map();
+      validRows.forEach(row => {
+        const item = normalizeRow(row);
+        uniqueRows.set(item.code, item);
+      });
+      const existingDuplicates = [...uniqueRows.values()]
+        .map(incoming => ({ incoming, existing: inventoryItems.find(current => current.code === incoming.code) }))
+        .filter(entry => entry.existing);
+
+      const commitImport = () => {
+        const result = addOrUpdateItems(validRows);
+        showImportResult(result, inputFeedback);
+        if (invalidRows.length) showImportErrors(combinedRows);
+        pendingExcelRows = [];
+        pendingClipboardRows = [];
+        itemFormInputs.code.value = '';
+        itemFormInputs.description.value = '';
+        itemFormInputs.stock.value = '';
+        pastedDataInput.value = '';
+        renderBulkPreview([], 'داده‌های کپی‌شده', bulkPreview);
+        renderBulkPreview([], 'فایل اکسل', excelPreview);
+        renderSinglePreview();
+        renderSharedInputPreview();
+        importPreviewButton.disabled = true;
+      };
+
+      if (duplicateGroups.length || existingDuplicates.length) {
+        pendingImportConfirmation = commitImport;
+        showDuplicateError(duplicateGroups, existingDuplicates);
+        return;
+      }
+      commitImport();
     });
 
     pastedDataInput.addEventListener('input', () => {
