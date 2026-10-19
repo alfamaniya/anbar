@@ -1060,12 +1060,12 @@
               <div class="entry-history-table-wrap">
                 <table class="preview-table entry-history-table shipment-history-table">
                   <thead><tr>
-                    <th><button class="entry-sort-button" type="button" data-shipment-sort="voucherNumber">شماره حواله ↕</button></th>
-                    <th><button class="entry-sort-button" type="button" data-shipment-sort="exitNumber">شماره خروج ↕</button></th>
-                    <th><button class="entry-sort-button" type="button" data-shipment-sort="date">تاریخ ↕</button></th>
-                    <th><button class="entry-sort-button" type="button" data-shipment-sort="location">محل ارسال ↕</button></th>
-                    <th><button class="entry-sort-button" type="button" data-shipment-sort="itemCount">تعداد اقلام ↕</button></th>
-                    <th><button class="entry-sort-button" type="button" data-shipment-sort="pieceCount">تعداد قطعه ↕</button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="voucherNumber">شماره حواله <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="exitNumber">شماره خروج <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="date">تاریخ <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="location">محل ارسال <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="itemCount">تعداد اقلام <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="pieceCount">تعداد قطعه <span aria-hidden="true">↕</span></button></th>
                   </tr></thead>
                   <tbody id="shipment-history-body"><tr><td colspan="6" class="preview-empty">هنوز ارسالی ثبت نشده است.</td></tr></tbody>
                 </table>
@@ -1410,6 +1410,15 @@
       pageLabel.textContent = 'صفحه ' + toEnglishDigits(shipmentHistoryPage + 1) + ' از ' + toEnglishDigits(pageCount) + ' — ' + toEnglishDigits(records.length) + ' ارسال';
       previousButton.disabled = shipmentHistoryPage === 0;
       nextButton.disabled = shipmentHistoryPage >= pageCount - 1;
+      document.querySelectorAll('[data-shipment-sort]').forEach(button => {
+        const active = button.dataset.shipmentSort === key;
+        const marker = button.querySelector('span');
+        if (marker) marker.textContent = active ? (direction === 'asc' ? '↑' : '↓') : '↕';
+        const heading = button.closest('th');
+        if (heading) heading.setAttribute('aria-sort', active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none');
+        const label = button.textContent.replace(/[↑↓↕]/g, '').trim();
+        button.setAttribute('aria-label', 'مرتب‌سازی بر اساس ' + label + (active ? (direction === 'asc' ? '، صعودی' : '، نزولی') : ''));
+      });
     }
 
     document.querySelectorAll('[data-shipment-sort]').forEach(button => {
