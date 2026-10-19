@@ -1003,6 +1003,11 @@
     }
 
   
+    .managed-user-editor td { padding: 14px; background: #edf3fb; white-space: normal; }
+    .managed-user-editor form { display: grid; gap: 10px; }
+    .managed-user-editor .permission-options { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+    .managed-user-editor .managed-permission-option { display: inline-flex; align-items: center; gap: 6px; }
+    .managed-user-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
     /* Responsive layout improvements: October 2026 */
     html {
       max-width: 100%;
@@ -3581,6 +3586,9 @@
     });
 
     document.getElementById('logout-button').addEventListener('click', () => {
+      const username = currentSession ? currentSession.username : 'نامشخص';
+      recordActivity('خروج کاربر', 'کاربر «' + username + '» از سامانه خارج شد.');
+      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
       currentSession = null;
       showLoginView('choice');
       applySessionAccess();
@@ -3616,8 +3624,10 @@
         return;
       }
       currentSession = { role: 'admin', username: 'admin', permissions: { entry: true, shipment: true } };
+      recordActivity('ورود کاربر', 'مدیر admin وارد سامانه شد.');
       applySessionAccess();
       renderManagedUsers();
+      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
     });
     document.getElementById('user-login-view').addEventListener('submit', event => {
       event.preventDefault();
@@ -3633,7 +3643,9 @@
         return;
       }
       currentSession = { role: 'user', username: user.username, permissions: user.permissions };
+      recordActivity('ورود کاربر', 'کاربر «' + user.username + '» وارد سامانه شد.');
       applySessionAccess();
+      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
     });
 
     document.getElementById('create-user-form').addEventListener('submit', event => {
@@ -3673,6 +3685,8 @@
       }
     });
 
+    let editingManagedUserIndex = null;
+
     function renderManagedUsers() {
       const body = document.getElementById('managed-users-body');
       if (!body) return;
@@ -3687,8 +3701,65 @@
         const shipment = permissions.shipment ? 'دارد' : 'ندارد';
         const entryHistory = permissions.entryHistory ? 'دارد' : 'ندارد';
         const shipmentHistory = permissions.shipmentHistory ? 'دارد' : 'ندارد';
-        return '<tr><td>' + escapeHtml(user.username) + '</td><td>' + entry + '</td><td>' + shipment + '</td><td>' + entryHistory + '</td><td>' + shipmentHistory + '</td><td><button class="action-button secondary" type="button" data-delete-managed-user="' + index + '">حذف کاربر</button></td></tr>';
+        const actions = '<button class="action-button secondary" type="button" data-edit-managed-user="' + index + '">ویرایش دسترسی</button> <button class="action-button secondary" type="button" data-delete-managed-user="' + index + '">حذف کاربر</button>';
+        const row = '<tr><td>' + escapeHtml(user.username) + '</td><td>' + entry + '</td><td>' + shipment + '</td><td>' + entryHistory + '</td><td>' + shipmentHistory + '</td><td>' + actions + '</td></tr>';
+        if (editingManagedUserIndex !== index) return row;
+        const options = [
+          ['entry', 'ورود کالا'],
+          ['shipment', 'ارسال کالا'],
+          ['entryHistory', 'تاریخچه ورود'],
+          ['shipmentHistory', 'تاریخچه خروج']
+        ];
+        const checks = options.map(([key, label]) =>
+          '<label class="managed-permission-option"><input type="checkbox" data-edit-permission="' + key + '"' + (permissions[key] ? ' checked' : '') + '> ' + label + '</label>'
+        ).join('');
+        return row + '<tr class="managed-user-editor"><td colspan="6"><form data-save-managed-user="' + index + '"><strong>ویرایش دسترسی‌های ' + escapeHtml(user.username) + '</strong><div class="permission-options">' + checks + '</div><div class="managed-user-editor-actions"><button class="action-button" type="submit">ذخیره دسترسی‌ها</button> <button class="action-button secondary" type="button" data-cancel-managed-user>انصراف</button></div><p class="feedback" data-managed-user-feedback role="status" aria-live="polite"></p></form></td></tr>';
       }).join('');
+
+      body.querySelectorAll('[data-edit-managed-user]').forEach(button => button.addEventListener('click', () => {
+        if (!currentSession || currentSession.role !== 'admin') return;
+        const index = Number(button.getAttribute('data-edit-managed-user'));
+        if (!Number.isInteger(index) || index < 0 || index >= loadManagedUsers().length) return;
+        editingManagedUserIndex = index;
+        renderManagedUsers();
+      }));
+
+      body.querySelectorAll('[data-cancel-managed-user]').forEach(button => button.addEventListener('click', () => {
+        editingManagedUserIndex = null;
+        renderManagedUsers();
+      }));
+
+      body.querySelectorAll('[data-save-managed-user]').forEach(form => form.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!currentSession || currentSession.role !== 'admin') return;
+        const index = Number(form.getAttribute('data-save-managed-user'));
+        const usersNow = loadManagedUsers();
+        if (!Number.isInteger(index) || index < 0 || index >= usersNow.length) return;
+        const permissions = {};
+        form.querySelectorAll('[data-edit-permission]').forEach(input => {
+          permissions[input.getAttribute('data-edit-permission')] = input.checked;
+        });
+        const feedback = form.querySelector('[data-managed-user-feedback]');
+        if (!Object.values(permissions).some(Boolean)) {
+          feedback.textContent = 'حداقل یکی از چهار دسترسی را انتخاب کنید.';
+          return;
+        }
+        usersNow[index].permissions = permissions;
+        try {
+          localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(usersNow));
+          if (currentSession.role === 'user' && currentSession.username === usersNow[index].username) {
+            currentSession.permissions = permissions;
+            applySessionAccess();
+          }
+          recordActivity('ویرایش دسترسی کاربر', 'مدیر دسترسی‌های کاربر «' + usersNow[index].username + '» را تغییر داد.');
+          editingManagedUserIndex = null;
+          renderManagedUsers();
+          renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+        } catch (error) {
+          feedback.textContent = 'ذخیره دسترسی‌ها انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
+        }
+      }));
+
       body.querySelectorAll('[data-delete-managed-user]').forEach(button => button.addEventListener('click', () => {
         if (!currentSession || currentSession.role !== 'admin') return;
         const index = Number(button.getAttribute('data-delete-managed-user'));
@@ -3697,6 +3768,8 @@
         if (!window.confirm('کاربر «' + usersNow[index].username + '» حذف شود؟')) return;
         usersNow.splice(index, 1);
         localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(usersNow));
+        editingManagedUserIndex = null;
+        recordActivity('حذف کاربر', 'مدیر حساب کاربری حذف کرد.');
         renderManagedUsers();
       }));
     }
