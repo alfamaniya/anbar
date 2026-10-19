@@ -926,10 +926,38 @@
     .duplicate-group-table { min-width:460px; }
     .sortable-table-empty { text-align:center; color:var(--muted); padding:16px !important; }
 
-</style>
+
+    .backup-setup-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      display: grid;
+      place-items: center;
+      overflow-y: auto;
+      padding: 20px;
+      background: rgba(15, 25, 42, 0.78);
+      backdrop-filter: blur(5px);
+    }
+    .backup-setup-gate[hidden] { display: none !important; }
+    .backup-setup-card {
+      width: min(560px, 100%);
+      padding: clamp(22px, 5vw, 34px);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+    .backup-setup-card h2 { margin: 0 0 12px; font-size: clamp(20px, 4vw, 27px); }
+    .backup-setup-card p { margin: 10px 0; color: var(--muted); font-size: 14px; }
+    .backup-setup-card .action-button { width: 100%; max-width: 360px; margin-top: 10px; }
+    .backup-setup-card .backup-gate-status { color: var(--text); font-weight: 700; }
+    .backup-setup-card .backup-gate-feedback { color: #a52222; }
+
+  </style>
 </head>
 <body>
-  <div class="layout">
+  <div class="layout" id="app-layout" inert>
     <header class="sidebar" aria-label="هدر ناوبری">
       <div class="brand">
         <h1>کنترل مصرف</h1>
@@ -1154,6 +1182,17 @@
       </div>
     </main>
   </div>
+
+  <section class="backup-setup-gate" id="backup-setup-gate" role="dialog" aria-modal="true" aria-labelledby="backup-gate-title">
+    <div class="backup-setup-card">
+      <h2 id="backup-gate-title">پیش از شروع، محل ذخیره بکاپ را مشخص کنید</h2>
+      <p>تا زمانی که پوشه ذخیره انتخاب نشده و اولین فایل بکاپ با موفقیت ذخیره نشده باشد، تمام بخش‌های سایت قفل می‌مانند و امکان تغییر اطلاعات وجود ندارد.</p>
+      <button class="action-button" id="backup-gate-choose-folder" type="button">انتخاب پوشه و فعال‌سازی سایت</button>
+      <p class="backup-gate-status" id="backup-gate-status" role="status" aria-live="polite">برای شروع، یک پوشه انتخاب کنید.</p>
+      <p class="backup-gate-feedback" id="backup-gate-feedback" role="alert" aria-live="assertive"></p>
+      <p>برای ذخیره مستقیم فایل، از نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS استفاده کنید.</p>
+    </div>
+  </section>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <dialog class="duplicate-dialog" id="duplicate-dialog" aria-labelledby="duplicate-dialog-title">
@@ -2535,6 +2574,11 @@
     renderSinglePreview();
     openSection('section-1');
   
+    const appLayout = document.getElementById('app-layout');
+    const backupSetupGate = document.getElementById('backup-setup-gate');
+    const backupGateChooseFolder = document.getElementById('backup-gate-choose-folder');
+    const backupGateStatus = document.getElementById('backup-gate-status');
+    const backupGateFeedback = document.getElementById('backup-gate-feedback');
     const backupFolderButton = document.getElementById('choose-backup-folder');
     const backupFolderStatus = document.getElementById('backup-folder-status');
     const backupFeedback = document.getElementById('backup-feedback');
@@ -2543,6 +2587,20 @@
     let backupDirectoryHandle = null;
     let backupWriteTimer = null;
     let backupWriteInProgress = false;
+    let backupWriteQueued = false;
+    let applicationReady = false;
+
+    function setApplicationReady(ready) {
+      applicationReady = Boolean(ready);
+      appLayout.inert = !applicationReady;
+      backupSetupGate.hidden = applicationReady;
+      if (applicationReady) {
+        backupGateFeedback.textContent = '';
+        backupGateStatus.textContent = 'بکاپ اولیه ذخیره شد؛ سایت آماده استفاده است.';
+      } else {
+        backupGateChooseFolder.focus({ preventScroll: true });
+      }
+    }
 
     function openBackupHandleDatabase() {
       return new Promise((resolve, reject) => {
@@ -2559,6 +2617,7 @@
         tx.objectStore(BACKUP_HANDLE_STORE).put(handle, 'directory');
         tx.oncomplete = resolve;
         tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error || new Error('ذخیره محل بکاپ لغو شد.'));
       });
       db.close();
     }
@@ -2587,64 +2646,150 @@
         activityLog: loadActivityLog()
       };
     }
-    async function writeAutomaticBackup() {
-      if (!backupDirectoryHandle || backupWriteInProgress) return;
+    async function writeAutomaticBackup(directoryHandle = backupDirectoryHandle, allowPermissionPrompt = false) {
+      if (!directoryHandle) return false;
+      if (backupWriteInProgress) {
+        backupWriteQueued = true;
+        return false;
+      }
       backupWriteInProgress = true;
+      let succeeded = false;
       try {
-        let permission = await backupDirectoryHandle.queryPermission({ mode: 'readwrite' });
-        if (permission !== 'granted') permission = await backupDirectoryHandle.requestPermission({ mode: 'readwrite' });
-        if (permission !== 'granted') {
-          backupFolderStatus.textContent = 'دسترسی نوشتن تأیید نشده است؛ برای ادامه، محل ذخیره را دوباره انتخاب کنید.';
-          return;
+        let permission = await directoryHandle.queryPermission({ mode: 'readwrite' });
+        if (permission !== 'granted' && allowPermissionPrompt) {
+          permission = await directoryHandle.requestPermission({ mode: 'readwrite' });
         }
-        const fileHandle = await backupDirectoryHandle.getFileHandle(getSolarBackupFileName(), { create: true });
+        if (permission !== 'granted') {
+          backupFolderStatus.textContent = 'مجوز نوشتن در پوشه تأیید نشده است.';
+          backupFeedback.textContent = 'برای فعال‌سازی سایت، پوشه را دوباره انتخاب کنید و دسترسی نوشتن را تأیید کنید.';
+          backupGateStatus.textContent = 'دسترسی نوشتن در پوشه برقرار نیست؛ پوشه را دوباره انتخاب کنید.';
+          return false;
+        }
+        const fileHandle = await directoryHandle.getFileHandle(getSolarBackupFileName(), { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(new Blob([JSON.stringify(buildBackupPayload(), null, 2)], { type: 'application/json;charset=utf-8' }));
         await writable.close();
+        succeeded = true;
         backupFolderStatus.textContent = 'بکاپ خودکار فعال است؛ فایل ' + getSolarBackupFileName() + ' در پوشه انتخاب‌شده به‌روزرسانی شد.';
         backupFeedback.textContent = 'آخرین بکاپ با موفقیت ذخیره شد.';
+        backupGateStatus.textContent = 'فایل بکاپ با موفقیت ذخیره شد.';
+        return true;
       } catch (error) {
         backupFeedback.textContent = 'ذخیره خودکار انجام نشد. دسترسی پوشه را بررسی کنید و دوباره محل ذخیره را انتخاب کنید.';
+        backupGateFeedback.textContent = 'فایل بکاپ ساخته یا به‌روزرسانی نشد. سایت تا ذخیره موفق بکاپ قفل می‌ماند.';
+        return false;
       } finally {
         backupWriteInProgress = false;
+        if (backupWriteQueued) {
+          backupWriteQueued = false;
+          scheduleAutomaticBackup();
+        }
+        if (!succeeded && applicationReady && directoryHandle === backupDirectoryHandle) {
+          backupGateStatus.textContent = 'ذخیره بکاپ ناموفق بود؛ برای ادامه، محل ذخیره را دوباره انتخاب کنید.';
+          backupGateFeedback.textContent = 'برای جلوگیری از تغییرات بیشتر بدون بکاپ موفق، سایت قفل شد.';
+          setApplicationReady(false);
+        }
       }
     }
     function scheduleAutomaticBackup() {
-      if (!backupDirectoryHandle) return;
+      if (!backupDirectoryHandle || !applicationReady) return;
       clearTimeout(backupWriteTimer);
-      backupWriteTimer = setTimeout(writeAutomaticBackup, 350);
+      backupWriteTimer = setTimeout(() => {
+        writeAutomaticBackup().then(saved => {
+          if (!saved && applicationReady) {
+            backupGateStatus.textContent = 'به‌روزرسانی بکاپ انجام نشد؛ پوشه و مجوز نوشتن را بررسی کنید.';
+          }
+        });
+      }, 350);
     }
-    backupFolderButton.addEventListener('click', async () => {
-      if (!('showDirectoryPicker' in window)) {
-        backupFeedback.textContent = 'این مرورگر انتخاب پوشه و نوشتن خودکار در فایل را پشتیبانی نمی‌کند. از نسخه به‌روز Chrome یا Edge روی رایانه استفاده کنید.';
+
+    async function chooseBackupFolder() {
+      if (typeof window.showDirectoryPicker !== 'function') {
+        const message = 'این مرورگر انتخاب پوشه و ذخیره مستقیم فایل را پشتیبانی نمی‌کند. برای استفاده از سایت، آن را در نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS باز کنید.';
+        backupGateFeedback.textContent = message;
+        backupFeedback.textContent = message;
         return;
       }
+
+      const wasReady = applicationReady;
+      backupGateFeedback.textContent = '';
+      backupFeedback.textContent = '';
+      backupGateChooseFolder.disabled = true;
+      if (backupFolderButton) backupFolderButton.disabled = true;
+      backupGateStatus.textContent = 'در انتظار انتخاب پوشه و ذخیره اولین بکاپ...';
+
       try {
-        backupDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        await storeBackupDirectoryHandle(backupDirectoryHandle);
-        backupFolderStatus.textContent = 'محل ذخیره انتخاب شد؛ در حال ساخت بکاپ اولیه...';
-        await writeAutomaticBackup();
-        recordActivity('تنظیم بکاپ خودکار', 'محل ذخیره بکاپ تعیین شد');
+        const selectedDirectory = await window.showDirectoryPicker({ mode: 'readwrite' });
+        let permission = await selectedDirectory.queryPermission({ mode: 'readwrite' });
+        if (permission !== 'granted') permission = await selectedDirectory.requestPermission({ mode: 'readwrite' });
+        if (permission !== 'granted') {
+          throw new Error('مجوز نوشتن در پوشه داده نشد.');
+        }
+
+        backupGateStatus.textContent = 'پوشه انتخاب شد؛ در حال ذخیره اولین فایل بکاپ...';
+        const initialBackupSaved = await writeAutomaticBackup(selectedDirectory, false);
+        if (!initialBackupSaved) throw new Error('ذخیره اولین بکاپ ناموفق بود.');
+
+        // فقط پس از ذخیره موفق فایل اولیه، رویداد انتخاب پوشه ثبت و بکاپ نهایی می‌شود.
+        recordActivity('تنظیم بکاپ خودکار', 'پوشه ذخیره‌سازی انتخاب و بکاپ اولیه ذخیره شد');
+        const finalBackupSaved = await writeAutomaticBackup(selectedDirectory, false);
+        if (!finalBackupSaved) throw new Error('ذخیره نهایی بکاپ ناموفق بود.');
+
+        await storeBackupDirectoryHandle(selectedDirectory);
+        backupDirectoryHandle = selectedDirectory;
+        setApplicationReady(true);
       } catch (error) {
-        if (error && error.name !== 'AbortError') backupFeedback.textContent = 'انتخاب محل ذخیره ناموفق بود؛ دوباره تلاش کنید.';
+        if (error && error.name === 'AbortError') {
+          backupGateStatus.textContent = wasReady
+            ? 'عملیات انتخاب پوشه لغو شد؛ محل ذخیره قبلی بدون تغییر باقی ماند.'
+            : 'برای شروع سایت، باید یک پوشه انتخاب کنید و اولین بکاپ با موفقیت ذخیره شود.';
+        } else {
+          backupGateFeedback.textContent = 'فعال‌سازی انجام نشد: ' + (error && error.message ? error.message : 'خطای ناشناخته') + '؛ سایت تا ذخیره موفق بکاپ قفل می‌ماند.';
+          backupGateStatus.textContent = 'بکاپ موفق ثبت نشده است.';
+          backupFeedback.textContent = backupGateFeedback.textContent;
+        }
+        if (wasReady) {
+          // اگر تعویض پوشه جدید موفق نشود، پوشه قبلی همچنان فعال می‌ماند.
+          setApplicationReady(true);
+        }
+      } finally {
+        backupGateChooseFolder.disabled = false;
+        if (backupFolderButton) backupFolderButton.disabled = false;
       }
-    });
+    }
+
+    backupGateChooseFolder.addEventListener('click', chooseBackupFolder);
+    if (backupFolderButton) backupFolderButton.addEventListener('click', chooseBackupFolder);
+
     (async () => {
       try {
-        backupDirectoryHandle = await loadBackupDirectoryHandle();
-        if (backupDirectoryHandle) {
-          backupFolderStatus.textContent = 'محل ذخیره قبلی پیدا شد؛ برای فعال‌شدن دسترسی، دکمه انتخاب محل ذخیره را بزنید.';
+        const savedDirectory = await loadBackupDirectoryHandle();
+        if (!savedDirectory) {
+          backupGateStatus.textContent = 'هنوز محل ذخیره بکاپ مشخص نشده است. برای شروع، یک پوشه انتخاب کنید.';
+          return;
+        }
+
+        backupGateStatus.textContent = 'محل ذخیره قبلی پیدا شد؛ در حال بررسی مجوز و بکاپ اولیه...';
+        const savedSuccessfully = await writeAutomaticBackup(savedDirectory, false);
+        if (savedSuccessfully) {
+          backupDirectoryHandle = savedDirectory;
+          setApplicationReady(true);
+        } else {
+          backupDirectoryHandle = savedDirectory;
+          backupGateStatus.textContent = 'برای شروع، پوشه را دوباره انتخاب کنید و مجوز نوشتن را تأیید کنید.';
         }
       } catch (error) {
-        backupFolderStatus.textContent = 'برای فعال‌کردن بکاپ خودکار، محل ذخیره را انتخاب کنید.';
+        backupGateStatus.textContent = 'محل ذخیره قبلی قابل استفاده نیست. برای شروع، پوشه را دوباره انتخاب کنید.';
       }
     })();
 
-    // هر نوشتن موفق در ذخیره‌سازی برنامه، بکاپ فایل را نیز به‌روزرسانی می‌کند.
+    // فقط تغییرات ذخیره‌شده در کلیدهای داده‌ای برنامه، بکاپ خودکار را زمان‌بندی می‌کنند.
     const originalLocalStorageSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {
       originalLocalStorageSetItem.call(this, key, value);
-      if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY].includes(String(key))) scheduleAutomaticBackup();
+      if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY].includes(String(key))) {
+        scheduleAutomaticBackup();
+      }
     };
     const restoreFileInput = document.getElementById('restore-json-file');
     const restoreBackupButton = document.getElementById('restore-json-backup');
