@@ -995,6 +995,8 @@
     .user-table th { background:#dce7f6; }
     .user-table td button { min-height:32px; padding:5px 9px; }
     .session-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .logout-button { min-height:36px; padding:6px 10px; white-space:nowrap; }
+    .settings-box[hidden], .nav-link[hidden], .section-card[hidden], .logout-button[hidden] { display:none !important; }
     @media(max-width:650px) {
       .management-grid { grid-template-columns:1fr; }
       .login-choice { grid-template-columns:1fr; }
@@ -1008,6 +1010,10 @@
       <div class="brand">
         <h1>کنترل مصرف</h1>
         <p>سامانه مدیریت اقلام</p>
+      </div>
+      <div class="session-tools">
+        <span id="session-username" aria-live="polite"></span>
+        <button class="action-button logout-button" id="logout-button" type="button" hidden>خروج از سایت</button>
       </div>
 
       <nav aria-label="ناوبری بخش‌ها">
@@ -1140,7 +1146,7 @@
             <h3 id="title-3">تنظیمات</h3>
           </div>
           <div class="settings-grid">
-            <article class="settings-box">
+            <article class="settings-box" data-history-permission="entryHistory">
               <h4>مشاهده تاریخچه ورود اقلام</h4>
               <p>فهرست ورودها؛ برای مرتب‌سازی روی عنوان هر ستون بزنید.</p>
               <div class="preview-panel entry-history-panel">
@@ -1162,7 +1168,7 @@
                 </div>
               </div>
             </article>
-            <article class="settings-box entry-history-panel">
+            <article class="settings-box entry-history-panel" data-history-permission="shipmentHistory">
               <h4>تاریخچه ارسال کالا</h4>
               <p>سوابق ارسال ثبت‌شده؛ برای مرتب‌سازی روی عنوان هر ستون کلیک کنید.</p>
               <div class="entry-history-table-wrap">
@@ -1248,6 +1254,8 @@
                 <div class="permission-options">
                   <label><input id="permission-entry" type="checkbox" checked> دسترسی ورود کالا</label>
                   <label><input id="permission-shipment" type="checkbox"> دسترسی ارسال کالا</label>
+                  <label><input id="permission-entry-history" type="checkbox"> مشاهده تاریخچه ورود</label>
+                  <label><input id="permission-shipment-history" type="checkbox"> مشاهده تاریخچه خروج</label>
                 </div>
                 <button class="action-button" type="submit">ایجاد کاربر</button>
                 <p class="feedback" id="management-feedback" role="status" aria-live="polite"></p>
@@ -1255,14 +1263,14 @@
             </article>
             <article class="settings-box">
               <h4>راهنمای دسترسی‌ها</h4>
-              <p>«ورود کالا» اجازه دسترسی به صفحه ورود و ثبت کالا را می‌دهد. «ارسال کالا» اجازه دسترسی به صفحه موجودی و عملیات ارسال را می‌دهد. هر دو دسترسی را می‌توان برای یک کاربر فعال کرد.</p>
+              <p>«ورود کالا» اجازه ثبت کالا، «ارسال کالا» اجازه ثبت ارسال، «مشاهده تاریخچه ورود» اجازه مشاهده سوابق ورود و «مشاهده تاریخچه خروج» اجازه مشاهده سوابق خروج را می‌دهد. این مجوزها مستقل از هم قابل انتخاب‌اند.</p>
               <p class="field-hint">حساب مدیر به همه بخش‌ها دسترسی دارد و از این فهرست حذف نمی‌شود.</p>
             </article>
           </div>
           <div class="user-table-wrap">
             <table class="user-table" aria-label="فهرست کاربران و دسترسی‌ها">
-              <thead><tr><th>نام کاربری</th><th>ورود کالا</th><th>ارسال کالا</th><th>عملیات</th></tr></thead>
-              <tbody id="managed-users-body"><tr><td colspan="4">فهرست کاربران بارگذاری می‌شود.</td></tr></tbody>
+              <thead><tr><th>نام کاربری</th><th>ورود کالا</th><th>ارسال کالا</th><th>تاریخچه ورود</th><th>تاریخچه خروج</th><th>عملیات</th></tr></thead>
+              <tbody id="managed-users-body"><tr><td colspan="6">فهرست کاربران بارگذاری می‌شود.</td></tr></tbody>
             </table>
           </div>
         </section>
@@ -1372,16 +1380,26 @@
       } catch (error) { return []; }
     }
     function canAccessSection(sectionId) {
-      if (!currentSession) return true;
+      if (!currentSession) return false;
       if (currentSession.role === 'admin') return true;
-      if (sectionId === 'section-1') return Boolean(currentSession.permissions.entry);
-      if (sectionId === 'section-2') return Boolean(currentSession.permissions.shipment);
+      const permissions = currentSession.permissions || {};
+      if (sectionId === 'section-1') return Boolean(permissions.entry);
+      if (sectionId === 'section-2') return Boolean(permissions.shipment);
+      if (sectionId === 'section-3') return Boolean(permissions.entryHistory || permissions.shipmentHistory);
       return false;
     }
     function applySessionAccess() {
       const isAdmin = currentSession && currentSession.role === 'admin';
       const managementLink = document.getElementById('management-nav-link');
       if (managementLink) managementLink.hidden = !isAdmin;
+      const logoutButton = document.getElementById('logout-button');
+      const sessionUsername = document.getElementById('session-username');
+      if (logoutButton) logoutButton.hidden = !currentSession;
+      if (sessionUsername) sessionUsername.textContent = currentSession ? currentSession.username : '';
+      document.querySelectorAll('[data-history-permission]').forEach(panel => {
+        const permission = panel.getAttribute('data-history-permission');
+        panel.hidden = !isAdmin && !(currentSession && currentSession.permissions && currentSession.permissions[permission]);
+      });
       document.querySelectorAll('.nav-link').forEach(link => {
         const sectionId = link.getAttribute('href').slice(1);
         const allowed = Boolean(currentSession) && canAccessSection(sectionId);
@@ -1397,6 +1415,7 @@
         if (firstAllowed) openSection(firstAllowed);
       }
       document.getElementById('login-overlay').hidden = Boolean(currentSession);
+      document.getElementById('app-layout').toggleAttribute('inert', !currentSession);
     }
     const sectionLinks = document.querySelectorAll('.nav-link');
     const sectionCards = document.querySelectorAll('.section-card');
@@ -3098,6 +3117,12 @@
       }
     });
 
+    document.getElementById('logout-button').addEventListener('click', () => {
+      currentSession = null;
+      showLoginView('choice');
+      applySessionAccess();
+    });
+
     document.getElementById('refresh-backup-log').addEventListener('click', () => {
       renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
     });
@@ -3140,7 +3165,7 @@
         loginFeedback.textContent = 'نام کاربری یا رمز عبور نادرست است.';
         return;
       }
-      if (!user.permissions || (!user.permissions.entry && !user.permissions.shipment)) {
+      if (!user.permissions || !Object.values(user.permissions).some(Boolean)) {
         loginFeedback.textContent = 'برای این حساب هنوز هیچ دسترسی‌ای تعریف نشده است؛ با مدیر تماس بگیرید.';
         return;
       }
@@ -3155,15 +3180,17 @@
       const password = document.getElementById('new-user-password').value;
       const permissions = {
         entry: document.getElementById('permission-entry').checked,
-        shipment: document.getElementById('permission-shipment').checked
+        shipment: document.getElementById('permission-shipment').checked,
+        entryHistory: document.getElementById('permission-entry-history').checked,
+        shipmentHistory: document.getElementById('permission-shipment-history').checked
       };
       const feedback = document.getElementById('management-feedback');
       if (!username || !password) {
         feedback.textContent = 'نام کاربری و رمز عبور الزامی است.';
         return;
       }
-      if (!permissions.entry && !permissions.shipment) {
-        feedback.textContent = 'حداقل یکی از دسترسی‌های ورود کالا یا ارسال کالا را انتخاب کنید.';
+      if (!permissions.entry && !permissions.shipment && !permissions.entryHistory && !permissions.shipmentHistory) {
+        feedback.textContent = 'حداقل یکی از چهار دسترسی را انتخاب کنید.';
         return;
       }
       if (username.toLowerCase() === 'admin' || loadManagedUsers().some(user => user.username.toLowerCase() === username.toLowerCase())) {
@@ -3188,13 +3215,16 @@
       if (!body) return;
       const users = loadManagedUsers();
       if (!users.length) {
-        body.innerHTML = '<tr><td colspan="4">هنوز کاربری ایجاد نشده است.</td></tr>';
+        body.innerHTML = '<tr><td colspan="6">هنوز کاربری ایجاد نشده است.</td></tr>';
         return;
       }
       body.innerHTML = users.map((user, index) => {
-        const entry = user.permissions && user.permissions.entry ? 'دارد' : 'ندارد';
-        const shipment = user.permissions && user.permissions.shipment ? 'دارد' : 'ندارد';
-        return '<tr><td>' + escapeHtml(user.username) + '</td><td>' + entry + '</td><td>' + shipment + '</td><td><button class="action-button secondary" type="button" data-delete-managed-user="' + index + '">حذف کاربر</button></td></tr>';
+        const permissions = user.permissions || {};
+        const entry = permissions.entry ? 'دارد' : 'ندارد';
+        const shipment = permissions.shipment ? 'دارد' : 'ندارد';
+        const entryHistory = permissions.entryHistory ? 'دارد' : 'ندارد';
+        const shipmentHistory = permissions.shipmentHistory ? 'دارد' : 'ندارد';
+        return '<tr><td>' + escapeHtml(user.username) + '</td><td>' + entry + '</td><td>' + shipment + '</td><td>' + entryHistory + '</td><td>' + shipmentHistory + '</td><td><button class="action-button secondary" type="button" data-delete-managed-user="' + index + '">حذف کاربر</button></td></tr>';
       }).join('');
       body.querySelectorAll('[data-delete-managed-user]').forEach(button => button.addEventListener('click', () => {
         if (!currentSession || currentSession.role !== 'admin') return;
