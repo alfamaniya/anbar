@@ -1036,8 +1036,8 @@
     .layout, .main, .sections, .section-card,
     .input-panels, .input-panel, .settings-grid,
     .settings-box, .management-grid, .inventory-toolbar,
-    .inventory-management-actions, .inventory-action-group,
-    .delete-actions, .preview-panel, .shared-input-preview {
+    .inventory-management-actions, .inventory-action-buttons,
+    .preview-panel, .shared-input-preview {
       min-width: 0;
       max-width: 100%;
     }
@@ -4125,7 +4125,7 @@
         return;
       }
       if (!permissions.entry && !permissions.shipment && !permissions.entryHistory && !permissions.shipmentHistory && !permissions.manageLocations) {
-        feedback.textContent = 'حداقل یکی از چهار دسترسی را انتخاب کنید.';
+        feedback.textContent = 'حداقل یکی از پنج دسترسی را انتخاب کنید.';
         return;
       }
       if (username.toLowerCase() === 'admin' || loadManagedUsers().some(user => user.username.toLowerCase() === username.toLowerCase())) {
@@ -4212,7 +4212,7 @@
         });
         const feedback = form.querySelector('[data-managed-user-feedback]');
         if (!Object.values(permissions).some(Boolean)) {
-          feedback.textContent = 'حداقل یکی از چهار دسترسی را انتخاب کنید.';
+          feedback.textContent = 'حداقل یکی از پنج دسترسی را انتخاب کنید.';
           return;
         }
         const previousPermissions = usersNow[index].permissions || {};
