@@ -486,6 +486,7 @@
       cursor: pointer;
     }
     .entry-sort-button:hover, .entry-sort-button:focus-visible { background: #e1eaf6; outline: 2px solid var(--accent); }
+    .entry-sort-button span { color:var(--accent); }
     .entry-history-pagination {
       display: flex;
       align-items: center;
@@ -583,10 +584,11 @@
     .shipment-header,.shipment-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:#e5edf8; border-bottom:1px solid var(--border); }
     .shipment-header h3 { margin:0; font-size:17px; }
     .shipment-body { max-height:calc(90vh - 140px); overflow:auto; padding:18px; }
-    .shipment-items { display:grid; gap:12px; }
-    .shipment-line { display:grid; grid-template-columns:minmax(110px,.7fr) minmax(180px,1.5fr) minmax(110px,.7fr); align-items:end; gap:12px; padding:12px; border:1px solid var(--border); border-radius:10px; background:#eaf0f8; }
-    .shipment-line .field-group { margin:0; }
-    .shipment-line .field-group input { min-height:40px; }
+    .shipment-items { width:100%; overflow-x:auto; }
+    .shipment-line { background:transparent; }
+    .shipment-items-table td { min-width:120px; }
+    .shipment-items-table input { min-height:40px; padding:7px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--text); font:inherit; text-align:center; }
+    .shipment-items-table input[readonly] { background:#edf3fb; }
     .shipment-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px; padding:16px; border:1px solid var(--border); border-radius:12px; background:#e5edf8; }
     .shipment-meta .field-group { margin:0; }
     .shipment-meta select { width:100%; min-height:42px; padding:8px; border:1px solid #d7deea; border-radius:9px; background:white; font:inherit; }
@@ -873,6 +875,22 @@
     .settings-box input { width: 100%; min-height: 40px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
     .settings-box .preview-panel { max-height: 240px; overflow: auto; }
     .settings-log-row { padding: 8px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+    .sortable-data-table { width:100%; border-collapse:collapse; font-size:12px; text-align:center; }
+    .sortable-data-table th, .sortable-data-table td { padding:8px; border:1px solid var(--border); vertical-align:middle; }
+    .sortable-data-table thead th { position:sticky; top:0; z-index:1; background:#dce7f6; color:var(--text); }
+    .sortable-data-table tbody tr:nth-child(odd) { background:#fff; }
+    .sortable-data-table tbody tr:nth-child(even) { background:#edf3fb; }
+    .sortable-data-table tbody tr:hover { background:#dceaff; }
+    .table-sort-button { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; min-height:34px; padding:4px 6px; border:0; border-radius:6px; background:transparent; color:inherit; font:inherit; font-weight:700; cursor:pointer; }
+    .table-sort-button:hover, .table-sort-button:focus-visible { background:rgba(255,255,255,.8); outline:2px solid var(--accent); outline-offset:-2px; }
+    .table-sort-marker { color:var(--accent); min-width:1em; }
+    .settings-log-table { min-width:620px; }
+    .settings-log-table td { white-space:normal; text-align:right; }
+    .shipment-items-table { min-width:700px; }
+    .shipment-items-table input { width:100%; min-width:95px; }
+    .duplicate-group-table { min-width:460px; }
+    .sortable-table-empty { text-align:center; color:var(--muted); padding:16px !important; }
+
 </style>
 </head>
 <body>
@@ -1433,19 +1451,35 @@
       group.append(label,input); return {group,input};
     }
     function openShipmentDialog() {
-      const candidates=inventoryItems.filter(item=>{const q=item.sendQuantity===''?0:Number(item.sendQuantity);return Number.isFinite(q)&&q>0;});
-      if(!candidates.length){inventoryFeedback.textContent='ابتدا در فیلد «تعداد برای ارسال» برای حداقل یک کالا عددی بزرگ‌تر از صفر وارد کنید.';return;}
-      shipmentItemsContainer.replaceChildren(); shipmentFeedback.textContent='';
-      candidates.forEach(item=>{
-        const line=document.createElement('div');line.className='shipment-line';line.dataset.code=item.code;
-        const code=createShipmentField('کد تدارکاتی',item.code);
-        const description=createShipmentField('شرح کالا',item.description);
-        const quantity=createShipmentField('تعداد ارسالی',String(item.sendQuantity),'number');
-        quantity.input.classList.add('shipment-quantity');quantity.input.dataset.code=item.code;quantity.input.max=String(item.stock);quantity.input.readOnly=false;
-        line.append(code.group,description.group,quantity.group);shipmentItemsContainer.append(line);
+      const candidates = inventoryItems.filter(item => {
+        const quantity = item.sendQuantity === '' ? 0 : Number(item.sendQuantity);
+        return Number.isFinite(quantity) && quantity > 0;
       });
-      shipmentLocationInput.value='';shipmentVoucherInput.value='';shipmentExitInput.value='';
-      if(typeof shipmentDialog.showModal==='function')shipmentDialog.showModal();else shipmentDialog.setAttribute('open','');
+      if (!candidates.length) {
+        inventoryFeedback.textContent = 'ابتدا در فیلد «تعداد برای ارسال» برای حداقل یک کالا عددی بزرگ‌تر از صفر وارد کنید.';
+        return;
+      }
+      shipmentItemsContainer.replaceChildren();
+      shipmentFeedback.textContent = '';
+      const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap';
+      const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی فعلی', 'تعداد ارسالی'], 'shipment-items-table');
+      candidates.forEach(item => {
+        const row = document.createElement('tr'); row.dataset.code = item.code;
+        const codeCell = document.createElement('td'); codeCell.textContent = item.code;
+        const descriptionCell = document.createElement('td'); descriptionCell.textContent = item.description;
+        const stockCell = document.createElement('td'); stockCell.textContent = toEnglishDigits(item.stock);
+        const quantityCell = document.createElement('td');
+        const input = document.createElement('input'); input.type = 'number'; input.min = '0.0000001'; input.step = 'any';
+        input.inputMode = 'decimal'; input.required = true; input.className = 'shipment-quantity';
+        input.value = String(item.sendQuantity); input.dataset.code = item.code; input.max = String(item.stock);
+        input.setAttribute('aria-label', 'تعداد ارسالی برای ' + item.code);
+        quantityCell.append(input); row.append(codeCell, descriptionCell, stockCell, quantityCell); tbody.append(row);
+      });
+      wrapper.append(table); shipmentItemsContainer.append(wrapper);
+      enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
+      shipmentLocationInput.value = ''; shipmentVoucherInput.value = ''; shipmentExitInput.value = '';
+      if (typeof shipmentDialog.showModal === 'function') shipmentDialog.showModal();
+      else shipmentDialog.setAttribute('open', '');
     }
     function closeShipmentDialog() {
       if(typeof shipmentDialog.close==='function'&&shipmentDialog.open)shipmentDialog.close();else shipmentDialog.removeAttribute('open');
@@ -1491,14 +1525,26 @@
     }
     function renderActivityResults(target, logs, emptyText) {
       target.replaceChildren();
-      if (!logs.length) { const p=document.createElement('p'); p.className='preview-empty'; p.textContent=emptyText; target.append(p); return; }
-      logs.slice(0,100).forEach(log => {
-        const row=document.createElement('div'); row.className='settings-log-row';
-        row.textContent = log.solarDate + ' — ' + log.action + (log.details ? ' — ' + log.details : '');
-        target.append(row);
+      if (!logs.length) { const p = document.createElement('p'); p.className = 'preview-empty'; p.textContent = emptyText; target.append(p); return; }
+      const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap bulk-preview-scroll';
+      const { table, tbody } = createDataTable(['تاریخ و ساعت', 'عملیات', 'جزئیات'], 'settings-log-table');
+      logs.slice(0, 100).forEach(log => {
+        const tr = document.createElement('tr');
+        const dateCell = document.createElement('td');
+        const timestamp = log.timestamp ? new Date(log.timestamp) : null;
+        if (timestamp && Number.isFinite(timestamp.getTime())) {
+          const dateTime = solarDateTime(timestamp);
+          const date = document.createElement('span'); date.className = 'date-part'; date.textContent = dateTime.date;
+          const time = document.createElement('span'); time.className = 'time-part'; time.textContent = dateTime.time;
+          dateCell.className = 'date-time-cell'; dateCell.append(date, time); dateCell.dataset.sortValue = log.timestamp;
+        } else { dateCell.textContent = log.solarDate || '—'; }
+        const actionCell = document.createElement('td'); actionCell.textContent = log.action || '—';
+        const detailsCell = document.createElement('td'); detailsCell.textContent = log.details || '—';
+        tr.append(dateCell, actionCell, detailsCell); tbody.append(tr);
       });
+      wrapper.append(table); target.append(wrapper);
+      enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'desc' });
     }
-
     const bulkPreview = document.getElementById('bulk-preview');
     const excelPreview = document.getElementById('excel-preview');
     const singlePreview = document.getElementById('single-preview');
@@ -1698,76 +1744,134 @@
       return { code, description, stock };
     }
 
-    function renderBulkPreview(rows, sourceLabel, previewTarget) {
-      const previewRows = (Array.isArray(rows) ? rows : []).filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== ''));
-      previewTarget.replaceChildren();
-      const heading = document.createElement('h5'); heading.textContent = 'پیش‌نمایش ورودی: ' + sourceLabel;
-      const validCount = previewRows.filter(row => normalizeRow(row)).length;
-      const message = document.createElement('p'); message.className = 'preview-message';
-      message.textContent = 'تعداد ردیف‌ها: ' + toEnglishDigits(previewRows.length) + '؛ معتبر: ' + toEnglishDigits(validCount) + '؛ دارای خطا: ' + toEnglishDigits(previewRows.length-validCount) + '. همه ردیف‌ها در فهرست قابل مشاهده‌اند.';
-      previewTarget.append(heading,message);
-      if (!previewRows.length) { const empty=document.createElement('p'); empty.className='preview-empty'; empty.textContent='ردیفی برای نمایش پیدا نشد.'; previewTarget.append(empty); return; }
-      const wrapper=document.createElement('div'); wrapper.className='preview-table-wrap bulk-preview-scroll';
-      const table=document.createElement('table'); table.className='preview-table';
-      const thead=document.createElement('thead'), head=document.createElement('tr');
-      ['کد تدارکاتی','شرح کالا','موجودی','وضعیت'].forEach(label=>{const th=document.createElement('th');th.textContent=label;head.append(th);});
-      thead.append(head); const tbody=document.createElement('tbody');
-      previewRows.forEach(row=>{
-        const error=getRowError(row), tr=document.createElement('tr');
-        if(error) tr.className='import-invalid-row';
-        for(let i=0;i<3;i++){const td=document.createElement('td');td.textContent=String(row[i]??'');tr.append(td);}
-        const status=document.createElement('td');status.textContent=error||'معتبر';tr.append(status);tbody.append(tr);
+    function enableTableSorting(table, options = {}) {
+      if (!table || table.dataset.sortingReady === 'true') return;
+      const head = table.tHead;
+      const body = table.tBodies[0];
+      if (!head || !body || !head.rows.length) return;
+      table.dataset.sortingReady = 'true';
+      table.classList.add('sortable-data-table');
+      const headers = [...head.rows[0].cells];
+      let sortState = { column: Number.isInteger(options.defaultColumn) ? options.defaultColumn : 0, direction: options.defaultDirection || 'asc' };
+
+      headers.forEach((cell, column) => {
+        const label = cell.textContent.trim();
+        cell.setAttribute('scope', 'col');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'table-sort-button';
+        button.dataset.sortColumn = String(column);
+        const title = document.createElement('span');
+        title.textContent = label;
+        const marker = document.createElement('span');
+        marker.className = 'table-sort-marker';
+        marker.setAttribute('aria-hidden', 'true');
+        marker.textContent = column === sortState.column ? (sortState.direction === 'asc' ? '↑' : '↓') : '↕';
+        button.append(title, marker);
+        button.setAttribute('aria-label', 'مرتب‌سازی بر اساس ' + label);
+        cell.replaceChildren(button);
       });
-      table.append(thead,tbody);wrapper.append(table);previewTarget.append(wrapper);
-    }
 
-        function renderSinglePreview() {
-      const row = [
-        itemFormInputs.code.value.trim(),
-        itemFormInputs.description.value.trim(),
-        itemFormInputs.stock.value.trim()
-      ];
-      const item = normalizeRow(row);
-      singlePreview.replaceChildren();
-
-      const heading = document.createElement('h5');
-      heading.textContent = 'پیش‌نمایش کالای تکی';
-      singlePreview.append(heading);
-
-      if (!row.some(value => value !== '')) {
-        const empty = document.createElement('p');
-        empty.className = 'preview-empty';
-        empty.textContent = 'با وارد کردن کد، شرح و موجودی، پیش‌نمایش اینجا نمایش داده می‌شود.';
-        singlePreview.append(empty);
-        return;
+      function updateMarkers() {
+        headers.forEach((cell, column) => {
+          const button = cell.querySelector('button[data-sort-column]');
+          if (!button) return;
+          const marker = button.querySelector('.table-sort-marker');
+          const active = column === sortState.column;
+          if (marker) marker.textContent = active ? (sortState.direction === 'asc' ? '↑' : '↓') : '↕';
+          cell.setAttribute('aria-sort', active ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none');
+          const label = button.querySelector('span')?.textContent || '';
+          button.setAttribute('aria-label', 'مرتب‌سازی بر اساس ' + label + (active ? (sortState.direction === 'asc' ? '، صعودی' : '، نزولی') : ''));
+        });
       }
 
-      const wrapper = document.createElement('div');
-      wrapper.className = 'preview-table-wrap';
+      headers.forEach((cell, column) => {
+        cell.querySelector('button[data-sort-column]').addEventListener('click', () => {
+          if (sortState.column === column) sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+          else sortState = { column, direction: 'asc' };
+          const rows = [...body.rows].filter(row => !row.dataset.emptyRow);
+          const sign = sortState.direction === 'asc' ? 1 : -1;
+          rows.sort((first, second) => {
+            const aCell = first.cells[column], bCell = second.cells[column];
+            const a = aCell?.dataset.sortValue ?? aCell?.textContent.trim() ?? '';
+            const b = bCell?.dataset.sortValue ?? bCell?.textContent.trim() ?? '';
+            const aNum = Number(String(a).replace(/[٬,]/g, '').replace(/٫/g, '.'));
+            const bNum = Number(String(b).replace(/[٬,]/g, '').replace(/٫/g, '.'));
+            const numeric = a !== '' && b !== '' && Number.isFinite(aNum) && Number.isFinite(bNum);
+            const comparison = numeric ? aNum - bNum : String(a).localeCompare(String(b), 'fa', { numeric: true, sensitivity: 'base' });
+            return comparison * sign;
+          });
+          rows.forEach(row => body.append(row));
+          updateMarkers();
+        });
+      });
+      updateMarkers();
+    }
+
+    function createDataTable(headers, className = '') {
       const table = document.createElement('table');
-      table.className = 'preview-table';
+      table.className = 'preview-table sortable-data-table ' + className;
       const thead = document.createElement('thead');
       const headerRow = document.createElement('tr');
-      ['کد تدارکاتی', 'شرح کالا', 'موجودی'].forEach(label => {
+      headers.forEach(label => {
         const th = document.createElement('th');
         th.textContent = label;
         headerRow.append(th);
       });
       thead.append(headerRow);
       const tbody = document.createElement('tbody');
+      table.append(thead, tbody);
+      return { table, tbody };
+    }
+
+    function renderBulkPreview(rows, sourceLabel, previewTarget) {
+      const previewRows = (Array.isArray(rows) ? rows : []).filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== ''));
+      previewTarget.replaceChildren();
+      const heading = document.createElement('h5');
+      heading.textContent = 'پیش‌نمایش ورودی: ' + sourceLabel;
+      const validCount = previewRows.filter(row => normalizeRow(row)).length;
+      const message = document.createElement('p');
+      message.className = 'preview-message';
+      message.textContent = 'تعداد ردیف‌ها: ' + toEnglishDigits(previewRows.length) + '؛ معتبر: ' + toEnglishDigits(validCount) + '؛ دارای خطا: ' + toEnglishDigits(previewRows.length - validCount) + '. برای مرتب‌سازی روی عنوان ستون بزنید.';
+      previewTarget.append(heading, message);
+      if (!previewRows.length) {
+        const empty = document.createElement('p'); empty.className = 'preview-empty'; empty.textContent = 'ردیفی برای نمایش پیدا نشد.';
+        previewTarget.append(empty); return;
+      }
+      const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap bulk-preview-scroll';
+      const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی', 'وضعیت']);
+      previewRows.forEach(row => {
+        const error = getRowError(row);
+        const tr = document.createElement('tr');
+        if (error) tr.className = 'import-invalid-row';
+        [toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), error || 'معتبر'].forEach(value => {
+          const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
+        });
+        tbody.append(tr);
+      });
+      wrapper.append(table); previewTarget.append(wrapper);
+      enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
+    }
+
+    function renderSinglePreview() {
+      const row = [itemFormInputs.code.value.trim(), itemFormInputs.description.value.trim(), itemFormInputs.stock.value.trim()];
+      const item = normalizeRow(row);
+      singlePreview.replaceChildren();
+      const heading = document.createElement('h5'); heading.textContent = 'پیش‌نمایش کالای تکی'; singlePreview.append(heading);
+      if (!row.some(value => value !== '')) {
+        const empty = document.createElement('p'); empty.className = 'preview-empty';
+        empty.textContent = 'با وارد کردن کد، شرح و موجودی، پیش‌نمایش اینجا نمایش داده می‌شود.';
+        singlePreview.append(empty); return;
+      }
+      const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap';
+      const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی']);
       const tr = document.createElement('tr');
       [row[0], row[1], item ? item.stock : row[2]].forEach(value => {
-        const td = document.createElement('td');
-        td.textContent = value === '' ? '—' : String(value);
-        tr.append(td);
+        const td = document.createElement('td'); td.textContent = value === '' ? '—' : String(value); tr.append(td);
       });
-      tbody.append(tr);
-      table.append(thead, tbody);
-      wrapper.append(table);
-      singlePreview.append(wrapper);
-
-      const status = document.createElement('p');
-      status.className = item ? 'preview-message' : 'feedback';
+      tbody.append(tr); wrapper.append(table); singlePreview.append(wrapper);
+      enableTableSorting(table);
+      const status = document.createElement('p'); status.className = item ? 'preview-message' : 'feedback';
       status.textContent = item
         ? 'اطلاعات معتبر است: کد تدارکاتی ۸ یا ۱۰ رقم و موجودی عددی است.'
         : 'کد تدارکاتی باید ۸ یا ۱۰ رقم باشد؛ شرح کالا نباید خالی باشد و موجودی فقط عدد صفر یا مثبت باشد.';
@@ -1809,19 +1913,10 @@
       if (!invalid.length) return;
       importErrorDetails.replaceChildren();
       const note = document.createElement('p');
-      note.textContent = 'ردیف‌های زیر وارد نشدند؛ سایر ردیف‌های معتبر پردازش شده‌اند.';
+      note.textContent = 'ردیف‌های زیر وارد نشدند؛ سایر ردیف‌های معتبر پردازش شده‌اند. برای مرتب‌سازی روی عنوان ستون بزنید.';
       importErrorDetails.append(note);
-      const wrapper = document.createElement('div');
-      wrapper.className = 'preview-table-wrap bulk-preview-scroll';
-      const table = document.createElement('table');
-      table.className = 'preview-table';
-      const thead = document.createElement('thead');
-      const head = document.createElement('tr');
-      ['ردیف فایل', 'کد تدارکاتی', 'شرح کالا', 'موجودی', 'خطا'].forEach(label => {
-        const th = document.createElement('th'); th.textContent = label; head.append(th);
-      });
-      thead.append(head);
-      const tbody = document.createElement('tbody');
+      const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap bulk-preview-scroll';
+      const { table, tbody } = createDataTable(['ردیف فایل', 'کد تدارکاتی', 'شرح کالا', 'موجودی', 'خطا']);
       invalid.forEach((row, index) => {
         const tr = document.createElement('tr'); tr.className = 'import-invalid-row';
         [(row._sourceRow || index + 1), toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), getRowError(row)].forEach(value => {
@@ -1829,9 +1924,10 @@
         });
         tbody.append(tr);
       });
-      table.append(thead, tbody); wrapper.append(table); importErrorDetails.append(wrapper);
+      wrapper.append(table); importErrorDetails.append(wrapper);
+      enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
       if (typeof importErrorDialog.showModal === 'function') importErrorDialog.showModal();
-      else window.alert(invalid.map(row => 'ردیف ' + (row._sourceRow || '?') + ': ' + getRowError(row)).join('\\n'));
+      else window.alert(invalid.map(row => 'ردیف ' + (row._sourceRow || '?') + ': ' + getRowError(row)).join('\n'));
     }
     function closeImportErrorDialog() {
       if (importErrorDialog.open) importErrorDialog.close();
@@ -1841,43 +1937,33 @@
 
     function showDuplicateError(duplicateGroups) {
       if (!duplicateGroups.length) return;
-
       duplicateDialogDetails.replaceChildren();
-
       const summary = document.createElement('p');
       summary.textContent = 'در داده‌های ورودی، ' + toEnglishDigits(duplicateGroups.length) +
-        ' کد تدارکاتی تکراری شناسایی شد. جزئیات ردیف‌های دارای کد یکسان در زیر آمده است. هنگام ثبت، آخرین ردیف معتبر هر کد ملاک اطلاعات نهایی خواهد بود.';
+        ' کد تدارکاتی تکراری شناسایی شد. آخرین ردیف معتبر هر کد ملاک اطلاعات نهایی خواهد بود. برای مرتب‌سازی روی عنوان ستون بزنید.';
       duplicateDialogDetails.append(summary);
-
       duplicateGroups.forEach(group => {
-        const section = document.createElement('section');
-        section.className = 'duplicate-group';
-
+        const section = document.createElement('section'); section.className = 'duplicate-group';
         const heading = document.createElement('h4');
-        heading.textContent = 'کد تدارکاتی: ' + group[0].code +
-          ' — تعداد تکرار: ' + toEnglishDigits(group.length);
+        heading.textContent = 'کد تدارکاتی: ' + group[0].code + ' — تعداد تکرار: ' + toEnglishDigits(group.length);
         section.append(heading);
-
-        const list = document.createElement('ul');
+        const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap';
+        const { table, tbody } = createDataTable(['ردیف فایل', 'کد تدارکاتی', 'شرح کالا', 'موجودی'], 'duplicate-group-table');
         group.forEach(entry => {
-          const item = document.createElement('li');
-          item.textContent = 'ردیف ' + toEnglishDigits(entry.rowNumber) +
-            ' | شرح کالا: ' + entry.description +
-            ' | موجودی: ' + toEnglishDigits(entry.stock);
-          list.append(item);
+          const tr = document.createElement('tr');
+          [toEnglishDigits(entry.rowNumber), entry.code, entry.description, toEnglishDigits(entry.stock)].forEach(value => {
+            const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
+          });
+          tbody.append(tr);
         });
-        section.append(list);
-        duplicateDialogDetails.append(section);
+        wrapper.append(table); section.append(wrapper); duplicateDialogDetails.append(section);
+        enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
       });
-
-      if (typeof duplicateDialog.showModal === 'function') {
-        duplicateDialog.showModal();
-      } else {
-        alert(duplicateGroups.map(group =>
-          'کد تدارکاتی ' + group[0].code + ': ' +
-          group.map(entry => 'ردیف ' + entry.rowNumber + '، ' + entry.description + '، موجودی ' + entry.stock).join(' / ')
-        ).join('\n'));
-      }
+      if (typeof duplicateDialog.showModal === 'function') duplicateDialog.showModal();
+      else alert(duplicateGroups.map(group =>
+        'کد تدارکاتی ' + group[0].code + ': ' +
+        group.map(entry => 'ردیف ' + entry.rowNumber + '، ' + entry.description + '، موجودی ' + entry.stock).join(' / ')
+      ).join('\n'));
     }
 
     function closeDuplicateDialog() {
