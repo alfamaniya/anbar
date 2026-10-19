@@ -1524,6 +1524,12 @@
       });
     });
 
+    function normalizeArabicLetters(value) {
+      return String(value ?? '')
+        .replace(/[يى]/g, 'ی')
+        .replace(/ك/g, 'ک');
+    }
+
     function toEnglishDigits(value) {
       return String(value ?? '')
         .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
@@ -1618,7 +1624,7 @@
     }
     function getRowError(row) {
       const code = toEnglishDigits(String(row?.[0] ?? '').trim());
-      const description = String(row?.[1] ?? '').trim();
+      const description = normalizeArabicLetters(String(row?.[1] ?? '')).trim();
       const stockText = toEnglishDigits(String(row?.[2] ?? '').trim()).replace(/[٬,]/g, '').replace(/٫/g, '.');
       const errors = [];
       if (!/^(?:\d{8}|\d{10})$/.test(code)) errors.push('کد تدارکاتی باید ۸ یا ۱۰ رقم باشد');
@@ -1630,7 +1636,7 @@
 
         function normalizeRow(row) {
       const code = toEnglishDigits(String(row[0] ?? '').trim());
-      const description = String(row[1] ?? '').trim();
+      const description = normalizeArabicLetters(String(row[1] ?? '')).trim();
       const stockText = toEnglishDigits(String(row[2] ?? '').trim());
       const stock = normalizeStock(stockText);
       if (!/^(?:\d{8}|\d{10})$/.test(code) || !description || !/^\d+(?:\.\d+)?$/.test(stockText) ||
@@ -1764,7 +1770,7 @@
       const tbody = document.createElement('tbody');
       invalid.forEach((row, index) => {
         const tr = document.createElement('tr'); tr.className = 'import-invalid-row';
-        [(row._sourceRow || index + 1), row[0] ?? '', row[1] ?? '', row[2] ?? '', getRowError(row)].forEach(value => {
+        [(row._sourceRow || index + 1), toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), getRowError(row)].forEach(value => {
           const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
         });
         tbody.append(tr);
