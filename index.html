@@ -1586,8 +1586,8 @@
     const bulkPreview = document.getElementById('bulk-preview');
     const excelPreview = document.getElementById('excel-preview');
     const singlePreview = document.getElementById('single-preview');
-    const importPreviewButton = document.getElementById('import-preview-data');
-    const confirmExcelImportButton = document.getElementById('confirm-excel-import');
+    const importPreviewButton = document.getElementById('confirm-all-imports');
+    const confirmExcelImportButton = document.getElementById('confirm-all-imports');
     const pastedDataInput = document.getElementById('pasted-data');
     const excelFeedback = document.getElementById('excel-feedback');
     const singleFeedback = document.getElementById('single-feedback');
@@ -2346,33 +2346,11 @@
       });
     });
 
-    document.getElementById('add-single-item').addEventListener('click', () => {
-      const row = [
-        itemFormInputs.code.value,
-        itemFormInputs.description.value,
-        itemFormInputs.stock.value
-      ];
-      renderSinglePreview();
-      const item = normalizeRow(row);
-
-      if (!item) {
-        singleFeedback.textContent = 'اطلاعات معتبر نیست. کد تدارکاتی باید ۸ یا ۱۰ رقم باشد، شرح کالا الزامی است و موجودی باید عدد صفر یا مثبت باشد.';
-        return;
-      }
-
-      const result = addOrUpdateItems([row]);
-      showImportResult(result, singleFeedback);
-      itemFormInputs.code.value = '';
-      itemFormInputs.description.value = '';
-      itemFormInputs.stock.value = '';
-      renderSinglePreview();
-      itemFormInputs.code.focus();
-    });
-
     document.getElementById('preview-pasted-data').addEventListener('click', () => {
       pendingClipboardRows = prepareImportRows(parseDelimitedText(pastedDataInput.value));
       if (!pendingClipboardRows.length) {
         renderBulkPreview([], 'داده‌های کپی‌شده', bulkPreview);
+        renderSharedInputPreview();
         importPreviewButton.disabled = true;
         inputFeedback.textContent = 'ابتدا داده‌ها را در کادر کپی و جای‌گذاری کنید.';
         return;
@@ -2408,23 +2386,41 @@
     }
 
     importPreviewButton.addEventListener('click', () => {
-      confirmImportRows(
-        pendingClipboardRows, inputFeedback, bulkPreview, importPreviewButton,
-        'ورودی قبلی پردازش شد. برای ورودی جدید، داده‌ها را دوباره پیش‌نمایش کنید.'
+      const combinedRows = getCombinedPendingRows().map(item => item.row);
+      if (!combinedRows.length) {
+        inputFeedback.textContent = 'ابتدا اطلاعات را از یکی از روش‌ها وارد و پیش‌نمایش کنید.';
+        return;
+      }
+      const invalidRows = combinedRows.filter(row =>
+        Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && !normalizeRow(row)
       );
-    });
-
-    confirmExcelImportButton.addEventListener('click', () => {
-      confirmImportRows(
-        pendingExcelRows, excelFeedback, excelPreview, confirmExcelImportButton,
-        'ورودی قبلی پردازش شد. برای ورودی جدید، فایل دیگری انتخاب کنید.'
-      );
+      const duplicateGroups = findIncomingDuplicates(combinedRows);
+      const validRows = combinedRows.filter(row => normalizeRow(row));
+      if (!validRows.length) {
+        inputFeedback.textContent = 'هیچ ردیف معتبری برای ثبت وجود ندارد؛ اطلاعات را اصلاح کنید.';
+        return;
+      }
+      const result = addOrUpdateItems(validRows);
+      showImportResult(result, inputFeedback);
+      if (invalidRows.length) showImportErrors(combinedRows);
+      else showDuplicateError(duplicateGroups);
+      pendingExcelRows = [];
+      pendingClipboardRows = [];
+      itemFormInputs.code.value = '';
+      itemFormInputs.description.value = '';
+      itemFormInputs.stock.value = '';
+      pastedDataInput.value = '';
+      renderBulkPreview([], 'داده‌های کپی‌شده', bulkPreview);
+      renderBulkPreview([], 'فایل اکسل', excelPreview);
+      renderSinglePreview();
+      renderSharedInputPreview();
+      importPreviewButton.disabled = true;
     });
 
     pastedDataInput.addEventListener('input', () => {
       pendingClipboardRows = [];
-      importPreviewButton.disabled = true;
       inputFeedback.textContent = '';
+      renderSharedInputPreview();
     });
 
     document.getElementById('excel-file').addEventListener('change', async (event) => {
@@ -2452,12 +2448,14 @@
         if (!rows || !rows.length) {
           pendingExcelRows = [];
           renderBulkPreview([], file.name, excelPreview);
+          renderSharedInputPreview();
           confirmExcelImportButton.disabled = true;
           excelFeedback.textContent = 'در فایل انتخاب‌شده ردیفی برای نمایش پیدا نشد.';
           return;
         }
         pendingExcelRows = prepareImportRows(rows);
         renderBulkPreview(pendingExcelRows, file.name, excelPreview);
+        renderSharedInputPreview();
         confirmExcelImportButton.disabled = !pendingExcelRows.some(row =>
           Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && normalizeRow(row)
         );
