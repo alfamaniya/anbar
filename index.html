@@ -1664,14 +1664,14 @@
               <form id="location-create-form"><div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120"></div><div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500"></div><button class="action-button" type="submit">ذخیره محل</button></form>
               <p class="feedback" id="location-manager-feedback" role="status"></p><div id="location-manager-list"></div>
             </article>
-            <article class="settings-box">
+            <article class="settings-box" data-admin-settings>
               <h4>بکاپ خودکار فایل JSON</h4>
               <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
               <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه بکاپ ذخیره‌شده / انتخاب پوشه</button>
               <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
               <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
             </article>
-            <article class="settings-box">
+            <article class="settings-box" data-admin-settings>
               <h4>بازگردانی بکاپ JSON</h4>
               <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
               <div class="field-group">
@@ -1682,7 +1682,7 @@
               <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
               <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
             </article>
-            <article class="settings-box">
+            <article class="settings-box" data-admin-settings>
               <h4>لاگ بکاپ خودکار</h4>
               <p>فهرست رخدادهای ورود، تغییر و حذف کالاها؛ این جدول تاریخچه جداگانه هر بار نوشتن فایل بکاپ را ثبت نمی‌کند.</p>
               <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ</button>
@@ -1871,6 +1871,7 @@
       if (logoutButton) logoutButton.hidden = !currentSession;
       if (sessionUsername) sessionUsername.textContent = currentSession ? currentSession.username : '';
       document.querySelectorAll('[data-location-manager]').forEach(panel => { panel.hidden = !isAdmin && !(currentSession && currentSession.permissions && currentSession.permissions.manageLocations); });
+      document.querySelectorAll('[data-admin-settings]').forEach(panel => { panel.hidden = !isAdmin; });
       document.querySelectorAll('[data-history-permission]').forEach(panel => {
         const permission = panel.getAttribute('data-history-permission');
         panel.hidden = !isAdmin && !(currentSession && currentSession.permissions && currentSession.permissions[permission]);
@@ -2127,7 +2128,7 @@
             record.voucherNumber || '—',
             record.exitNumber || '—',
             { date: record.date || '—', time: record.time || '' },
-            record.location || '—',
+            (record.location || '—') + (record.sublocation ? ' / ' + record.sublocation : ''),
             Array.isArray(record.items) ? record.items.length : 0,
             (record.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
           ];
