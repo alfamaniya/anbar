@@ -2497,9 +2497,13 @@
       try {
         const now = new Date();
         const logs = loadActivityLog();
+        const fullDetails = String(details || 'جزئیاتی ثبت نشده است.');
+        const safeDetails = fullDetails.length > 3000
+          ? fullDetails.slice(0, 3000) + '… (ادامه جزئیات برای جلوگیری از حجیم شدن لاگ کوتاه شد)'
+          : fullDetails;
         logs.unshift({
           action: String(action || 'تغییر نامشخص'),
-          details: String(details || 'جزئیاتی ثبت نشده است.'),
+          details: safeDetails,
           actor: currentSession && currentSession.username ? currentSession.username : 'سیستم',
           timestamp: now.toISOString(),
           solarDate: new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
@@ -3772,6 +3776,17 @@
         const message = 'این مرورگر انتخاب پوشه و ذخیره مستقیم فایل را پشتیبانی نمی‌کند. برای استفاده از سایت، آن را در نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS باز کنید.';
         backupGateFeedback.textContent = message;
         backupFeedback.textContent = message;
+        return;
+      }
+
+      let waitAttempts = 0;
+      while (backupWriteInProgress && waitAttempts < 120) {
+        backupGateStatus.textContent = 'در حال پایان یافتن ذخیره بکاپ جاری...';
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitAttempts += 1;
+      }
+      if (backupWriteInProgress) {
+        backupFeedback.textContent = 'ذخیره قبلی هنوز در حال انجام است؛ چند لحظه دیگر دوباره تلاش کنید.';
         return;
       }
 
