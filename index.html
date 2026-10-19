@@ -2749,8 +2749,15 @@
           backupFeedback.textContent = backupGateFeedback.textContent;
         }
         if (wasReady) {
-          // اگر تعویض پوشه جدید موفق نشود، پوشه قبلی همچنان فعال می‌ماند.
-          setApplicationReady(true);
+          // فقط اگر پوشه قبلی هنوز قابل نوشتن باشد، سایت در حالت فعال باقی می‌ماند.
+          const previousBackupSaved = backupDirectoryHandle
+            ? await writeAutomaticBackup(backupDirectoryHandle, false)
+            : false;
+          setApplicationReady(previousBackupSaved);
+          if (!previousBackupSaved) {
+            backupGateStatus.textContent = 'بکاپ در پوشه قبلی هم ذخیره نشد؛ برای ادامه یک پوشه قابل نوشتن انتخاب کنید.';
+            backupGateFeedback.textContent = 'سایت تا زمانی که بکاپ با موفقیت ذخیره نشود قفل می‌ماند.';
+          }
         }
       } finally {
         backupGateChooseFolder.disabled = false;
