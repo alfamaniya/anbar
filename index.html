@@ -2436,7 +2436,7 @@
       try {
         const payload = JSON.parse(await file.text());
         if (!payload || !Array.isArray(payload.inventory) ||
-            !Array.isArray(payload.entryHistory) || !Array.isArray(payload.shipments) ||
+            (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) || !Array.isArray(payload.shipments) ||
             !Array.isArray(payload.activityLog)) {
           throw new Error('invalid backup structure');
         }
@@ -2460,7 +2460,7 @@
       const payload = pendingRestorePayload;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.inventory));
-        localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(payload.entryHistory.slice(0, 1000)));
+        localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify((Array.isArray(payload.entryHistory) ? payload.entryHistory : []).slice(0, 1000)));
         localStorage.setItem(SHIPMENT_KEY, JSON.stringify(payload.shipments));
         localStorage.setItem(ACTIVITY_KEY, JSON.stringify(payload.activityLog.slice(0, 100)));
         window.location.reload();
