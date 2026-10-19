@@ -869,8 +869,19 @@
       gap: 14px;
       align-items: stretch;
     }
+    /* چیدمان تنظیمات: باکس‌های ۱ و ۲ تمام‌عرض و عمودی؛ ۳ و ۴ کنار هم؛ ۵ در ردیف پایانی. */
+    .settings-grid > .settings-box:nth-child(1),
+    .settings-grid > .settings-box:nth-child(2),
+    .settings-grid > .settings-box:nth-child(5) {
+      grid-column: 1 / -1;
+    }
+    .settings-grid > .settings-box:nth-child(3),
+    .settings-grid > .settings-box:nth-child(4) {
+      grid-column: span 1;
+    }
     @media (max-width: 700px) {
       .settings-grid { grid-template-columns: minmax(0, 1fr); }
+      .settings-grid > .settings-box { grid-column: 1 / -1; }
     }
     .settings-box {
       display: flex;
