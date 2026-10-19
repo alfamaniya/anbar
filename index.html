@@ -241,8 +241,14 @@
       margin-top: 24px;
     }
 
+    .shared-preview-actions {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 20px;
+    }
+
     .shared-input-preview {
-      margin-top: 18px;
+      margin-top: 10px;
       min-width: 0;
     }
 
@@ -943,7 +949,6 @@
                 <h5>پیش‌نمایش ورودی اکسل</h5>
                 <p class="preview-empty">پس از انتخاب فایل، اطلاعات اینجا نمایش داده می‌شوند.</p>
               </div>
-              <button class="action-button" id="confirm-excel-import" type="button" disabled>تأیید و افزودن کالاها</button>
               <p id="excel-feedback" class="feedback" role="status" aria-live="polite"></p>
             </div>
 
@@ -965,7 +970,6 @@
                 <h5>پیش‌نمایش کالای تکی</h5>
                 <p class="preview-empty">با وارد کردن کد، شرح و موجودی، پیش‌نمایش اینجا نمایش داده می‌شود.</p>
               </div>
-              <button class="action-button" id="add-single-item" type="button">تأیید و افزودن کالا</button>
               <p id="single-feedback" class="feedback" role="status" aria-live="polite"></p>
             </div>
 
@@ -981,14 +985,16 @@
                 <h5>پیش‌نمایش ورودی</h5>
                 <p class="preview-empty">پس از پیش‌نمایش داده‌های کلیپ‌بورد، اطلاعات اینجا نمایش داده می‌شوند.</p>
               </div>
-              <button class="action-button" id="import-preview-data" type="button" disabled>تأیید و افزودن کالاها</button>
               <p id="input-feedback" class="feedback" role="status" aria-live="polite"></p>
             </div>
           </div>
 
+          <div class="shared-preview-actions">
+            <button class="action-button" id="confirm-all-imports" type="button" disabled>تأیید ورود اطلاعات</button>
+          </div>
           <div class="preview-panel shared-input-preview" id="shared-input-preview" aria-live="polite">
             <h5>پیش‌نمایش مشترک اطلاعات ورودی</h5>
-            <p class="preview-empty">اطلاعات واردشده از هر یک از سه روش، پس از انتخاب فایل، تایپ یا درخواست پیش‌نمایش در این قسمت نمایش داده می‌شود.</p>
+            <p class="preview-empty">اطلاعات هر سه روش در این قسمت جمع می‌شوند و با یک دکمه ثبت خواهند شد.</p>
           </div>
         </section>
 
@@ -1856,16 +1862,52 @@
       return { table, tbody };
     }
 
-    function syncSharedInputPreview(source, sourceLabel) {
+    function getCombinedPendingRows() {
+      const combined = [];
+      pendingExcelRows.forEach(row => combined.push({ row, source: 'Excel/CSV' }));
+      pendingClipboardRows.forEach(row => combined.push({ row, source: 'کلیپ‌بورد' }));
+      const manualRow = [itemFormInputs.code.value.trim(), itemFormInputs.description.value.trim(), itemFormInputs.stock.value.trim()];
+      if (manualRow.some(value => value !== '')) combined.push({ row: manualRow, source: 'ورود دستی' });
+      return combined;
+    }
+
+    function renderSharedInputPreview() {
       const shared = document.getElementById('shared-input-preview');
-      if (!shared || !source) return;
+      const confirmButton = document.getElementById('confirm-all-imports');
+      if (!shared) return;
+      const combined = getCombinedPendingRows();
       shared.replaceChildren();
       const heading = document.createElement('h5');
-      heading.textContent = 'پیش‌نمایش مشترک اطلاعات ورودی' + (sourceLabel ? ' — ' + sourceLabel : '');
-      shared.append(heading);
-      Array.from(source.children).filter(child => child.tagName !== 'H5').forEach(child => {
-        shared.append(child.cloneNode(true));
+      heading.textContent = 'پیش‌نمایش مشترک اطلاعات ورودی';
+      const message = document.createElement('p');
+      message.className = 'preview-message';
+      message.textContent = 'کل ردیف‌ها: ' + toEnglishDigits(combined.length) + '؛ معتبر: ' +
+        toEnglishDigits(combined.filter(item => normalizeRow(item.row)).length) + '؛ دارای خطا: ' +
+        toEnglishDigits(combined.filter(item => !normalizeRow(item.row)).length);
+      shared.append(heading, message);
+      if (!combined.length) {
+        const empty = document.createElement('p');
+        empty.className = 'preview-empty';
+        empty.textContent = 'هنوز اطلاعاتی برای پیش‌نمایش وجود ندارد.';
+        shared.append(empty);
+        if (confirmButton) confirmButton.disabled = true;
+        return;
+      }
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-table-wrap bulk-preview-scroll';
+      const { table, tbody } = createDataTable(['منبع ورودی', 'کد تدارکاتی', 'شرح کالا', 'موجودی', 'وضعیت']);
+      combined.forEach(({row, source}) => {
+        const error = getRowError(row);
+        const tr = document.createElement('tr');
+        if (error) tr.className = 'import-invalid-row';
+        [source, toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), error || 'معتبر'].forEach(value => {
+          const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
+        });
+        tbody.append(tr);
       });
+      wrapper.append(table); shared.append(wrapper);
+      enableTableSorting(table, { defaultColumn: 1, defaultDirection: 'asc' });
+      if (confirmButton) confirmButton.disabled = !combined.some(item => normalizeRow(item.row));
     }
 
     function renderBulkPreview(rows, sourceLabel, previewTarget) {
@@ -1881,7 +1923,7 @@
       if (!previewRows.length) {
         const empty = document.createElement('p'); empty.className = 'preview-empty'; empty.textContent = 'ردیفی برای نمایش پیدا نشد.';
         previewTarget.append(empty);
-        syncSharedInputPreview(previewTarget, sourceLabel);
+        renderSharedInputPreview();
         return;
       }
       const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap bulk-preview-scroll';
@@ -1897,7 +1939,7 @@
       });
       wrapper.append(table); previewTarget.append(wrapper);
       enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
-      syncSharedInputPreview(previewTarget, sourceLabel);
+      renderSharedInputPreview();
     }
 
     function renderSinglePreview() {
@@ -1909,7 +1951,7 @@
         const empty = document.createElement('p'); empty.className = 'preview-empty';
         empty.textContent = 'با وارد کردن کد، شرح و موجودی، پیش‌نمایش اینجا نمایش داده می‌شود.';
         singlePreview.append(empty);
-        syncSharedInputPreview(singlePreview, 'ورودی دستی');
+        renderSharedInputPreview();
         return;
       }
       const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap';
@@ -1925,7 +1967,7 @@
         ? 'اطلاعات معتبر است: کد تدارکاتی ۸ یا ۱۰ رقم و موجودی عددی است.'
         : 'کد تدارکاتی باید ۸ یا ۱۰ رقم باشد؛ شرح کالا نباید خالی باشد و موجودی فقط عدد صفر یا مثبت باشد.';
       singlePreview.append(status);
-      syncSharedInputPreview(singlePreview, 'ورودی دستی');
+      renderSharedInputPreview();
     }
 
     function findIncomingDuplicates(rows) {
