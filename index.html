@@ -844,9 +844,12 @@
 
     .settings-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
       align-items: stretch;
+    }
+    @media (max-width: 700px) {
+      .settings-grid { grid-template-columns: minmax(0, 1fr); }
     }
     .settings-box {
       display: flex;
@@ -1078,9 +1081,20 @@
             </article>
             <article class="settings-box">
               <h4>بکاپ دستی فایل JSON</h4>
-              <p>از فهرست فعلی کالاها یک فایل پشتیبان خروجی بگیرید.</p>
+              <p>از کالاها، تاریخچه ورود و ارسال و لاگ فعالیت یک فایل پشتیبان دریافت کنید.</p>
               <button class="action-button" id="download-json-backup" type="button">دریافت فایل بکاپ JSON</button>
               <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
+            </article>
+            <article class="settings-box">
+              <h4>بازگردانی بکاپ JSON</h4>
+              <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
+              <div class="field-group">
+                <label for="restore-json-file">فایل پشتیبان JSON</label>
+                <input id="restore-json-file" type="file" accept=".json,application/json">
+              </div>
+              <button class="action-button" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
+              <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
+              <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
             </article>
             <article class="settings-box">
               <h4>لاگ بکاپ خودکار</h4>
@@ -2391,7 +2405,13 @@
     openSection('section-1');
   
     document.getElementById('download-json-backup').addEventListener('click', () => {
-      const payload = { exportedAt: new Date().toISOString(), inventory: inventoryItems, shipments: loadShipments(), activityLog: loadActivityLog() };
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        inventory: inventoryItems,
+        entryHistory: loadEntryHistory(),
+        shipments: loadShipments(),
+        activityLog: loadActivityLog()
+      };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -2402,6 +2422,53 @@
       document.getElementById('backup-feedback').textContent = 'فایل بکاپ JSON آماده شد.';
       recordActivity('بکاپ دستی JSON', 'فایل پشتیبان دانلود شد');
     });
+    const restoreFileInput = document.getElementById('restore-json-file');
+    const restoreBackupButton = document.getElementById('restore-json-backup');
+    const restoreFeedback = document.getElementById('restore-feedback');
+    let pendingRestorePayload = null;
+
+    restoreFileInput.addEventListener('change', async () => {
+      pendingRestorePayload = null;
+      restoreBackupButton.disabled = true;
+      restoreFeedback.textContent = '';
+      const file = restoreFileInput.files && restoreFileInput.files[0];
+      if (!file) return;
+      try {
+        const payload = JSON.parse(await file.text());
+        if (!payload || !Array.isArray(payload.inventory) ||
+            !Array.isArray(payload.entryHistory) || !Array.isArray(payload.shipments) ||
+            !Array.isArray(payload.activityLog)) {
+          throw new Error('invalid backup structure');
+        }
+        const validInventory = payload.inventory.every(item =>
+          item && typeof item.code === 'string' && typeof item.description === 'string' &&
+          Number.isFinite(Number(item.stock)) && Number(item.stock) >= 0
+        );
+        if (!validInventory) throw new Error('invalid inventory');
+        pendingRestorePayload = payload;
+        restoreBackupButton.disabled = false;
+        restoreFeedback.textContent = 'فایل معتبر است. برای جایگزینی اطلاعات فعلی، دکمه بازگردانی را بزنید.';
+      } catch (error) {
+        restoreFeedback.textContent = 'فایل انتخاب‌شده معتبر نیست یا با ساختار بکاپ این برنامه سازگار نیست.';
+      }
+    });
+
+    restoreBackupButton.addEventListener('click', () => {
+      if (!pendingRestorePayload) return;
+      const confirmed = window.confirm('اطلاعات فعلی این مرورگر با اطلاعات فایل بکاپ جایگزین شود؟ این عملیات قابل بازگشت خودکار نیست.');
+      if (!confirmed) return;
+      const payload = pendingRestorePayload;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload.inventory));
+        localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(payload.entryHistory.slice(0, 1000)));
+        localStorage.setItem(SHIPMENT_KEY, JSON.stringify(payload.shipments));
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(payload.activityLog.slice(0, 100)));
+        window.location.reload();
+      } catch (error) {
+        restoreFeedback.textContent = 'بازگردانی انجام نشد؛ ممکن است فضای ذخیره‌سازی مرورگر کافی نباشد.';
+      }
+    });
+
     document.getElementById('refresh-backup-log').addEventListener('click', () => {
       renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
     });
