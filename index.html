@@ -3660,6 +3660,7 @@
     const backupGateStatus = document.getElementById('backup-gate-status');
     const backupGateFeedback = document.getElementById('backup-gate-feedback');
     const backupFolderButton = document.getElementById('choose-backup-folder');
+    const changeBackupFolderButton = document.getElementById('change-backup-folder');
     const backupFolderStatus = document.getElementById('backup-folder-status');
     const backupFeedback = document.getElementById('backup-feedback');
     const BACKUP_HANDLE_DB = 'anbar-backup-handle-db';
@@ -3723,6 +3724,7 @@
         inventory: inventoryItems,
         entryHistory: loadEntryHistory(),
         shipments: loadShipments(),
+        shipmentLocations: loadShipmentLocations(),
         activityLog: loadActivityLog()
       };
     }
@@ -3783,7 +3785,7 @@
       }, 350);
     }
 
-    async function chooseBackupFolder() {
+    async function chooseBackupFolder(forceChooseNew = false) {
       if (typeof window.showDirectoryPicker !== 'function') {
         const message = 'این مرورگر انتخاب پوشه و ذخیره مستقیم فایل را پشتیبانی نمی‌کند. برای استفاده از سایت، آن را در نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS باز کنید.';
         backupGateFeedback.textContent = message;
@@ -3792,15 +3794,17 @@
       }
 
       const wasReady = applicationReady;
+      const previousDirectory = backupDirectoryHandle || await loadBackupDirectoryHandle().catch(() => null);
+      const previousDirectoryName = previousDirectory && previousDirectory.name ? previousDirectory.name : 'تعریف‌نشده';
       backupGateFeedback.textContent = '';
       backupFeedback.textContent = '';
       backupGateChooseFolder.disabled = true;
       if (backupFolderButton) backupFolderButton.disabled = true;
+      if (changeBackupFolderButton) changeBackupFolderButton.disabled = true;
 
       try {
-        // اگر قبلاً پوشه‌ای ثبت شده، ابتدا همان پوشه را دوباره مجاز می‌کنیم؛
-        // انتخاب پوشه جدید فقط در صورت نبودن هندل ذخیره‌شده لازم می‌شود.
-        let selectedDirectory = backupDirectoryHandle || await loadBackupDirectoryHandle();
+        // انتخاب پوشه جدید همیشه پنجره انتخاب پوشه را باز می‌کند.
+        let selectedDirectory = forceChooseNew ? null : (backupDirectoryHandle || await loadBackupDirectoryHandle());
         if (selectedDirectory) {
           let permission = await selectedDirectory.queryPermission({ mode: 'readwrite' });
           if (permission !== 'granted') {
@@ -3827,9 +3831,12 @@
         const initialBackupSaved = await writeAutomaticBackup(selectedDirectory, false);
         if (!initialBackupSaved) throw new Error('ذخیره بکاپ در پوشه انتخاب‌شده ناموفق بود.');
 
-        backupDirectoryHandle = selectedDirectory;
         await storeBackupDirectoryHandle(selectedDirectory);
-        recordActivity('تنظیم بکاپ خودکار', 'پوشه ذخیره‌سازی تأیید و بکاپ اولیه ذخیره شد');
+        backupDirectoryHandle = selectedDirectory;
+        const selectedDirectoryName = selectedDirectory && selectedDirectory.name ? selectedDirectory.name : 'پوشه انتخاب‌شده';
+        const changed = forceChooseNew || previousDirectoryName !== selectedDirectoryName;
+        recordActivity(changed ? 'تغییر پوشه بکاپ' : 'فعال‌سازی پوشه بکاپ',
+          'پوشه قبلی: «' + previousDirectoryName + '»؛ پوشه فعلی: «' + selectedDirectoryName + '»؛ بکاپ اولیه ذخیره شد.');
         const finalBackupSaved = await writeAutomaticBackup(selectedDirectory, false);
         if (!finalBackupSaved) throw new Error('ذخیره نهایی بکاپ ناموفق بود.');
         setApplicationReady(true);
@@ -3852,11 +3859,13 @@
       } finally {
         backupGateChooseFolder.disabled = false;
         if (backupFolderButton) backupFolderButton.disabled = false;
+        if (changeBackupFolderButton) changeBackupFolderButton.disabled = false;
       }
     }
 
-    backupGateChooseFolder.addEventListener('click', chooseBackupFolder);
-    if (backupFolderButton) backupFolderButton.addEventListener('click', chooseBackupFolder);
+    backupGateChooseFolder.addEventListener('click', () => chooseBackupFolder(false));
+    if (backupFolderButton) backupFolderButton.addEventListener('click', () => chooseBackupFolder(false));
+    if (changeBackupFolderButton) changeBackupFolderButton.addEventListener('click', () => chooseBackupFolder(true));
 
     (async () => {
       try {
@@ -3888,7 +3897,7 @@
     const originalLocalStorageSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {
       originalLocalStorageSetItem.call(this, key, value);
-      if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY].includes(String(key))) {
+      if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY, LOCATION_KEY, AUTH_USERS_KEY].includes(String(key))) {
         scheduleAutomaticBackup();
       }
     };
@@ -3936,6 +3945,26 @@
       const incomingEntries = mergeUniqueRecords(currentEntries, payload.entryHistory || [], ['entryNumber'], conflicts, 'ورود تکراری');
       // اگر شماره خروج یا شماره حواله تکراری باشد، کل رکورد ارسال وارد نمی‌شود.
       const incomingShipments = mergeUniqueRecords(currentShipments, payload.shipments, ['exitNumber', 'voucherNumber'], conflicts, 'ارسال دارای شماره تکراری');
+      const currentLocations = loadShipmentLocations();
+      const mergedLocations = currentLocations.map(location => ({
+        name: location.name,
+        sublocations: [...location.sublocations]
+      }));
+      const incomingLocations = Array.isArray(payload.shipmentLocations) ? payload.shipmentLocations : [];
+      incomingLocations.forEach(incoming => {
+        if (!incoming || typeof incoming.name !== 'string' || !incoming.name.trim()) return;
+        let existing = mergedLocations.find(location => normLocation(location.name) === normLocation(incoming.name));
+        if (!existing) {
+          existing = { name: incoming.name.trim(), sublocations: [] };
+          mergedLocations.push(existing);
+        }
+        (Array.isArray(incoming.sublocations) ? incoming.sublocations : []).forEach(value => {
+          const sublocation = String(value || '').trim();
+          if (sublocation && !existing.sublocations.some(item => normLocation(item) === normLocation(sublocation))) {
+            existing.sublocations.push(sublocation);
+          }
+        });
+      });
       const currentActivity = loadActivityLog();
       const incomingActivity = (payload.activityLog || []).filter(record => {
         const signature = JSON.stringify(record);
@@ -3948,8 +3977,15 @@
         inventory: currentInventory.concat(incomingInventory),
         entryHistory: currentEntries.concat(incomingEntries).slice(0, 1000),
         shipments: currentShipments.concat(incomingShipments),
-        activityLog: currentActivity.concat(incomingActivity).slice(0, 100),
-        counts: { inventory: incomingInventory.length, entries: incomingEntries.length, shipments: incomingShipments.length, activity: incomingActivity.length }
+        activityLog: currentActivity.concat(incomingActivity).slice(0, 1000),
+        shipmentLocations: mergedLocations,
+        counts: {
+          inventory: incomingInventory.length,
+          entries: incomingEntries.length,
+          shipments: incomingShipments.length,
+          activity: incomingActivity.length,
+          locations: mergedLocations.length - currentLocations.length
+        }
       };
     }
 
@@ -3963,7 +3999,8 @@
         const payload = JSON.parse(await file.text());
         if (!payload || !Array.isArray(payload.inventory) ||
             (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) ||
-            !Array.isArray(payload.shipments) || !Array.isArray(payload.activityLog)) {
+            !Array.isArray(payload.shipments) || !Array.isArray(payload.activityLog) ||
+            (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations))) {
           throw new Error('invalid backup structure');
         }
         const validInventory = payload.inventory.every(item =>
@@ -3982,6 +4019,7 @@
           'کالاهای جدید: ' + analysis.counts.inventory,
           'شماره‌های ورود جدید: ' + analysis.counts.entries,
           'ارسال‌های جدید: ' + analysis.counts.shipments,
+          'محل‌های موجود در فهرست پس از ادغام: ' + analysis.shipmentLocations.length,
           'رخدادهای جدید: ' + analysis.counts.activity,
           'مغایرت‌ها و موارد تکراری: ' + analysis.conflicts.length,
           'اطلاعات فعلی حذف نمی‌شود؛ فقط رکوردهای جدید اضافه خواهند شد.'
@@ -4014,8 +4052,10 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis.inventory));
         localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(analysis.entryHistory));
         localStorage.setItem(SHIPMENT_KEY, JSON.stringify(analysis.shipments));
+        localStorage.setItem(LOCATION_KEY, JSON.stringify(analysis.shipmentLocations));
         localStorage.setItem(ACTIVITY_KEY, JSON.stringify(analysis.activityLog));
-        restoreFeedback.textContent = 'بازگردانی تکمیل شد؛ اطلاعات قبلی حفظ و فقط موارد غیرتکراری اضافه شدند.';
+        recordActivity('بازگردانی بکاپ', 'کالاها، تاریخچه‌ها، فهرست محل‌های ارسال و رخدادها از فایل بکاپ ادغام شدند.');
+        restoreFeedback.textContent = 'بازگردانی تکمیل شد؛ اطلاعات قبلی حفظ و موارد جدید ادغام شدند.';
         window.location.reload();
       } catch (error) {
         restoreFeedback.textContent = 'بازگردانی کامل نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید. اطلاعات ممکن است به‌طور کامل ذخیره نشده باشد.';
@@ -4114,10 +4154,18 @@
       users.push({ username, password, permissions, createdAt: new Date().toISOString() });
       try {
         localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+        const permissionNames = {
+          entry: 'ورود کالا', shipment: 'ارسال کالا', entryHistory: 'تاریخچه ورود',
+          shipmentHistory: 'تاریخچه خروج', manageLocations: 'مدیریت محل‌های ارسال'
+        };
+        const grantedPermissions = Object.keys(permissionNames).filter(key => permissions[key]).map(key => permissionNames[key]);
+        recordActivity('ایجاد کاربر',
+          'حساب: «' + username + '»؛ دسترسی‌ها: ' + (grantedPermissions.join('، ') || 'بدون دسترسی') + '؛ رمز عبور در لاگ ثبت نمی‌شود.');
         event.target.reset();
         document.getElementById('permission-entry').checked = true;
         feedback.textContent = 'کاربر با موفقیت ایجاد شد.';
         renderManagedUsers();
+        renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
       } catch (error) {
         feedback.textContent = 'ذخیره کاربر انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
       }
@@ -4129,6 +4177,8 @@
       const body = document.getElementById('managed-users-body');
       if (!body) return;
       const users = loadManagedUsers();
+      const count = document.getElementById('managed-users-count');
+      if (count) count.textContent = toEnglishDigits(users.length) + ' کاربر';
       if (!users.length) {
         body.innerHTML = '<tr><td colspan="6">هنوز کاربری ایجاد نشده است.</td></tr>';
         return;
@@ -4183,6 +4233,7 @@
           feedback.textContent = 'حداقل یکی از چهار دسترسی را انتخاب کنید.';
           return;
         }
+        const previousPermissions = usersNow[index].permissions || {};
         usersNow[index].permissions = permissions;
         try {
           localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(usersNow));
@@ -4190,7 +4241,15 @@
             currentSession.permissions = permissions;
             applySessionAccess();
           }
-          recordActivity('ویرایش دسترسی کاربر', 'مدیر دسترسی‌های کاربر «' + usersNow[index].username + '» را تغییر داد.');
+          const permissionNames = {
+            entry: 'ورود کالا', shipment: 'ارسال کالا', entryHistory: 'تاریخچه ورود',
+            shipmentHistory: 'تاریخچه خروج', manageLocations: 'مدیریت محل‌های ارسال'
+          };
+          const describePermissions = value =>
+            Object.keys(permissionNames).filter(key => value[key]).map(key => permissionNames[key]).join('، ') || 'بدون دسترسی';
+          recordActivity('ویرایش دسترسی کاربر',
+            'حساب: «' + usersNow[index].username + '»؛ دسترسی‌های قبلی: ' + describePermissions(previousPermissions) +
+            '؛ دسترسی‌های جدید: ' + describePermissions(permissions));
           editingManagedUserIndex = null;
           renderManagedUsers();
           renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
@@ -4205,11 +4264,13 @@
         const usersNow = loadManagedUsers();
         if (!Number.isInteger(index) || index < 0 || index >= usersNow.length) return;
         if (!window.confirm('کاربر «' + usersNow[index].username + '» حذف شود؟')) return;
+        const removedUser = usersNow[index];
         usersNow.splice(index, 1);
         localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(usersNow));
         editingManagedUserIndex = null;
-        recordActivity('حذف کاربر', 'مدیر حساب کاربری حذف کرد.');
+        recordActivity('حذف کاربر', 'حساب «' + removedUser.username + '» توسط مدیر حذف شد.');
         renderManagedUsers();
+        renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
       }));
     }
     function escapeHtml(value) {
