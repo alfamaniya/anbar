@@ -909,6 +909,9 @@
     .settings-box h4 { font-size: 16px; }
     .settings-box input { width: 100%; min-height: 40px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
     .settings-box .preview-panel { max-height: 240px; overflow: auto; }
+    /* لاگ بکاپ فقط یک ناحیه اسکرول داشته باشد؛ اسکرول بیرونی پنل غیرفعال است. */
+    #backup-log-results { max-height: none; overflow: visible; }
+    #backup-log-results .bulk-preview-scroll { max-height: 240px; overflow: auto; }
     .settings-log-row { padding: 8px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
     .sortable-data-table { width:100%; border-collapse:collapse; font-size:12px; text-align:center; }
     .sortable-data-table th, .sortable-data-table td { padding:8px; border:1px solid var(--border); vertical-align:middle; }
