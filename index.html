@@ -241,6 +241,16 @@
       margin-top: 24px;
     }
 
+    .shared-input-preview {
+      margin-top: 18px;
+      min-width: 0;
+    }
+
+    .shared-input-preview .preview-table-wrap {
+      max-height: 520px;
+      overflow: auto;
+    }
+
     .input-panel {
       min-width: 0;
       padding: 22px;
@@ -974,6 +984,11 @@
               <button class="action-button" id="import-preview-data" type="button" disabled>تأیید و افزودن کالاها</button>
               <p id="input-feedback" class="feedback" role="status" aria-live="polite"></p>
             </div>
+          </div>
+
+          <div class="preview-panel shared-input-preview" id="shared-input-preview" aria-live="polite">
+            <h5>پیش‌نمایش مشترک اطلاعات ورودی</h5>
+            <p class="preview-empty">اطلاعات واردشده از هر یک از سه روش، پس از انتخاب فایل، تایپ یا درخواست پیش‌نمایش در این قسمت نمایش داده می‌شود.</p>
           </div>
         </section>
 
@@ -1841,6 +1856,18 @@
       return { table, tbody };
     }
 
+    function syncSharedInputPreview(source, sourceLabel) {
+      const shared = document.getElementById('shared-input-preview');
+      if (!shared || !source) return;
+      shared.replaceChildren();
+      const heading = document.createElement('h5');
+      heading.textContent = 'پیش‌نمایش مشترک اطلاعات ورودی' + (sourceLabel ? ' — ' + sourceLabel : '');
+      shared.append(heading);
+      Array.from(source.children).filter(child => child.tagName !== 'H5').forEach(child => {
+        shared.append(child.cloneNode(true));
+      });
+    }
+
     function renderBulkPreview(rows, sourceLabel, previewTarget) {
       const previewRows = (Array.isArray(rows) ? rows : []).filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== ''));
       previewTarget.replaceChildren();
@@ -1853,7 +1880,9 @@
       previewTarget.append(heading, message);
       if (!previewRows.length) {
         const empty = document.createElement('p'); empty.className = 'preview-empty'; empty.textContent = 'ردیفی برای نمایش پیدا نشد.';
-        previewTarget.append(empty); return;
+        previewTarget.append(empty);
+        syncSharedInputPreview(previewTarget, sourceLabel);
+        return;
       }
       const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap bulk-preview-scroll';
       const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی', 'وضعیت']);
@@ -1868,6 +1897,7 @@
       });
       wrapper.append(table); previewTarget.append(wrapper);
       enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'asc' });
+      syncSharedInputPreview(previewTarget, sourceLabel);
     }
 
     function renderSinglePreview() {
@@ -1878,7 +1908,9 @@
       if (!row.some(value => value !== '')) {
         const empty = document.createElement('p'); empty.className = 'preview-empty';
         empty.textContent = 'با وارد کردن کد، شرح و موجودی، پیش‌نمایش اینجا نمایش داده می‌شود.';
-        singlePreview.append(empty); return;
+        singlePreview.append(empty);
+        syncSharedInputPreview(singlePreview, 'ورودی دستی');
+        return;
       }
       const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap';
       const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی']);
@@ -1893,6 +1925,7 @@
         ? 'اطلاعات معتبر است: کد تدارکاتی ۸ یا ۱۰ رقم و موجودی عددی است.'
         : 'کد تدارکاتی باید ۸ یا ۱۰ رقم باشد؛ شرح کالا نباید خالی باشد و موجودی فقط عدد صفر یا مثبت باشد.';
       singlePreview.append(status);
+      syncSharedInputPreview(singlePreview, 'ورودی دستی');
     }
 
     function findIncomingDuplicates(rows) {
