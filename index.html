@@ -954,7 +954,8 @@
     .backup-setup-card .backup-gate-status { color: var(--text); font-weight: 700; }
     .backup-setup-card .backup-gate-feedback { color: #a52222; }
 
-      .login-overlay {
+      .login-overlay[hidden], .login-view[hidden], .nav-link[hidden], .section-card[hidden] { display: none !important; }
+    .login-overlay {
       position: fixed;
       inset: 0;
       z-index: 7000;
