@@ -1,0 +1,2227 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="صفحه اولیه سامانه کنترل مصرف اقلام">
+  <title>کنترل مصرف اقلام</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #d6e0ef;
+      --main-bg: #f8fafc;
+      --surface: #ffffff;
+      --panel-bg: #c7d8ef;
+      --sidebar: #17253b;
+      --sidebar-muted: #aebbd0;
+      --text: #1f2937;
+      --muted: #687386;
+      --accent: #4f83e3;
+      --border: #cbd6e6;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 120px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--text);
+      font-family: Tahoma, Arial, sans-serif;
+      line-height: 1.8;
+    }
+
+    .layout {
+      min-height: 100vh;
+      direction: rtl;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      width: 100%;
+      min-height: 82px;
+      padding: 12px clamp(18px, 4vw, 54px);
+      background: var(--sidebar);
+      color: #fff;
+      box-shadow: 0 4px 18px rgba(15, 25, 42, 0.16);
+    }
+
+    .brand {
+      flex: 0 0 auto;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      white-space: nowrap;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      color: var(--sidebar-muted);
+      font-size: 12px;
+    }
+
+    .nav-title {
+      display: none;
+    }
+
+    .sidebar nav {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nav-list {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: #e7edf7;
+      text-decoration: none;
+      transition: background-color 160ms ease, border-color 160ms ease;
+    }
+
+    .nav-link:hover,
+    .nav-link:focus-visible,
+    .nav-link[aria-current="page"] {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.12);
+      outline: none;
+    }
+
+    .nav-number {
+      display: inline-grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .main {
+      min-width: 0;
+      min-height: 100vh;
+      padding: 116px clamp(18px, 4vw, 54px) 34px;
+      background: var(--main-bg);
+    }
+
+    .page-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 auto 26px;
+      max-width: 1100px;
+    }
+
+    .page-header h2 {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 30px);
+      line-height: 1.5;
+    }
+
+    .page-header p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 11px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #36a879;
+    }
+
+    .sections {
+      display: grid;
+      gap: 18px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-card {
+      display: none;
+      min-height: 180px;
+      padding: clamp(20px, 3vw, 30px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel-bg);
+      box-shadow: 0 5px 18px rgba(28, 43, 69, 0.06);
+      scroll-margin-top: 24px;
+    }
+
+    .section-card.is-active {
+      display: block;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-icon {
+      display: inline-grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      flex: 0 0 40px;
+      border-radius: 12px;
+      background: #edf3ff;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .section-card h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .section-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .input-panels {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .input-panel {
+      min-width: 0;
+      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      /* باکس روش ورود را آبی-خاکستری می‌کنیم تا با فیلدهای سفید اشتباه نشود. */
+      background: #e5edf8;
+    }
+
+    .input-panel h4 {
+      margin: 0 0 18px;
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .field-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-group label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .field-group input,
+    .field-group textarea {
+      width: 100%;
+      min-width: 0;
+      padding: 11px 12px;
+      border: 1px solid #d7deea;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+    }
+
+    .field-group input:focus,
+    .field-group textarea:focus {
+      border-color: var(--accent);
+      outline: 2px solid rgba(79, 131, 227, 0.15);
+    }
+
+    .field-group textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    .field-hint {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+
+    .action-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 9px 15px;
+      border: 1px solid var(--accent);
+      border-radius: 9px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background-color 160ms ease, transform 160ms ease;
+    }
+
+    .action-button:hover { background: #376fce; }
+    .action-button:focus-visible {
+      outline: 3px solid rgba(79, 131, 227, 0.28);
+      outline-offset: 2px;
+    }
+
+    .feedback {
+      min-height: 24px;
+      margin-top: 12px;
+      color: #376fce;
+      font-size: 13px;
+    }
+
+    .duplicate-dialog {
+      width: min(760px, calc(100% - 28px));
+      max-height: min(82vh, 760px);
+      padding: 0;
+      border: 1px solid #efb7b7;
+      border-radius: 14px;
+      color: var(--text);
+      background: #fff;
+      box-shadow: 0 24px 80px rgba(20, 30, 48, 0.28);
+    }
+
+    .duplicate-dialog::backdrop {
+      background: rgba(15, 25, 42, 0.62);
+      backdrop-filter: blur(2px);
+    }
+
+    .duplicate-dialog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f0cccc;
+      background: #fff3f3;
+    }
+
+    .duplicate-dialog-header h3 {
+      margin: 0;
+      color: #a52222;
+      font-size: 17px;
+    }
+
+    .duplicate-dialog-body {
+      max-height: calc(82vh - 145px);
+      overflow: auto;
+      padding: 18px 20px;
+    }
+
+    .duplicate-dialog-body p {
+      margin: 0 0 14px;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    .duplicate-group {
+      margin: 0 0 14px;
+      padding: 12px;
+      border: 1px solid #f0cccc;
+      border-radius: 10px;
+      background: #fffafa;
+    }
+
+    .duplicate-group h4 {
+      margin: 0 0 8px;
+      color: #a52222;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .duplicate-group ul {
+      margin: 0;
+      padding-right: 22px;
+      font-size: 12px;
+      line-height: 2;
+    }
+
+    .duplicate-dialog-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .duplicate-close {
+      border-color: #cbd5e4;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .duplicate-close:hover { background: #edf3ff; }
+
+    .preview-panel {
+      margin-top: 16px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      /* پس‌زمینه پیش‌نمایش از سفید فیلدهای ورودی جدا نگه داشته می‌شود. */
+      background: #eaf0f8;
+    }
+
+    .preview-panel h5 {
+      margin: 0 0 8px;
+      font-size: 13px;
+    }
+
+    .preview-message {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .preview-table-wrap {
+      overflow-x: auto;
+      margin-bottom: 12px;
+    }
+
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .preview-table th,
+    .preview-table td {
+      padding: 8px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .preview-table th { background: #f3f6fc; }
+
+    .preview-empty {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .entry-history-panel { min-width: 0; }
+    .entry-history-table-wrap { width: 100%; overflow-x: auto; }
+    .entry-history-table { min-width: 540px; }\n    .shipment-history-table { min-width: 900px; }
+    .entry-history-table th { text-align: center; }
+    .entry-sort-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      width: 100%;
+      min-height: 36px;
+      padding: 4px 6px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .entry-sort-button:hover, .entry-sort-button:focus-visible { background: #e1eaf6; outline: 2px solid var(--accent); }
+    .entry-history-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .entry-history-pagination span { color: var(--muted); font-size: 12px; }
+    .entry-history-pagination .action-button { min-width: 90px; }
+    .entry-history-table td { text-align: center; }
+    .entry-history-number { direction: ltr; unicode-bidi: plaintext; overflow-wrap: anywhere; }
+
+    .action-button.secondary {
+      margin-inline-start: 6px;
+      border-color: #cbd5e4;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .action-button.secondary:hover { background: #edf3ff; }
+
+    .inventory-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 22px 0 18px;
+    }
+
+    .inventory-count {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .sort-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .sort-controls label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .sort-controls select {
+      min-height: 38px;
+      max-width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #d7deea;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+    }
+
+    .inventory-management-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 0 0 18px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      /* نوار مدیریت کالاها به رنگ مستقل از فیلدهای ورودی نمایش داده می‌شود. */
+      background: #e5edf8;
+    }
+
+    .select-all-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .select-all-label input,
+    .item-select-checkbox {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .delete-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .action-button.delete-selected-button,
+    .action-button.delete-all-button {
+      border-color: #c03939;
+      background: #c03939;
+    }
+
+    .action-button.delete-selected-button:hover:not(:disabled),
+    .action-button.delete-all-button:hover:not(:disabled) {
+      background: #a52e2e;
+    }
+
+    .action-button:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+
+
+    .shipment-dialog { width:min(900px,calc(100% - 24px)); max-height:min(90vh,900px); padding:0; border:1px solid var(--border); border-radius:16px; color:var(--text); background:#f8fbff; box-shadow:0 24px 80px rgba(20,30,48,.3); }
+    .shipment-dialog::backdrop { background:rgba(15,25,42,.66); backdrop-filter:blur(2px); }
+    .shipment-header,.shipment-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:#e5edf8; border-bottom:1px solid var(--border); }
+    .shipment-header h3 { margin:0; font-size:17px; }
+    .shipment-body { max-height:calc(90vh - 140px); overflow:auto; padding:18px; }
+    .shipment-items { display:grid; gap:12px; }
+    .shipment-line { display:grid; grid-template-columns:minmax(110px,.7fr) minmax(180px,1.5fr) minmax(110px,.7fr); align-items:end; gap:12px; padding:12px; border:1px solid var(--border); border-radius:10px; background:#eaf0f8; }
+    .shipment-line .field-group { margin:0; }
+    .shipment-line .field-group input { min-height:40px; }
+    .shipment-meta { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px; padding:16px; border:1px solid var(--border); border-radius:12px; background:#e5edf8; }
+    .shipment-meta .field-group { margin:0; }
+    .shipment-meta select { width:100%; min-height:42px; padding:8px; border:1px solid #d7deea; border-radius:9px; background:white; font:inherit; }
+    .shipment-note { margin:10px 0 0; color:var(--muted); font-size:12px; }
+    .shipment-footer { justify-content:flex-end; border-top:1px solid var(--border); border-bottom:0; }
+    .shipment-close { border-color:#cbd5e4; background:#fff; color:var(--text); }
+    .inventory-action-group { display:flex; align-items:center; justify-content:space-between; flex:1; flex-wrap:wrap; gap:12px; }
+    .shipment-feedback { color:#a52222; font-size:13px; margin:10px 0 0; }
+    @media(max-width:650px) { .shipment-line,.shipment-meta { grid-template-columns:1fr; } .shipment-header,.shipment-footer { flex-wrap:wrap; } }
+
+    .inventory-search-panel { display:grid; gap:6px; margin:14px 0; padding:12px; border:1px solid var(--border); border-radius:10px; background:#e1eaf6; }
+    .inventory-search-panel label { font-size:12px; font-weight:700; }
+    .inventory-search-panel input { width:100%; min-height:42px; padding:8px 12px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--text); font:inherit; }
+    .search-live-text { margin:0; color:var(--muted); font-size:12px; }
+    .search-live-text strong { color:var(--text); overflow-wrap:anywhere; }
+    .inventory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+      align-items: start;
+      gap: 8px;
+      max-height: 900px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 4px;
+    }
+    .bulk-preview-scroll { max-height:520px; overflow:auto; }
+    .bulk-preview-scroll thead { position:sticky; top:0; z-index:1; }
+    .import-invalid-row { background:#fff0f0; color:#8f1d1d; }
+    .import-invalid-row td:last-child { min-width:220px; white-space:normal; }
+
+    .item-selection-label {
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-start;
+      gap: 6px;
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .item-card {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      /* کارت هر کالا زمینه آبی-خاکستری دارد؛ فیلدهای قابل ویرایش داخل آن سفید می‌مانند. */
+      background: #e1eaf6;
+      box-shadow: 0 4px 14px rgba(28, 43, 69, 0.04);
+    }
+
+    .item-details {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: repeat(4, auto);
+      flex: 1;
+      min-width: 0;
+      gap: 5px;
+    }
+
+    .item-tile {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 4px;
+      min-width: 0;
+      min-height: 44px;
+      padding: 6px;
+      border: 1px solid #e0e7f2;
+      border-radius: 7px;
+      /* خانه‌های اطلاعات کالا کمی روشن‌تر از کارت اصلی و متفاوت از ورودی سفید هستند. */
+      background: #edf2f9;
+    }
+
+    .item-tile-label {
+      color: var(--muted);
+      font-size: 9px;
+      line-height: 1.45;
+    }
+
+    .item-tile-value {
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .send-quantity-input {
+      width: 100%;
+      min-width: 0;
+      height: 30px;
+      padding: 4px;
+      border: 1px solid #d7deea;
+      border-radius: 7px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+    }
+
+    .send-quantity-input:focus {
+      border-color: var(--accent);
+      outline: 2px solid rgba(79, 131, 227, 0.15);
+    }
+
+    .empty-state {
+      padding: 30px 16px;
+      border: 1px dashed #cbd5e4;
+      border-radius: 12px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .empty-state[hidden] { display: none; }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        display: block;
+        padding: 10px 16px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 0 4px 8px;
+      }
+
+      .brand p { margin: 0; }
+
+      .nav-list {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+      }
+
+      .nav-link {
+        flex: 0 0 auto;
+        white-space: nowrap;
+      }
+
+      .main { padding-top: 130px; }
+    }
+
+    @media (max-width: 760px) {
+      .main { padding-right: 16px; padding-left: 16px; }
+      .section-card { min-height: 150px; }
+      .input-panels { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .item-details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .item-tile { min-height: 88px; }
+      .inventory-toolbar { align-items: flex-start; }
+      .sort-controls { width: 100%; }
+    }
+
+    @media (max-width: 420px) {
+      html { scroll-padding-top: 112px; }
+      .sidebar { padding-right: 10px; padding-left: 10px; }
+      .brand { gap: 8px; }
+      .brand h1 { font-size: 16px; }
+      .brand p { font-size: 10px; }
+      .nav-link { gap: 6px; padding: 6px 8px; font-size: 12px; }
+      .nav-number { width: 24px; height: 24px; }
+      .main { padding-top: 124px; }
+      .input-panel { padding: 17px; }
+      .page-header { display: block; }
+      .status { margin-top: 12px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
+    }
+  
+    /* Center text throughout boxes and form controls across the site. */
+    .input-panel,
+    .preview-panel,
+    .item-card,
+    .item-details,
+    .item-tile,
+    .field-group,
+    .field-hint,
+    .feedback,
+    .panel,
+    .card {
+      text-align: center;
+    }
+
+    input,
+    textarea,
+    select,
+    button,
+    label {
+      text-align: center;
+    }
+
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+    .settings-box {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid #9eb6d8;
+      border-radius: 12px;
+      /* باکس‌های تنظیمات غیرسفید هستند تا ورودی‌های سفید داخل آن‌ها واضح تشخیص داده شوند. */
+      background: #dbe7f5;
+      box-shadow: 0 4px 12px rgba(35, 65, 105, 0.08);
+      text-align: center;
+    }
+    .settings-box .action-button {
+      min-height: 42px;
+      padding: 9px 15px;
+      font-size: 13px;
+      align-self: center;
+      width: 100%;
+      max-width: 280px;
+    }
+    .settings-box h4, .settings-box p { margin: 0; }
+    .settings-box h4 { font-size: 16px; }
+    .settings-box input { width: 100%; min-height: 40px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+    .settings-box .preview-panel { max-height: 240px; overflow: auto; }
+    .settings-log-row { padding: 8px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <header class="sidebar" aria-label="هدر ناوبری">
+      <div class="brand">
+        <h1>کنترل مصرف</h1>
+        <p>سامانه مدیریت اقلام</p>
+      </div>
+
+      <nav aria-label="ناوبری بخش‌ها">
+        <p class="nav-title">دسترسی به بخش‌ها</p>
+        <ul class="nav-list">
+          <li><a class="nav-link" href="#section-1"><span class="nav-number">۱</span><span>ورودی کالا ها</span></a></li>
+          <li><a class="nav-link" href="#section-2"><span class="nav-number">۲</span><span>مشاهده کالاهای موجود و ارسال</span></a></li>
+          <li><a class="nav-link" href="#section-3"><span class="nav-number">۳</span><span>تنظیمات</span></a></li>
+          <li><a class="nav-link" href="#section-4"><span class="nav-number">۴</span><span>بخش چهارم</span></a></li>
+          <li><a class="nav-link" href="#section-5"><span class="nav-number">۵</span><span>بخش پنجم</span></a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main class="main">
+      <header class="page-header">
+        <div>
+          <h2>صفحه اصلی</h2>
+          <p>ساختار اولیه صفحه کنترل مصرف اقلام</p>
+        </div>
+        <span class="status"><span class="status-dot" aria-hidden="true"></span>قالب اولیه</span>
+      </header>
+
+      <div class="sections">
+        <section class="section-card is-active" id="section-1" aria-labelledby="title-1">
+          <div class="input-panels">
+            <div class="input-panel">
+              <h4>ورودی از اکسل</h4>
+              <div class="field-group">
+                <label for="excel-file">انتخاب فایل از فایل‌منیجر</label>
+                <input id="excel-file" name="excel-file" type="file" accept=".xlsx,.xls,.csv">
+                <span class="field-hint">فایل Excel یا CSV را انتخاب کنید؛ اطلاعات در پیش‌نمایش همین باکس بررسی می‌شوند.</span>
+              </div>
+              <div class="preview-panel" id="excel-preview" aria-live="polite">
+                <h5>پیش‌نمایش ورودی اکسل</h5>
+                <p class="preview-empty">پس از انتخاب فایل، اطلاعات اینجا نمایش داده می‌شوند.</p>
+              </div>
+              <button class="action-button" id="confirm-excel-import" type="button" disabled>تأیید و افزودن کالاها</button>
+              <p id="excel-feedback" class="feedback" role="status" aria-live="polite"></p>
+            </div>
+
+            <div class="input-panel">
+              <h4>ورودی دستی</h4>
+              <div class="field-group">
+                <label for="supply-code">کد تدارکاتی</label>
+                <input id="supply-code" name="supply-code" type="text" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="کد تدارکاتی ۸ یا ۱۰ رقمی را وارد کنید">
+              </div>
+              <div class="field-group">
+                <label for="item-description">شرح کالا</label>
+                <input id="item-description" name="item-description" type="text" placeholder="شرح کالا را وارد کنید">
+              </div>
+              <div class="field-group">
+                <label for="item-stock">موجودی</label>
+                <input id="item-stock" name="item-stock" type="number" min="0" step="any" inputmode="decimal" placeholder="موجودی عددی را وارد کنید">
+              </div>
+              <div class="preview-panel" id="single-preview" aria-live="polite">
+                <h5>پیش‌نمایش کالای تکی</h5>
+                <p class="preview-empty">با وارد کردن کد، شرح و موجودی، پیش‌نمایش اینجا نمایش داده می‌شود.</p>
+              </div>
+              <button class="action-button" id="add-single-item" type="button">تأیید و افزودن کالا</button>
+              <p id="single-feedback" class="feedback" role="status" aria-live="polite"></p>
+            </div>
+
+            <div class="input-panel">
+              <h4>ورودی از کلیپ بورد</h4>
+              <div class="field-group">
+                <label for="pasted-data">جای‌گذاری داده‌های کپی‌شده</label>
+                <textarea id="pasted-data" name="pasted-data" placeholder="هر ردیف: کد تدارکاتی، شرح کالا، موجودی"></textarea>
+                <span class="field-hint">ردیف‌ها را از Excel یا فایل متنی کپی کنید و اینجا جای‌گذاری کنید.</span>
+              </div>
+              <button class="action-button secondary" id="preview-pasted-data" type="button">پیش‌نمایش داده‌ها</button>
+              <div class="preview-panel" id="bulk-preview" aria-live="polite">
+                <h5>پیش‌نمایش ورودی</h5>
+                <p class="preview-empty">پس از پیش‌نمایش داده‌های کلیپ‌بورد، اطلاعات اینجا نمایش داده می‌شوند.</p>
+              </div>
+              <button class="action-button" id="import-preview-data" type="button" disabled>تأیید و افزودن کالاها</button>
+              <p id="input-feedback" class="feedback" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section-card" id="section-2" aria-labelledby="title-2">
+          <div class="section-heading">
+            <span class="section-icon" aria-hidden="true">۲</span>
+            <h3 id="title-2">مشاهده کالاهای موجود و ارسال</h3>
+          </div>
+
+          <div class="inventory-search-panel">
+            <label for="inventory-search">جست‌وجوی پیشرفته کالاها</label>
+            <input id="inventory-search" type="search" autocomplete="off" placeholder="کد، شرح کالا یا عددی از اطلاعات کالا را تایپ کنید">
+            <p class="search-live-text" aria-live="polite">عبارت جست‌وجو: <strong id="inventory-search-query">—</strong></p>
+          </div>
+          <div class="inventory-toolbar">
+            <p class="inventory-count" id="inventory-count">تعداد کالاها: ۰</p>
+            <div class="sort-controls">
+              <label for="sort-by">مرتب‌سازی بر اساس</label>
+              <select id="sort-by" name="sort-by">
+                <option value="code">کد تدارکاتی</option>
+                <option value="description">شرح کالا</option>
+                <option value="stock">تعداد موجودی</option>
+                <option value="sendQuantity">تعداد برای ارسال</option>
+              </select>
+              <label for="sort-direction">ترتیب</label>
+              <select id="sort-direction" name="sort-direction">
+                <option value="asc">صعودی</option>
+                <option value="desc">نزولی</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="inventory-management-actions" aria-label="مدیریت، ارسال و حذف کالاها">
+            <div class="inventory-action-group">
+              <label class="select-all-label" for="select-all-items"><input id="select-all-items" type="checkbox"> انتخاب همه کالاها</label>
+              <button class="action-button" id="open-shipment-dialog" type="button">تأیید ارسال</button>
+            </div>
+            <div class="delete-actions">
+              <button class="action-button delete-selected-button" id="delete-selected-items" type="button" disabled>حذف انتخاب‌شده‌ها (۰)</button>
+              <button class="action-button delete-all-button" id="delete-all-items" type="button" disabled>حذف کلی</button>
+            </div>
+          </div>
+
+          <div class="empty-state" id="inventory-empty">هنوز کالایی وارد نشده است. ابتدا از سکشن «ورودی کالا ها» کالا اضافه کنید.</div>
+          <div class="inventory-grid" id="inventory-grid" aria-live="polite"></div>
+          <p id="inventory-feedback" class="feedback" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="section-card" id="section-3" aria-labelledby="title-3">
+          <div class="section-heading">
+            <span class="section-icon" aria-hidden="true">۳</span>
+            <h3 id="title-3">تنظیمات</h3>
+          </div>
+          <div class="settings-grid">
+            <article class="settings-box">
+              <h4>مشاهده تاریخچه ورود اقلام</h4>
+              <p>فهرست ورودها؛ برای مرتب‌سازی روی عنوان هر ستون بزنید.</p>
+              <div class="preview-panel entry-history-panel">
+                <div class="entry-history-table-wrap">
+                  <table class="preview-table entry-history-table" aria-label="تاریخچه ورود اقلام">
+                    <thead><tr>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="entryNumber" aria-label="مرتب‌سازی بر اساس شماره ورود">شماره ورود <span aria-hidden="true">↕</span></button></th>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="date" aria-label="مرتب‌سازی بر اساس تاریخ">تاریخ <span aria-hidden="true">↕</span></button></th>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="itemCount" aria-label="مرتب‌سازی بر اساس تعداد کالاها">تعداد کالاها <span aria-hidden="true">↕</span></button></th>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="pieceCount" aria-label="مرتب‌سازی بر اساس تعداد قطعه‌ها">تعداد قطعه‌ها <span aria-hidden="true">↕</span></button></th>
+                    </tr></thead>
+                    <tbody id="entry-history-body"><tr><td colspan="4" class="preview-empty">هنوز ورودی ثبت نشده است.</td></tr></tbody>
+                  </table>
+                </div>
+                <div class="entry-history-pagination">
+                  <button class="action-button secondary" id="entry-history-prev" type="button" disabled>قبلی</button>
+                  <span id="entry-history-page" aria-live="polite">صفحه ۱</span>
+                  <button class="action-button secondary" id="entry-history-next" type="button" disabled>بعدی</button>
+                </div>
+              </div>
+            </article>
+            <article class="settings-box entry-history-panel">
+              <h4>تاریخچه ارسال کالا</h4>
+              <p>سوابق ارسال ثبت‌شده؛ برای مرتب‌سازی روی عنوان هر ستون کلیک کنید.</p>
+              <div class="entry-history-table-wrap">
+                <table class="preview-table entry-history-table shipment-history-table">
+                  <thead><tr>
+                    <th><button class="entry-sort-button" type="button" data-shipment-sort="voucherNumber">شماره حواله ↕</button></th>
+                    <th><button class="entry-sort-button" type="button" data-shipment-sort="exitNumber">شماره خروج ↕</button></th>
+                    <th><button class="entry-sort-button" type="button" data-shipment-sort="date">تاریخ ↕</button></th>
+                    <th><button class="entry-sort-button" type="button" data-shipment-sort="location">محل ارسال ↕</button></th>
+                    <th><button class="entry-sort-button" type="button" data-shipment-sort="itemCount">تعداد اقلام ↕</button></th>
+                    <th><button class="entry-sort-button" type="button" data-shipment-sort="pieceCount">تعداد قطعه ↕</button></th>
+                  </tr></thead>
+                  <tbody id="shipment-history-body"><tr><td colspan="6" class="preview-empty">هنوز ارسالی ثبت نشده است.</td></tr></tbody>
+                </table>
+              </div>
+              <div class="entry-history-pagination">
+                <button class="action-button secondary" id="shipment-history-prev" type="button" disabled>قبلی</button>
+                <span id="shipment-history-page" aria-live="polite">صفحه ۱</span>
+                <button class="action-button secondary" id="shipment-history-next" type="button" disabled>بعدی</button>
+              </div>
+            </article>
+            <article class="settings-box">
+              <h4>بکاپ دستی فایل JSON</h4>
+              <p>از فهرست فعلی کالاها یک فایل پشتیبان خروجی بگیرید.</p>
+              <button class="action-button" id="download-json-backup" type="button">دریافت فایل بکاپ JSON</button>
+              <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
+            </article>
+            <article class="settings-box">
+              <h4>لاگ بکاپ خودکار</h4>
+              <p>نمایش رخدادهای ورود، تغییر و حذف کالاها که در مرورگر ثبت شده‌اند.</p>
+              <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ</button>
+              <div class="preview-panel" id="backup-log-results" aria-live="polite"><p class="preview-empty">هنوز رخدادی ثبت نشده است.</p></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section-card" id="section-4" aria-labelledby="title-4">
+          <div class="section-heading">
+            <span class="section-icon" aria-hidden="true">۴</span>
+            <h3 id="title-4">بخش چهارم</h3>
+          </div>
+          <p>محتوای این بخش در ادامه مشخص و تکمیل می‌شود.</p>
+        </section>
+
+        <section class="section-card" id="section-5" aria-labelledby="title-5">
+          <div class="section-heading">
+            <span class="section-icon" aria-hidden="true">۵</span>
+            <h3 id="title-5">بخش پنجم</h3>
+          </div>
+          <p>محتوای این بخش در ادامه مشخص و تکمیل می‌شود.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <dialog class="duplicate-dialog" id="duplicate-dialog" aria-labelledby="duplicate-dialog-title">
+    <div class="duplicate-dialog-header">
+      <h3 id="duplicate-dialog-title">خطای کد تدارکاتی تکراری</h3>
+      <button class="action-button secondary duplicate-close" id="duplicate-dialog-x" type="button" aria-label="بستن پنجره">بستن ✕</button>
+    </div>
+    <div class="duplicate-dialog-body" id="duplicate-dialog-details"></div>
+    <div class="duplicate-dialog-footer">
+      <button class="action-button duplicate-close" id="duplicate-dialog-ok" type="button">متوجه شدم</button>
+    </div>
+  </dialog>
+
+  <dialog class="duplicate-dialog" id="import-error-dialog" aria-labelledby="import-error-title">
+    <div class="duplicate-dialog-header"><h3 id="import-error-title">ردیف‌های دارای خطا</h3><button class="action-button secondary" id="import-error-close" type="button">بستن ✕</button></div>
+    <div class="duplicate-dialog-body" id="import-error-details"></div>
+    <div class="duplicate-dialog-footer"><button class="action-button" id="import-error-ok" type="button">متوجه شدم</button></div>
+  </dialog>
+  <dialog class="shipment-dialog" id="shipment-dialog" aria-labelledby="shipment-dialog-title">
+    <form id="shipment-form" novalidate>
+      <div class="shipment-header"><h3 id="shipment-dialog-title">تأیید نهایی ارسال کالاها</h3><button class="action-button shipment-close" id="shipment-dialog-x" type="button">بستن ✕</button></div>
+      <div class="shipment-body">
+        <p class="preview-message">تعداد هر کالا را بررسی و در صورت نیاز ویرایش کنید. تعداد ارسالی باید بیشتر از صفر و حداکثر برابر موجودی باشد.</p>
+        <div class="shipment-items" id="shipment-items"></div>
+        <div class="shipment-meta">
+          <div class="field-group"><label for="shipment-location">محل ارسال</label><select id="shipment-location" required>
+            <option value="">انتخاب محل ارسال</option><option value="انبار مرکزی">انبار مرکزی</option><option value="انبار شماره ۲">انبار شماره ۲</option><option value="کارگاه تعمیرات">کارگاه تعمیرات</option><option value="واحد بهره‌برداری">واحد بهره‌برداری</option><option value="سایت پروژه">سایت پروژه</option>
+          </select></div>
+          <div class="field-group"><label for="shipment-voucher">شماره حواله</label><input id="shipment-voucher" type="text" maxlength="80" placeholder="خالی بماند تا خودکار ساخته شود"></div>
+          <div class="field-group"><label for="shipment-exit-number">شماره خروج کالا</label><input id="shipment-exit-number" type="text" maxlength="80" placeholder="خالی بماند تا خودکار ساخته شود"></div>
+        </div>
+        <p class="shipment-note">اگر شماره حواله یا شماره خروج وارد نشود، سیستم آن را با تاریخ خورشیدی و ساعت به‌صورت خودکار ایجاد می‌کند.</p>
+        <p class="shipment-feedback" id="shipment-feedback" role="alert" aria-live="assertive"></p>
+      </div>
+      <div class="shipment-footer"><button class="action-button shipment-close" id="shipment-cancel" type="button">انصراف</button><button class="action-button" id="confirm-shipment" type="submit">تأیید نهایی ارسال</button></div>
+    </form>
+  </dialog>
+
+  <script>
+    const sectionLinks = document.querySelectorAll('.nav-link');
+    const sectionCards = document.querySelectorAll('.section-card');
+    const inventoryGrid = document.getElementById('inventory-grid');
+    const inventorySearchInput = document.getElementById('inventory-search');
+    const inventorySearchQuery = document.getElementById('inventory-search-query');
+    const inventoryEmpty = document.getElementById('inventory-empty');
+    const inventoryCount = document.getElementById('inventory-count');
+    const inventoryFeedback = document.getElementById('inventory-feedback');
+    const selectAllItems = document.getElementById('select-all-items');
+    const deleteSelectedItemsButton = document.getElementById('delete-selected-items');
+    const deleteAllItemsButton = document.getElementById('delete-all-items');
+    const openShipmentDialogButton = document.getElementById('open-shipment-dialog');
+    const shipmentDialog = document.getElementById('shipment-dialog');
+    const shipmentForm = document.getElementById('shipment-form');
+    const shipmentItemsContainer = document.getElementById('shipment-items');
+    const shipmentLocationInput = document.getElementById('shipment-location');
+    const shipmentVoucherInput = document.getElementById('shipment-voucher');
+    const shipmentExitInput = document.getElementById('shipment-exit-number');
+    const shipmentFeedback = document.getElementById('shipment-feedback');
+    const SHIPMENT_KEY = 'anbar.shipments.v1';
+    const selectedItemCodes = new Set();
+    const inputFeedback = document.getElementById('input-feedback');
+    const sortBy = document.getElementById('sort-by');
+    const sortDirection = document.getElementById('sort-direction');
+    const itemFormInputs = {
+      code: document.getElementById('supply-code'),
+      description: document.getElementById('item-description'),
+      stock: document.getElementById('item-stock')
+    };
+    const STORAGE_KEY = 'anbar.inventory.v1';
+    const ACTIVITY_KEY = 'anbar.activity-log.v1';
+    const ENTRY_HISTORY_KEY = 'anbar.entry-history.v1';
+    const ENTRY_PAGE_SIZE = 10;
+    let entryHistoryPage = 0;
+    let entryHistorySort = { key: 'entryNumber', direction: 'desc' };
+    let shipmentHistoryPage = 0;
+    let shipmentHistorySort = { key: 'date', direction: 'desc' };
+
+    function loadActivityLog() {
+      try { return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]'); }
+      catch (error) { return []; }
+    }
+
+    function loadEntryHistory() {
+      try {
+        const records = JSON.parse(localStorage.getItem(ENTRY_HISTORY_KEY) || '[]');
+        return Array.isArray(records) ? records : [];
+      } catch (error) { return []; }
+    }
+
+    function saveEntryHistory(records) {
+      try {
+        localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(records.slice(0, 1000)));
+        return true;
+      } catch (error) {
+        inventoryFeedback.textContent = 'ذخیره تاریخچه ورود ممکن نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
+        return false;
+      }
+    }
+
+    function makeEntryNumber(date = new Date()) {
+      const parts = solarDateTime(date).label
+        .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+        .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+        .replace(/[^0-9]/g, '-');
+      return 'ورود-' + parts + '-' + String(date.getMilliseconds()).padStart(3, '0');
+    }
+
+    function recordIncomingEntry(items) {
+      if (!items.length) return;
+      const now = new Date();
+      const dateTime = solarDateTime(now);
+      const record = {
+        entryNumber: makeEntryNumber(now),
+        timestamp: now.toISOString(),
+        date: dateTime.date,
+        time: dateTime.time,
+        itemCount: items.length,
+        pieceCount: items.reduce((total, item) => total + item.stock, 0)
+      };
+      const records = loadEntryHistory();
+      records.unshift(record);
+      if (saveEntryHistory(records)) renderEntryHistory();
+    }
+
+    function renderEntryHistory() {
+      const body = document.getElementById('entry-history-body');
+      const pageLabel = document.getElementById('entry-history-page');
+      const previousButton = document.getElementById('entry-history-prev');
+      const nextButton = document.getElementById('entry-history-next');
+      if (!body || !pageLabel || !previousButton || !nextButton) return;
+
+      const records = loadEntryHistory();
+      const { key, direction } = entryHistorySort;
+      records.sort((a, b) => {
+        let comparison;
+        if (key === 'entryNumber') comparison = String(a.entryNumber || '').localeCompare(String(b.entryNumber || ''), 'fa');
+        else if (key === 'date') comparison = String(a.timestamp || a.date || '').localeCompare(String(b.timestamp || b.date || ''), 'fa');
+        else comparison = (Number(a[key]) || 0) - (Number(b[key]) || 0);
+        return direction === 'asc' ? comparison : -comparison;
+      });
+
+      const pageCount = Math.max(1, Math.ceil(records.length / ENTRY_PAGE_SIZE));
+      entryHistoryPage = Math.min(entryHistoryPage, pageCount - 1);
+      const start = entryHistoryPage * ENTRY_PAGE_SIZE;
+      const pageRecords = records.slice(start, start + ENTRY_PAGE_SIZE);
+      body.replaceChildren();
+
+      if (!pageRecords.length) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 4;
+        cell.className = 'preview-empty';
+        cell.textContent = 'هنوز ورودی ثبت نشده است.';
+        row.append(cell);
+        body.append(row);
+      } else {
+        pageRecords.forEach(record => {
+          const row = document.createElement('tr');
+          const numberCell = document.createElement('td');
+          numberCell.className = 'entry-history-number';
+          numberCell.textContent = record.entryNumber;
+          const dateCell = document.createElement('td');
+          dateCell.textContent = (record.date || '—') + (record.time ? ' ' + record.time : '');
+          const itemCell = document.createElement('td');
+          itemCell.textContent = toEnglishDigits(record.itemCount);
+          const pieceCell = document.createElement('td');
+          pieceCell.textContent = toEnglishDigits(record.pieceCount);
+          row.append(numberCell, dateCell, itemCell, pieceCell);
+          body.append(row);
+        });
+      }
+
+      pageLabel.textContent = 'صفحه ' + toEnglishDigits(entryHistoryPage + 1) + ' از ' + toEnglishDigits(pageCount) +
+        ' — ' + toEnglishDigits(records.length) + ' ورود';
+      previousButton.disabled = entryHistoryPage === 0;
+      nextButton.disabled = entryHistoryPage >= pageCount - 1;
+      document.querySelectorAll('[data-entry-sort]').forEach(button => {
+        const active = button.dataset.entrySort === key;
+        const marker = button.querySelector('span');
+        if (marker) marker.textContent = active ? (direction === 'asc' ? '↑' : '↓') : '↕';
+        button.setAttribute('aria-sort', active ? (direction === 'asc' ? 'ascending' : 'descending') : 'none');
+      });
+    }
+
+    document.querySelectorAll('[data-entry-sort]').forEach(button => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.entrySort;
+        if (entryHistorySort.key === key) {
+          entryHistorySort.direction = entryHistorySort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          entryHistorySort = { key, direction: key === 'entryNumber' ? 'desc' : 'asc' };
+        }
+        entryHistoryPage = 0;
+        renderEntryHistory();
+      });
+    });
+
+    document.getElementById('entry-history-prev').addEventListener('click', () => {
+      if (entryHistoryPage > 0) { entryHistoryPage -= 1; renderEntryHistory(); }
+    });
+    document.getElementById('entry-history-next').addEventListener('click', () => {
+      if ((entryHistoryPage + 1) * ENTRY_PAGE_SIZE < loadEntryHistory().length) {
+        entryHistoryPage += 1;
+        renderEntryHistory();
+      }
+    });
+
+    function loadShipments() {
+      try { const records = JSON.parse(localStorage.getItem(SHIPMENT_KEY) || '[]'); return Array.isArray(records) ? records : []; }
+      catch (error) { return []; }
+    }
+    function saveShipments(records) {
+      try { localStorage.setItem(SHIPMENT_KEY, JSON.stringify(records)); return true; }
+      catch (error) { shipmentFeedback.textContent = 'ذخیره تاریخچه ارسال انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.'; return false; }
+    }
+
+    function renderShipmentHistory() {
+      const body = document.getElementById('shipment-history-body');
+      const pageLabel = document.getElementById('shipment-history-page');
+      const previousButton = document.getElementById('shipment-history-prev');
+      const nextButton = document.getElementById('shipment-history-next');
+      if (!body || !pageLabel || !previousButton || !nextButton) return;
+
+      const records = loadShipments();
+      const { key, direction } = shipmentHistorySort;
+      records.sort((a, b) => {
+        let left, right, comparison;
+        if (key === 'itemCount') {
+          left = Array.isArray(a.items) ? a.items.length : 0;
+          right = Array.isArray(b.items) ? b.items.length : 0;
+          comparison = left - right;
+        } else if (key === 'pieceCount') {
+          left = (a.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+          right = (b.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+          comparison = left - right;
+        } else if (key === 'date') {
+          comparison = String(a.timestamp || a.date || '').localeCompare(String(b.timestamp || b.date || ''), 'fa');
+        } else {
+          comparison = String(a[key] || '').localeCompare(String(b[key] || ''), 'fa', { numeric: true });
+        }
+        return direction === 'asc' ? comparison : -comparison;
+      });
+
+      const pageCount = Math.max(1, Math.ceil(records.length / ENTRY_PAGE_SIZE));
+      shipmentHistoryPage = Math.min(shipmentHistoryPage, pageCount - 1);
+      const pageRecords = records.slice(shipmentHistoryPage * ENTRY_PAGE_SIZE, (shipmentHistoryPage + 1) * ENTRY_PAGE_SIZE);
+      body.replaceChildren();
+      if (!pageRecords.length) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 6;
+        cell.className = 'preview-empty';
+        cell.textContent = 'هنوز ارسالی ثبت نشده است.';
+        row.append(cell);
+        body.append(row);
+      } else {
+        pageRecords.forEach(record => {
+          const row = document.createElement('tr');
+          const values = [
+            record.voucherNumber || '—',
+            record.exitNumber || '—',
+            (record.date || '—') + (record.time ? ' ' + record.time : ''),
+            record.location || '—',
+            Array.isArray(record.items) ? record.items.length : 0,
+            (record.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+          ];
+          values.forEach((value, index) => {
+            const cell = document.createElement('td');
+            cell.textContent = index >= 4 ? toEnglishDigits(value) : String(value);
+            if (index < 2) cell.className = 'entry-history-number';
+            row.append(cell);
+          });
+          body.append(row);
+        });
+      }
+      pageLabel.textContent = 'صفحه ' + toEnglishDigits(shipmentHistoryPage + 1) + ' از ' + toEnglishDigits(pageCount) + ' — ' + toEnglishDigits(records.length) + ' ارسال';
+      previousButton.disabled = shipmentHistoryPage === 0;
+      nextButton.disabled = shipmentHistoryPage >= pageCount - 1;
+    }
+
+    document.querySelectorAll('[data-shipment-sort]').forEach(button => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.shipmentSort;
+        if (shipmentHistorySort.key === key) {
+          shipmentHistorySort.direction = shipmentHistorySort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          shipmentHistorySort = { key, direction: key === 'date' ? 'desc' : 'asc' };
+        }
+        shipmentHistoryPage = 0;
+        renderShipmentHistory();
+      });
+    });
+    document.getElementById('shipment-history-prev').addEventListener('click', () => {
+      if (shipmentHistoryPage > 0) { shipmentHistoryPage -= 1; renderShipmentHistory(); }
+    });
+    document.getElementById('shipment-history-next').addEventListener('click', () => {
+      if ((shipmentHistoryPage + 1) * ENTRY_PAGE_SIZE < loadShipments().length) {
+        shipmentHistoryPage += 1;
+        renderShipmentHistory();
+      }
+    });
+    function solarDateTime(date = new Date()) {
+      const datePart = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
+      const timePart = new Intl.DateTimeFormat('fa-IR', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);
+      return {date:datePart,time:timePart,label:datePart+' '+timePart};
+    }
+    function makeShipmentNumber(prefix, date, epoch) {
+      return prefix+'-'+solarDateTime(date).label.replace(/[^۰-۹٠-٩0-9]/g,'-')+'-'+String(epoch);
+    }
+    function createShipmentField(labelText, value, type='text') {
+      const group=document.createElement('div'); group.className='field-group';
+      const label=document.createElement('label'); label.textContent=labelText;
+      const input=document.createElement('input'); input.type=type; input.value=value; input.required=true; input.className='shipment-quantity-input';
+      if(type==='number'){input.min='0.0000001';input.step='any';input.inputMode='decimal';}
+      else input.readOnly=true;
+      input.id='shipment-field-'+Math.random().toString(36).slice(2); label.htmlFor=input.id;
+      group.append(label,input); return {group,input};
+    }
+    function openShipmentDialog() {
+      const candidates=inventoryItems.filter(item=>{const q=item.sendQuantity===''?0:Number(item.sendQuantity);return Number.isFinite(q)&&q>0;});
+      if(!candidates.length){inventoryFeedback.textContent='ابتدا در فیلد «تعداد برای ارسال» برای حداقل یک کالا عددی بزرگ‌تر از صفر وارد کنید.';return;}
+      shipmentItemsContainer.replaceChildren(); shipmentFeedback.textContent='';
+      candidates.forEach(item=>{
+        const line=document.createElement('div');line.className='shipment-line';line.dataset.code=item.code;
+        const code=createShipmentField('کد تدارکاتی',item.code);
+        const description=createShipmentField('شرح کالا',item.description);
+        const quantity=createShipmentField('تعداد ارسالی',String(item.sendQuantity),'number');
+        quantity.input.classList.add('shipment-quantity');quantity.input.dataset.code=item.code;quantity.input.max=String(item.stock);quantity.input.readOnly=false;
+        line.append(code.group,description.group,quantity.group);shipmentItemsContainer.append(line);
+      });
+      shipmentLocationInput.value='';shipmentVoucherInput.value='';shipmentExitInput.value='';
+      if(typeof shipmentDialog.showModal==='function')shipmentDialog.showModal();else shipmentDialog.setAttribute('open','');
+    }
+    function closeShipmentDialog() {
+      if(typeof shipmentDialog.close==='function'&&shipmentDialog.open)shipmentDialog.close();else shipmentDialog.removeAttribute('open');
+    }
+    function commitShipment(event) {
+      event.preventDefault();shipmentFeedback.textContent='';
+      const location=shipmentLocationInput.value;
+      if(!location){shipmentFeedback.textContent='لطفاً محل ارسال را انتخاب کنید.';shipmentLocationInput.focus();return;}
+      const quantities=[];
+      for(const input of shipmentItemsContainer.querySelectorAll('.shipment-quantity')){
+        const item=inventoryItems.find(candidate=>candidate.code===input.dataset.code);
+        const quantity=normalizeStock(input.value);
+        if(!item||!Number.isFinite(quantity)||quantity<=0||quantity>item.stock){
+          shipmentFeedback.textContent='تعداد ارسالی باید بیشتر از صفر و حداکثر برابر موجودی فعلی باشد. مقدار ردیف مشخص‌شده را اصلاح کنید.';input.focus();return;
+        }
+        quantities.push({item,quantity});
+      }
+      if(!quantities.length){shipmentFeedback.textContent='هیچ کالایی برای ارسال وجود ندارد.';return;}
+      const now=new Date(), generatedAt=solarDateTime(now), epoch=now.getTime(), existing=loadShipments();
+      const voucher=shipmentVoucherInput.value.trim()||makeShipmentNumber('حواله',now,epoch);
+      const exitNumber=shipmentExitInput.value.trim()||makeShipmentNumber('خروج',now,epoch+1);
+      if(existing.some(record=>record.voucherNumber===voucher)){shipmentFeedback.textContent='این شماره حواله قبلاً ثبت شده است. شماره دیگری وارد کنید.';shipmentVoucherInput.focus();return;}
+      if(existing.some(record=>record.exitNumber===exitNumber)){shipmentFeedback.textContent='این شماره خروج قبلاً ثبت شده است. شماره دیگری وارد کنید.';shipmentExitInput.focus();return;}
+      const shipment={id:'shipment-'+epoch,date:generatedAt.date,time:generatedAt.time,timestamp:now.toISOString(),location,voucherNumber:voucher,exitNumber,items:quantities.map(({item,quantity})=>({code:item.code,description:item.description,quantity}))};
+      if(!saveShipments([shipment,...existing]))return;
+      quantities.forEach(({item,quantity})=>{item.stock=Number((item.stock-quantity).toFixed(8));item.sendQuantity='';});
+      if(!saveInventory()){
+        quantities.forEach(({item,quantity})=>{item.stock=Number((item.stock+quantity).toFixed(8));item.sendQuantity=quantity;});
+        saveShipments(existing);renderInventory();shipmentFeedback.textContent='ذخیره موجودی انجام نشد؛ ارسال ثبت نشد. دوباره تلاش کنید.';return;
+      }
+      recordActivity('ثبت ارسال کالا','محل: '+location+'؛ شماره حواله: '+voucher+'؛ شماره خروج: '+exitNumber+'؛ تعداد ردیف کالا: '+quantities.length);
+      selectedItemCodes.clear();renderInventory();renderShipmentHistory();closeShipmentDialog();
+      inventoryFeedback.textContent='ارسال با موفقیت ثبت شد. شماره حواله: '+voucher+'؛ شماره خروج: '+exitNumber;
+    }
+
+
+    function recordActivity(action, details) {
+      try {
+        const logs = loadActivityLog();
+        logs.unshift({ action, details, timestamp: new Date().toISOString(), solarDate: new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()) });
+        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(logs.slice(0, 500)));
+      } catch (error) { /* keep inventory actions usable if log storage is unavailable */ }
+    }
+    function renderActivityResults(target, logs, emptyText) {
+      target.replaceChildren();
+      if (!logs.length) { const p=document.createElement('p'); p.className='preview-empty'; p.textContent=emptyText; target.append(p); return; }
+      logs.slice(0,100).forEach(log => {
+        const row=document.createElement('div'); row.className='settings-log-row';
+        row.textContent = log.solarDate + ' — ' + log.action + (log.details ? ' — ' + log.details : '');
+        target.append(row);
+      });
+    }
+
+    const bulkPreview = document.getElementById('bulk-preview');
+    const excelPreview = document.getElementById('excel-preview');
+    const singlePreview = document.getElementById('single-preview');
+    const importPreviewButton = document.getElementById('import-preview-data');
+    const confirmExcelImportButton = document.getElementById('confirm-excel-import');
+    const pastedDataInput = document.getElementById('pasted-data');
+    const excelFeedback = document.getElementById('excel-feedback');
+    const singleFeedback = document.getElementById('single-feedback');
+    const duplicateDialog = document.getElementById('duplicate-dialog');
+    const duplicateDialogDetails = document.getElementById('duplicate-dialog-details');
+    let pendingClipboardRows = [];
+    let pendingExcelRows = [];
+
+    function loadInventory() {
+      try {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (!savedData) return [];
+        const parsedData = JSON.parse(savedData);
+        if (!Array.isArray(parsedData)) return [];
+
+        return parsedData
+          .filter(item =>
+            item &&
+            typeof item.code === 'string' &&
+            typeof item.description === 'string' &&
+            Number.isFinite(Number(item.stock)) &&
+            Number(item.stock) >= 0
+          )
+          .map(item => ({
+            code: item.code,
+            description: item.description,
+            stock: Number(item.stock),
+            sendQuantity: item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
+              ? ''
+              : Number(item.sendQuantity)
+          }));
+      } catch (error) {
+        return [];
+      }
+    }
+
+    const inventoryItems = loadInventory();
+
+    function saveInventory() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(inventoryItems));
+        recordActivity('ذخیره / تغییر موجودی', 'تعداد اقلام فعلی: ' + toEnglishDigits(inventoryItems.length));
+        return true;
+      } catch (error) {
+        inventoryFeedback.textContent = 'ذخیره‌سازی در مرورگر انجام نشد؛ ممکن است حافظه مرورگر محدود یا غیرفعال باشد.';
+        return false;
+      }
+    }
+
+    function openSection(sectionId) {
+      sectionCards.forEach((section) => {
+        const isSelected = section.id === sectionId;
+        section.classList.toggle('is-active', isSelected);
+        section.hidden = !isSelected;
+      });
+
+      sectionLinks.forEach((link) => {
+        const isSelected = link.getAttribute('href') === '#' + sectionId;
+        if (isSelected) {
+          link.setAttribute('aria-current', 'page');
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      });
+    }
+
+    sectionLinks.forEach((link) => {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        openSection(link.getAttribute('href').slice(1));
+      });
+    });
+
+    function toEnglishDigits(value) {
+      return String(value ?? '')
+        .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+        .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+    }
+
+    function normalizeStock(value) {
+      const normalized = toEnglishDigits(value)
+        .replace(/[٬,]/g, '')
+        .replace(/٫/g, '.')
+        .trim();
+      if (normalized === '') return NaN;
+      return Number(normalized);
+    }
+
+    function parseDelimitedText(text) {
+      const trimmed = String(text || '').trim();
+      if (!trimmed) return [];
+
+      const firstLine = trimmed.split(/\r?\n/, 1)[0];
+      const delimiter = firstLine.includes('\t')
+        ? '\t'
+        : (firstLine.includes(';') && !firstLine.includes(',') ? ';' : ',');
+
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+
+      for (let index = 0; index < trimmed.length; index += 1) {
+        const character = trimmed[index];
+
+        if (character === '"') {
+          if (inQuotes && trimmed[index + 1] === '"') {
+            cell += '"';
+            index += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (character === delimiter && !inQuotes) {
+          row.push(cell.trim());
+          cell = '';
+        } else if ((character === '\n' || character === '\r') && !inQuotes) {
+          if (character === '\r' && trimmed[index + 1] === '\n') index += 1;
+          row.push(cell.trim());
+          if (row.some(value => value !== '')) rows.push(row);
+          row = [];
+          cell = '';
+        } else {
+          cell += character;
+        }
+      }
+
+      row.push(cell.trim());
+      if (row.some(value => value !== '')) rows.push(row);
+      return rows;
+    }
+
+    function normalizeHeader(value) {
+      return String(value ?? '').toLowerCase().replace(/[\s_\-()\[\]]+/g, '').replace(/[يى]/g, 'ی').replace(/ك/g, 'ک');
+    }
+    function getHeaderMap(row) {
+      const aliases = {
+        code: ['کدتدارکاتی','کدکالا','کد','کدمحصول','itemcode','productcode','code'],
+        description: ['شرحکالا','نامکالا','شرح','عنوانکالا','ناممحصول','itemname','description','productname','نام'],
+        stock: ['موجودی','تعدادموجودی','تعداد','مقدار','quantity','stock','inventory']
+      };
+      const values = row.map(normalizeHeader);
+      const map = {};
+      Object.keys(aliases).forEach(field => { map[field] = values.findIndex(value => aliases[field].includes(value)); });
+      return Object.values(map).filter(index => index >= 0).length >= 2 ? map : null;
+    }
+    function isHeaderRow(row) { return Boolean(getHeaderMap(row)); }
+    function prepareImportRows(rows) {
+      const source = Array.isArray(rows) ? rows : [];
+      let headerIndex = -1, headerMap = null;
+      for (let i = 0; i < Math.min(source.length, 30); i++) {
+        if (!Array.isArray(source[i])) continue;
+        const map = getHeaderMap(source[i]);
+        if (map) { headerIndex = i; headerMap = map; break; }
+      }
+      return source.map((row, index) => {
+        if (!Array.isArray(row) || index === headerIndex || row.every(value => String(value ?? '').trim() === '')) return null;
+        const mapped = headerMap ? [
+          headerMap.code >= 0 ? row[headerMap.code] : row[0],
+          headerMap.description >= 0 ? row[headerMap.description] : row[1],
+          headerMap.stock >= 0 ? row[headerMap.stock] : row[2]
+        ] : row.slice(0,3);
+        mapped._sourceRow = index + 1;
+        return mapped;
+      }).filter(Boolean);
+    }
+    function getRowError(row) {
+      const code = toEnglishDigits(String(row?.[0] ?? '').trim());
+      const description = String(row?.[1] ?? '').trim();
+      const stockText = toEnglishDigits(String(row?.[2] ?? '').trim()).replace(/[٬,]/g, '').replace(/٫/g, '.');
+      const errors = [];
+      if (!/^(?:\d{8}|\d{10})$/.test(code)) errors.push('کد تدارکاتی باید ۸ یا ۱۰ رقم باشد');
+      if (!description) errors.push('شرح کالا خالی است');
+      const stock = normalizeStock(stockText);
+      if (!/^\d+(?:\.\d+)?$/.test(stockText) || !Number.isFinite(stock) || stock < 0) errors.push('موجودی باید عدد صفر یا مثبت باشد');
+      return errors.join('؛ ');
+    }
+
+        function normalizeRow(row) {
+      const code = toEnglishDigits(String(row[0] ?? '').trim());
+      const description = String(row[1] ?? '').trim();
+      const stockText = toEnglishDigits(String(row[2] ?? '').trim());
+      const stock = normalizeStock(stockText);
+      if (!/^(?:\d{8}|\d{10})$/.test(code) || !description || !/^\d+(?:\.\d+)?$/.test(stockText) ||
+          !Number.isFinite(stock) || stock < 0) return null;
+      return { code, description, stock };
+    }
+
+    function renderBulkPreview(rows, sourceLabel, previewTarget) {
+      const previewRows = (Array.isArray(rows) ? rows : []).filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== ''));
+      previewTarget.replaceChildren();
+      const heading = document.createElement('h5'); heading.textContent = 'پیش‌نمایش ورودی: ' + sourceLabel;
+      const validCount = previewRows.filter(row => normalizeRow(row)).length;
+      const message = document.createElement('p'); message.className = 'preview-message';
+      message.textContent = 'تعداد ردیف‌ها: ' + toEnglishDigits(previewRows.length) + '؛ معتبر: ' + toEnglishDigits(validCount) + '؛ دارای خطا: ' + toEnglishDigits(previewRows.length-validCount) + '. همه ردیف‌ها در فهرست قابل مشاهده‌اند.';
+      previewTarget.append(heading,message);
+      if (!previewRows.length) { const empty=document.createElement('p'); empty.className='preview-empty'; empty.textContent='ردیفی برای نمایش پیدا نشد.'; previewTarget.append(empty); return; }
+      const wrapper=document.createElement('div'); wrapper.className='preview-table-wrap bulk-preview-scroll';
+      const table=document.createElement('table'); table.className='preview-table';
+      const thead=document.createElement('thead'), head=document.createElement('tr');
+      ['کد تدارکاتی','شرح کالا','موجودی','وضعیت'].forEach(label=>{const th=document.createElement('th');th.textContent=label;head.append(th);});
+      thead.append(head); const tbody=document.createElement('tbody');
+      previewRows.forEach(row=>{
+        const error=getRowError(row), tr=document.createElement('tr');
+        if(error) tr.className='import-invalid-row';
+        for(let i=0;i<3;i++){const td=document.createElement('td');td.textContent=String(row[i]??'');tr.append(td);}
+        const status=document.createElement('td');status.textContent=error||'معتبر';tr.append(status);tbody.append(tr);
+      });
+      table.append(thead,tbody);wrapper.append(table);previewTarget.append(wrapper);
+    }
+
+        function renderSinglePreview() {
+      const row = [
+        itemFormInputs.code.value.trim(),
+        itemFormInputs.description.value.trim(),
+        itemFormInputs.stock.value.trim()
+      ];
+      const item = normalizeRow(row);
+      singlePreview.replaceChildren();
+
+      const heading = document.createElement('h5');
+      heading.textContent = 'پیش‌نمایش کالای تکی';
+      singlePreview.append(heading);
+
+      if (!row.some(value => value !== '')) {
+        const empty = document.createElement('p');
+        empty.className = 'preview-empty';
+        empty.textContent = 'با وارد کردن کد، شرح و موجودی، پیش‌نمایش اینجا نمایش داده می‌شود.';
+        singlePreview.append(empty);
+        return;
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-table-wrap';
+      const table = document.createElement('table');
+      table.className = 'preview-table';
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      ['کد تدارکاتی', 'شرح کالا', 'موجودی'].forEach(label => {
+        const th = document.createElement('th');
+        th.textContent = label;
+        headerRow.append(th);
+      });
+      thead.append(headerRow);
+      const tbody = document.createElement('tbody');
+      const tr = document.createElement('tr');
+      [row[0], row[1], item ? item.stock : row[2]].forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = value === '' ? '—' : String(value);
+        tr.append(td);
+      });
+      tbody.append(tr);
+      table.append(thead, tbody);
+      wrapper.append(table);
+      singlePreview.append(wrapper);
+
+      const status = document.createElement('p');
+      status.className = item ? 'preview-message' : 'feedback';
+      status.textContent = item
+        ? 'اطلاعات معتبر است: کد تدارکاتی ۸ یا ۱۰ رقم و موجودی عددی است.'
+        : 'کد تدارکاتی باید ۸ یا ۱۰ رقم باشد؛ شرح کالا نباید خالی باشد و موجودی فقط عدد صفر یا مثبت باشد.';
+      singlePreview.append(status);
+    }
+
+    function findIncomingDuplicates(rows) {
+      const rowsByCode = new Map();
+      let firstDataRowChecked = false;
+
+      rows.forEach((row, index) => {
+        if (!Array.isArray(row) || row.every(value => String(value ?? '').trim() === '')) return;
+
+        if (!firstDataRowChecked) {
+          firstDataRowChecked = true;
+          if (isHeaderRow(row)) return;
+        }
+
+        const item = normalizeRow(row);
+        if (!item) return;
+
+        const key = item.code.trim().toLocaleLowerCase('fa');
+        if (!rowsByCode.has(key)) rowsByCode.set(key, []);
+        rowsByCode.get(key).push({
+          rowNumber: index + 1,
+          code: item.code,
+          description: item.description,
+          stock: item.stock
+        });
+      });
+
+      return [...rowsByCode.values()].filter(group => group.length > 1);
+    }
+
+    const importErrorDialog = document.getElementById('import-error-dialog');
+    const importErrorDetails = document.getElementById('import-error-details');
+    function showImportErrors(rows) {
+      const invalid = rows.filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && !normalizeRow(row));
+      if (!invalid.length) return;
+      importErrorDetails.replaceChildren();
+      const note = document.createElement('p');
+      note.textContent = 'ردیف‌های زیر وارد نشدند؛ سایر ردیف‌های معتبر پردازش شده‌اند.';
+      importErrorDetails.append(note);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'preview-table-wrap bulk-preview-scroll';
+      const table = document.createElement('table');
+      table.className = 'preview-table';
+      const thead = document.createElement('thead');
+      const head = document.createElement('tr');
+      ['ردیف فایل', 'کد تدارکاتی', 'شرح کالا', 'موجودی', 'خطا'].forEach(label => {
+        const th = document.createElement('th'); th.textContent = label; head.append(th);
+      });
+      thead.append(head);
+      const tbody = document.createElement('tbody');
+      invalid.forEach((row, index) => {
+        const tr = document.createElement('tr'); tr.className = 'import-invalid-row';
+        [(row._sourceRow || index + 1), row[0] ?? '', row[1] ?? '', row[2] ?? '', getRowError(row)].forEach(value => {
+          const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
+        });
+        tbody.append(tr);
+      });
+      table.append(thead, tbody); wrapper.append(table); importErrorDetails.append(wrapper);
+      if (typeof importErrorDialog.showModal === 'function') importErrorDialog.showModal();
+      else window.alert(invalid.map(row => 'ردیف ' + (row._sourceRow || '?') + ': ' + getRowError(row)).join('\\n'));
+    }
+    function closeImportErrorDialog() {
+      if (importErrorDialog.open) importErrorDialog.close();
+    }
+    document.getElementById('import-error-close').addEventListener('click', closeImportErrorDialog);
+    document.getElementById('import-error-ok').addEventListener('click', closeImportErrorDialog);
+
+    function showDuplicateError(duplicateGroups) {
+      if (!duplicateGroups.length) return;
+
+      duplicateDialogDetails.replaceChildren();
+
+      const summary = document.createElement('p');
+      summary.textContent = 'در داده‌های ورودی، ' + toEnglishDigits(duplicateGroups.length) +
+        ' کد تدارکاتی تکراری شناسایی شد. جزئیات ردیف‌های دارای کد یکسان در زیر آمده است. هنگام ثبت، آخرین ردیف معتبر هر کد ملاک اطلاعات نهایی خواهد بود.';
+      duplicateDialogDetails.append(summary);
+
+      duplicateGroups.forEach(group => {
+        const section = document.createElement('section');
+        section.className = 'duplicate-group';
+
+        const heading = document.createElement('h4');
+        heading.textContent = 'کد تدارکاتی: ' + group[0].code +
+          ' — تعداد تکرار: ' + toEnglishDigits(group.length);
+        section.append(heading);
+
+        const list = document.createElement('ul');
+        group.forEach(entry => {
+          const item = document.createElement('li');
+          item.textContent = 'ردیف ' + toEnglishDigits(entry.rowNumber) +
+            ' | شرح کالا: ' + entry.description +
+            ' | موجودی: ' + toEnglishDigits(entry.stock);
+          list.append(item);
+        });
+        section.append(list);
+        duplicateDialogDetails.append(section);
+      });
+
+      if (typeof duplicateDialog.showModal === 'function') {
+        duplicateDialog.showModal();
+      } else {
+        alert(duplicateGroups.map(group =>
+          'کد تدارکاتی ' + group[0].code + ': ' +
+          group.map(entry => 'ردیف ' + entry.rowNumber + '، ' + entry.description + '، موجودی ' + entry.stock).join(' / ')
+        ).join('\n'));
+      }
+    }
+
+    function closeDuplicateDialog() {
+      if (duplicateDialog.open) duplicateDialog.close();
+    }
+
+    document.getElementById('duplicate-dialog-x').addEventListener('click', closeDuplicateDialog);
+    document.getElementById('duplicate-dialog-ok').addEventListener('click', closeDuplicateDialog);
+    duplicateDialog.addEventListener('click', event => {
+      if (event.target === duplicateDialog) closeDuplicateDialog();
+    });
+
+    function addOrUpdateItems(rows) {
+      let added = 0;
+      let updated = 0;
+      let skipped = 0;
+      const incomingItems = new Map();
+
+      rows.forEach((row) => {
+        if (!Array.isArray(row) || row.every(value => String(value ?? '').trim() === '')) return;
+
+        const item = normalizeRow(row);
+        if (!item) {
+          skipped += 1;
+          return;
+        }
+
+        incomingItems.set(item.code, item);
+        const existing = inventoryItems.find(current => current.code === item.code);
+        if (existing) {
+          existing.description = item.description;
+          existing.stock = item.stock;
+          updated += 1;
+        } else {
+          inventoryItems.push({ ...item, sendQuantity: '' });
+          added += 1;
+        }
+      });
+
+      saveInventory();
+      renderInventory();
+      if (incomingItems.size) recordIncomingEntry([...incomingItems.values()]);
+      return { added, updated, skipped };
+    }
+
+    function showImportResult(result, target) {
+      const messages = [];
+      if (result.added) messages.push(result.added + ' کالا اضافه شد');
+      if (result.updated) messages.push(result.updated + ' کالای دارای کد تکراری به‌روزرسانی شد');
+      if (result.skipped) messages.push(result.skipped + ' ردیف نامعتبر نادیده گرفته شد');
+
+      target.textContent = messages.length
+        ? messages.join('؛ ') + '.'
+        : 'داده معتبر جدیدی برای افزودن پیدا نشد.';
+    }
+
+    function createTile(label, value) {
+      const tile = document.createElement('div');
+      tile.className = 'item-tile';
+
+      const title = document.createElement('span');
+      title.className = 'item-tile-label';
+      title.textContent = label;
+
+      const text = document.createElement('strong');
+      text.className = 'item-tile-value';
+      text.textContent = value === '' || value === null || value === undefined ? '—' : String(value);
+
+      tile.append(title, text);
+      return tile;
+    }
+
+    function updateSelectionControls() {
+      const visibleCheckboxes = [...inventoryGrid.querySelectorAll('.item-select-checkbox')];
+      const selectedCount = selectedItemCodes.size;
+      const visibleSelectedCount = visibleCheckboxes.filter(checkbox => checkbox.checked).length;
+
+      selectAllItems.checked = visibleCheckboxes.length > 0 && visibleSelectedCount === visibleCheckboxes.length;
+      selectAllItems.indeterminate = visibleSelectedCount > 0 && visibleSelectedCount < visibleCheckboxes.length;
+      selectAllItems.disabled = inventoryItems.length === 0;
+      deleteSelectedItemsButton.disabled = selectedCount === 0;
+      deleteSelectedItemsButton.textContent = 'حذف انتخاب‌شده‌ها (' + toEnglishDigits(selectedCount) + ')';
+      deleteAllItemsButton.disabled = inventoryItems.length === 0;
+    }
+
+    selectAllItems.addEventListener('change', () => {
+      if (selectAllItems.checked) {
+        inventoryItems.forEach(item => selectedItemCodes.add(item.code));
+      } else {
+        selectedItemCodes.clear();
+      }
+      renderInventory();
+    });
+
+    deleteSelectedItemsButton.addEventListener('click', () => {
+      const codesToDelete = new Set(selectedItemCodes);
+      if (!codesToDelete.size) {
+        inventoryFeedback.textContent = 'ابتدا یک یا چند کالا را انتخاب کنید.';
+        return;
+      }
+
+      const confirmed = window.confirm(
+        'آیا از حذف ' + toEnglishDigits(codesToDelete.size) +
+        ' کالای انتخاب‌شده مطمئن هستید؟ این عمل قابل بازگشت نیست.'
+      );
+      if (!confirmed) return;
+
+      const beforeCount = inventoryItems.length;
+      for (let index = inventoryItems.length - 1; index >= 0; index -= 1) {
+        if (codesToDelete.has(inventoryItems[index].code)) inventoryItems.splice(index, 1);
+      }
+      selectedItemCodes.clear();
+      saveInventory();
+      renderInventory();
+      inventoryFeedback.textContent = toEnglishDigits(beforeCount - inventoryItems.length) + ' کالای انتخاب‌شده حذف شد.';
+    });
+
+    deleteAllItemsButton.addEventListener('click', () => {
+      if (!inventoryItems.length) return;
+
+      const confirmed = window.confirm(
+        'هشدار: تمام ' + toEnglishDigits(inventoryItems.length) +
+        ' کالا حذف می‌شوند. این عمل قابل بازگشت نیست. آیا ادامه می‌دهید؟'
+      );
+      if (!confirmed) return;
+
+      const removedCount = inventoryItems.length;
+      inventoryItems.splice(0, inventoryItems.length);
+      selectedItemCodes.clear();
+      saveInventory();
+      renderInventory();
+      inventoryFeedback.textContent = 'تمام کالاها (' + toEnglishDigits(removedCount) + ') حذف شدند.';
+    });
+
+    openShipmentDialogButton.addEventListener('click', openShipmentDialog);
+    shipmentForm.addEventListener('submit', commitShipment);
+    document.getElementById('shipment-dialog-x').addEventListener('click', closeShipmentDialog);
+    document.getElementById('shipment-cancel').addEventListener('click', closeShipmentDialog);
+
+    function renderInventory() {
+      const direction = sortDirection.value === 'desc' ? -1 : 1;
+      const key = sortBy.value;
+      const searchTerm = toEnglishDigits(inventorySearchInput.value).trim().toLocaleLowerCase('fa');
+      inventorySearchQuery.textContent = inventorySearchInput.value.trim() || '—';
+      const sortedItems = [...inventoryItems].sort((first, second) => {
+        const a = first[key] ?? '';
+        const b = second[key] ?? '';
+        let result;
+
+        if (key === 'stock' || key === 'sendQuantity') {
+          result = Number(a || 0) - Number(b || 0);
+        } else {
+          result = String(a).localeCompare(String(b), 'fa', {
+            numeric: true,
+            sensitivity: 'base'
+          });
+        }
+        return result * direction;
+      });
+
+      const filteredItems = sortedItems.filter(item => {
+        if (!searchTerm) return true;
+        const searchable = toEnglishDigits([item.code, item.description, item.stock, item.sendQuantity].join(' ')).toLocaleLowerCase('fa');
+        return searchable.includes(searchTerm);
+      });
+      inventoryGrid.replaceChildren();
+      inventoryCount.textContent = 'تعداد کالاها: ' + toEnglishDigits(inventoryItems.length) +
+        (searchTerm ? '؛ نتیجه جست‌وجو: ' + toEnglishDigits(filteredItems.length) : '');
+      inventoryEmpty.hidden = filteredItems.length > 0;
+      if (inventoryItems.length && !filteredItems.length) {
+        inventoryEmpty.textContent = 'کالایی با عبارت جست‌وجوشده پیدا نشد؛ عبارت را تغییر دهید یا پاک کنید.';
+      } else {
+        inventoryEmpty.textContent = 'هنوز کالایی وارد نشده است. ابتدا از سکشن «ورودی کالا ها» کالا اضافه کنید.';
+      }
+
+      filteredItems.forEach((item, index) => {
+        const card = document.createElement('article');
+        card.className = 'item-card';
+        card.setAttribute('aria-label', 'کالا ' + item.code);
+
+        const selectionLabel = document.createElement('label');
+        selectionLabel.className = 'item-selection-label';
+        const selectionCheckbox = document.createElement('input');
+        selectionCheckbox.type = 'checkbox';
+        selectionCheckbox.className = 'item-select-checkbox';
+        selectionCheckbox.checked = selectedItemCodes.has(item.code);
+        selectionCheckbox.setAttribute('aria-label', 'انتخاب کالا با کد تدارکاتی ' + item.code);
+        selectionCheckbox.addEventListener('change', () => {
+          if (selectionCheckbox.checked) selectedItemCodes.add(item.code);
+          else selectedItemCodes.delete(item.code);
+          updateSelectionControls();
+        });
+        const selectionText = document.createElement('span');
+        selectionText.textContent = 'انتخاب کالا';
+        selectionLabel.append(selectionCheckbox, selectionText);
+
+        const details = document.createElement('div');
+        details.className = 'item-details';
+        details.append(
+          createTile('کد تدارکاتی', item.code),
+          createTile('شرح کالا', item.description),
+          createTile('تعداد موجودی', item.stock)
+        );
+
+        const sendTile = document.createElement('label');
+        sendTile.className = 'item-tile';
+        const sendLabel = document.createElement('span');
+        sendLabel.className = 'item-tile-label';
+        sendLabel.textContent = 'تعداد برای ارسال';
+
+        const sendInput = document.createElement('input');
+        sendInput.className = 'send-quantity-input';
+        sendInput.type = 'number';
+        sendInput.min = '0';
+        sendInput.step = 'any';
+        sendInput.inputMode = 'decimal';
+        sendInput.placeholder = '۰';
+        sendInput.value = item.sendQuantity;
+        sendInput.setAttribute('aria-label', 'تعداد برای ارسال کالا ' + item.code);
+        sendInput.addEventListener('change', () => {
+          const value = sendInput.value.trim();
+          const numericValue = value === '' ? '' : normalizeStock(value);
+          if (numericValue !== '' && (!Number.isFinite(numericValue) || numericValue < 0)) {
+            sendInput.value = item.sendQuantity;
+            inventoryFeedback.textContent = 'تعداد برای ارسال باید عددی بزرگ‌تر یا مساوی صفر باشد.';
+            return;
+          }
+          item.sendQuantity = numericValue;
+          saveInventory();
+          inventoryFeedback.textContent = '';
+          if (sortBy.value === 'sendQuantity') renderInventory();
+        });
+
+        sendTile.append(sendLabel, sendInput);
+        details.append(sendTile);
+        card.append(selectionLabel, details);
+        inventoryGrid.append(card);
+      });
+
+      updateSelectionControls();
+    }
+
+    inventorySearchInput.addEventListener('input', renderInventory);
+
+    itemFormInputs.code.addEventListener('input', () => {
+      const normalized = toEnglishDigits(itemFormInputs.code.value).replace(/[^0-9]/g, '').slice(0, 10);
+      if (itemFormInputs.code.value !== normalized) itemFormInputs.code.value = normalized;
+    });
+
+    Object.values(itemFormInputs).forEach(input => {
+      input.addEventListener('input', () => {
+        renderSinglePreview();
+        singleFeedback.textContent = '';
+      });
+    });
+
+    document.getElementById('add-single-item').addEventListener('click', () => {
+      const row = [
+        itemFormInputs.code.value,
+        itemFormInputs.description.value,
+        itemFormInputs.stock.value
+      ];
+      renderSinglePreview();
+      const item = normalizeRow(row);
+
+      if (!item) {
+        singleFeedback.textContent = 'اطلاعات معتبر نیست. کد تدارکاتی باید ۸ یا ۱۰ رقم باشد، شرح کالا الزامی است و موجودی باید عدد صفر یا مثبت باشد.';
+        return;
+      }
+
+      const result = addOrUpdateItems([row]);
+      showImportResult(result, singleFeedback);
+      itemFormInputs.code.value = '';
+      itemFormInputs.description.value = '';
+      itemFormInputs.stock.value = '';
+      renderSinglePreview();
+      itemFormInputs.code.focus();
+    });
+
+    document.getElementById('preview-pasted-data').addEventListener('click', () => {
+      pendingClipboardRows = prepareImportRows(parseDelimitedText(pastedDataInput.value));
+      if (!pendingClipboardRows.length) {
+        renderBulkPreview([], 'داده‌های کپی‌شده', bulkPreview);
+        importPreviewButton.disabled = true;
+        inputFeedback.textContent = 'ابتدا داده‌ها را در کادر کپی و جای‌گذاری کنید.';
+        return;
+      }
+      renderBulkPreview(pendingClipboardRows, 'داده‌های کپی‌شده', bulkPreview);
+      importPreviewButton.disabled = !pendingClipboardRows.some(row =>
+        Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && normalizeRow(row)
+      );
+      inputFeedback.textContent = 'پیش‌نمایش آماده است. اطلاعات را بررسی و سپس «تأیید و افزودن کالاها» را انتخاب کنید.';
+    });
+
+    function confirmImportRows(rows, target, previewTarget, confirmButton, emptyMessage) {
+      if (!rows.length) {
+        target.textContent = 'ابتدا داده‌ها را پیش‌نمایش کنید.';
+        return;
+      }
+      const invalidRows = rows.filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && !normalizeRow(row));
+      const duplicateGroups = findIncomingDuplicates(rows);
+      const result = addOrUpdateItems(rows);
+      showImportResult(result, target);
+      if (invalidRows.length) showImportErrors(rows);
+      else showDuplicateError(duplicateGroups);
+      if (confirmButton === importPreviewButton) pendingClipboardRows = [];
+      if (confirmButton === confirmExcelImportButton) pendingExcelRows = [];
+      confirmButton.disabled = true;
+      previewTarget.replaceChildren();
+      const heading = document.createElement('h5');
+      heading.textContent = 'پیش‌نمایش ورودی';
+      const message = document.createElement('p');
+      message.className = 'preview-empty';
+      message.textContent = emptyMessage;
+      previewTarget.append(heading, message);
+    }
+
+    importPreviewButton.addEventListener('click', () => {
+      confirmImportRows(
+        pendingClipboardRows, inputFeedback, bulkPreview, importPreviewButton,
+        'ورودی قبلی پردازش شد. برای ورودی جدید، داده‌ها را دوباره پیش‌نمایش کنید.'
+      );
+    });
+
+    confirmExcelImportButton.addEventListener('click', () => {
+      confirmImportRows(
+        pendingExcelRows, excelFeedback, excelPreview, confirmExcelImportButton,
+        'ورودی قبلی پردازش شد. برای ورودی جدید، فایل دیگری انتخاب کنید.'
+      );
+    });
+
+    pastedDataInput.addEventListener('input', () => {
+      pendingClipboardRows = [];
+      importPreviewButton.disabled = true;
+      inputFeedback.textContent = '';
+    });
+
+    document.getElementById('excel-file').addEventListener('change', async (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      try {
+        let rows;
+        if (/\.csv$/i.test(file.name)) {
+          rows = parseDelimitedText(await file.text());
+        } else if (window.XLSX) {
+          const buffer = await file.arrayBuffer();
+          const workbook = window.XLSX.read(buffer, { type: 'array' });
+          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+          rows = window.XLSX.utils.sheet_to_json(firstSheet, {
+            header: 1,
+            raw: false,
+            defval: ''
+          });
+        } else {
+          excelFeedback.textContent = 'کتابخانه خواندن Excel بارگذاری نشد؛ اتصال اینترنت را بررسی کنید یا فایل CSV را انتخاب کنید.';
+          return;
+        }
+
+        if (!rows || !rows.length) {
+          pendingExcelRows = [];
+          renderBulkPreview([], file.name, excelPreview);
+          confirmExcelImportButton.disabled = true;
+          excelFeedback.textContent = 'در فایل انتخاب‌شده ردیفی برای نمایش پیدا نشد.';
+          return;
+        }
+        pendingExcelRows = prepareImportRows(rows);
+        renderBulkPreview(pendingExcelRows, file.name, excelPreview);
+        confirmExcelImportButton.disabled = !pendingExcelRows.some(row =>
+          Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && normalizeRow(row)
+        );
+        excelFeedback.textContent = 'فایل خوانده شد؛ اطلاعات را در همین باکس بررسی و سپس تأیید کنید.';
+      } catch (error) {
+        excelFeedback.textContent = 'خواندن فایل ممکن نشد. فایل اکسل باید معتبر باشد؛ در صورت خطا می‌توانید CSV یا کپی‌کردن داده‌ها را امتحان کنید.';
+      } finally {
+        event.target.value = '';
+      }
+    });
+
+    sortBy.addEventListener('change', renderInventory);
+    sortDirection.addEventListener('change', renderInventory);
+
+    renderInventory();
+    renderSinglePreview();
+    openSection('section-1');
+  
+    document.getElementById('download-json-backup').addEventListener('click', () => {
+      const payload = { exportedAt: new Date().toISOString(), inventory: inventoryItems, shipments: loadShipments(), activityLog: loadActivityLog() };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'anbar-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      link.click();
+      URL.revokeObjectURL(url);
+      document.getElementById('backup-feedback').textContent = 'فایل بکاپ JSON آماده شد.';
+      recordActivity('بکاپ دستی JSON', 'فایل پشتیبان دانلود شد');
+    });
+    document.getElementById('refresh-backup-log').addEventListener('click', () => {
+      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+    });
+    renderEntryHistory();
+    renderShipmentHistory();
+    renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+</script>
+</body>
+</html>
