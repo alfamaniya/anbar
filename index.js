@@ -1598,29 +1598,6 @@
       });
     });
 
-    function confirmImportRows(rows, target, previewTarget, confirmButton, emptyMessage) {
-      if (!rows.length) {
-        target.textContent = 'ابتدا داده‌ها را پیش‌نمایش کنید.';
-        return;
-      }
-      const invalidRows = rows.filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && !normalizeRow(row));
-      const duplicateGroups = findIncomingDuplicates(rows);
-      const result = addOrUpdateItems(rows);
-      showImportResult(result, target);
-      if (invalidRows.length) showImportErrors(rows);
-      else showDuplicateError(duplicateGroups);
-      if (confirmButton === importPreviewButton) pendingClipboardRows = [];
-      if (confirmButton === confirmExcelImportButton) pendingExcelRows = [];
-      confirmButton.disabled = true;
-      previewTarget.replaceChildren();
-      const heading = document.createElement('h5');
-      heading.textContent = 'پیش‌نمایش ورودی';
-      const message = document.createElement('p');
-      message.className = 'preview-empty';
-      message.textContent = emptyMessage;
-      previewTarget.append(heading, message);
-    }
-
     importPreviewButton.addEventListener('click', () => {
       const combinedRows = getCombinedPendingRows().map(item => item.row);
       if (!combinedRows.length) {
@@ -1649,6 +1626,8 @@
       const commitImport = () => {
         const result = addOrUpdateItems(validRows);
         showImportResult(result, inputFeedback);
+        if (result.saved === false) return;
+
         if (invalidRows.length) showImportErrors(combinedRows);
         pendingExcelRows = [];
         pendingClipboardRows = [];
