@@ -89,15 +89,31 @@
     let shipmentHistorySort = { key: 'date', direction: 'desc' };
 
     function loadActivityLog() {
-      try { return JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]'); }
-      catch (error) { return []; }
+      try {
+        const records = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
+        return Array.isArray(records)
+          ? records.filter(record => record && typeof record === 'object' && !Array.isArray(record))
+          : [];
+      } catch (error) {
+        return [];
+      }
     }
 
     function loadEntryHistory() {
       try {
         const records = JSON.parse(localStorage.getItem(ENTRY_HISTORY_KEY) || '[]');
-        return Array.isArray(records) ? records : [];
-      } catch (error) { return []; }
+        if (!Array.isArray(records)) return [];
+        return records
+          .filter(record => record && typeof record === 'object' && !Array.isArray(record))
+          .map(record => ({
+            ...record,
+            timestamp: typeof record.timestamp === 'string' && Number.isFinite(Date.parse(record.timestamp))
+              ? record.timestamp
+              : ''
+          }));
+      } catch (error) {
+        return [];
+      }
     }
 
     function saveEntryHistory(records) {
@@ -643,7 +659,9 @@
             sendQuantity: item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
               ? ''
               : Number(item.sendQuantity),
-            entryTimestamp: typeof item.entryTimestamp === 'string' ? item.entryTimestamp : ''
+            entryTimestamp: typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp))
+              ? item.entryTimestamp
+              : ''
           }));
       } catch (error) {
         return [];
@@ -1153,9 +1171,10 @@
       let updated = 0;
       let skipped = 0;
       const incomingItems = new Map();
+      const previousItems = inventoryItems.map(item => ({ ...item }));
       const entryTimestamp = new Date().toISOString();
 
-      rows.forEach((row) => {
+      rows.forEach(row => {
         if (!Array.isArray(row) || row.every(value => String(value ?? '').trim() === '')) return;
 
         const item = normalizeRow(row);
@@ -1177,13 +1196,28 @@
         }
       });
 
-      saveInventory();
+      if (!incomingItems.size) {
+        renderInventory();
+        return { added, updated, skipped, saved: true };
+      }
+
+      if (!saveInventory()) {
+        inventoryItems.splice(0, inventoryItems.length, ...previousItems);
+        renderInventory();
+        return { added: 0, updated: 0, skipped, saved: false };
+      }
+
       renderInventory();
-      if (incomingItems.size) recordIncomingEntry([...incomingItems.values()]);
-      return { added, updated, skipped };
+      recordIncomingEntry([...incomingItems.values()]);
+      return { added, updated, skipped, saved: true };
     }
 
     function showImportResult(result, target) {
+      if (result.saved === false) {
+        target.textContent = 'ذخیره‌سازی ناموفق بود؛ هیچ تغییری ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید و دوباره تلاش کنید.';
+        return;
+      }
+
       const messages = [];
       if (result.added) messages.push(result.added + ' کالا اضافه شد');
       if (result.updated) messages.push(result.updated + ' کالای دارای کد تکراری به‌روزرسانی شد');
@@ -1229,16 +1263,24 @@
       if (!confirmed) return;
 
       const removedItems = inventoryItems.filter(item => codesToDelete.has(item.code));
+      const previousItems = inventoryItems.map(item => ({ ...item }));
       const beforeCount = inventoryItems.length;
+
       for (let index = inventoryItems.length - 1; index >= 0; index -= 1) {
         if (codesToDelete.has(inventoryItems[index].code)) inventoryItems.splice(index, 1);
       }
-      selectedItemCodes.clear();
-      if (saveInventory()) {
-        recordActivity('حذف کالاهای انتخاب‌شده',
-          'تعداد حذف‌شده: ' + toEnglishDigits(beforeCount - inventoryItems.length) +
-          '؛ اقلام: ' + removedItems.map(item => item.code + ' (' + item.description + ')؛ موجودی: ' + toEnglishDigits(item.stock)).join('؛ '));
+
+      if (!saveInventory()) {
+        inventoryItems.splice(0, inventoryItems.length, ...previousItems);
+        renderInventory();
+        inventoryFeedback.textContent = 'ذخیره‌سازی ناموفق بود؛ کالاها حذف نشدند. فضای ذخیره‌سازی مرورگر را بررسی کنید.';
+        return;
       }
+
+      selectedItemCodes.clear();
+      recordActivity('حذف کالاهای انتخاب‌شده',
+        'تعداد حذف‌شده: ' + toEnglishDigits(beforeCount - inventoryItems.length) +
+        '؛ اقلام: ' + removedItems.map(item => item.code + ' (' + item.description + ')؛ موجودی: ' + toEnglishDigits(item.stock)).join('؛ '));
       renderInventory();
       inventoryFeedback.textContent = toEnglishDigits(beforeCount - inventoryItems.length) + ' کالای انتخاب‌شده حذف شد.';
     });
@@ -1755,7 +1797,8 @@
         entryHistory: loadEntryHistory(),
         shipments: loadShipments(),
         shipmentLocations: loadShipmentLocations(),
-        activityLog: loadActivityLog()
+        activityLog: loadActivityLog(),
+        managedUsers: loadManagedUsers()
       };
     }
     async function writeAutomaticBackup(directoryHandle = backupDirectoryHandle, allowPermissionPrompt = false) {
@@ -1963,7 +2006,7 @@
         });
         if (duplicateFields.length) {
           conflicts.push(label + ' ردیف ' + (index + 1) + ': ' + duplicateFields.map(field => {
-            const names = { code: 'کد کالا', entryNumber: 'شماره ورود', exitNumber: 'شماره خروج', voucherNumber: 'شماره حواله' };
+            const names = { code: 'کد کالا', entryNumber: 'شماره ورود', exitNumber: 'شماره خروج', voucherNumber: 'شماره حواله', username: 'نام کاربری' };
             return names[field] + ' «' + record[field] + '»';
           }).join(' و '));
           return;
@@ -1982,10 +2025,18 @@
       const currentInventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       const currentEntries = loadEntryHistory();
       const currentShipments = loadShipments();
+      const currentUsers = loadManagedUsers();
       const incomingInventory = mergeUniqueRecords(currentInventory, payload.inventory, ['code'], conflicts, 'کالای تکراری');
       const incomingEntries = mergeUniqueRecords(currentEntries, payload.entryHistory || [], ['entryNumber'], conflicts, 'ورود تکراری');
       // اگر شماره خروج یا شماره حواله تکراری باشد، کل رکورد ارسال وارد نمی‌شود.
       const incomingShipments = mergeUniqueRecords(currentShipments, payload.shipments, ['exitNumber', 'voucherNumber'], conflicts, 'ارسال دارای شماره تکراری');
+      const incomingUsers = mergeUniqueRecords(
+        currentUsers,
+        Array.isArray(payload.managedUsers) ? payload.managedUsers : [],
+        ['username'],
+        conflicts,
+        'کاربر تکراری'
+      );
       const currentLocations = loadShipmentLocations();
       const mergedLocations = currentLocations.map(location => ({
         name: location.name,
@@ -2020,12 +2071,14 @@
         shipments: currentShipments.concat(incomingShipments),
         activityLog: currentActivity.concat(incomingActivity).slice(0, 1000),
         shipmentLocations: mergedLocations,
+        users: currentUsers.concat(incomingUsers),
         counts: {
           inventory: incomingInventory.length,
           entries: incomingEntries.length,
           shipments: incomingShipments.length,
           activity: incomingActivity.length,
-          locations: mergedLocations.length - currentLocations.length
+          locations: mergedLocations.length - currentLocations.length,
+          users: incomingUsers.length
         }
       };
     }
@@ -2041,16 +2094,46 @@
         if (!payload || !Array.isArray(payload.inventory) ||
             (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) ||
             !Array.isArray(payload.shipments) || !Array.isArray(payload.activityLog) ||
-            (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations))) {
+            (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations)) ||
+            (payload.managedUsers !== undefined && !Array.isArray(payload.managedUsers))) {
           throw new Error('invalid backup structure');
         }
+
         const validInventory = payload.inventory.every(item =>
           item && typeof item.code === 'string' && typeof item.description === 'string' &&
           Number.isFinite(Number(item.stock)) && Number(item.stock) >= 0
         );
-        const validEntries = (payload.entryHistory || []).every(item => item && typeof item.entryNumber === 'string');
-        const validShipments = payload.shipments.every(item => item && typeof item === 'object');
-        if (!validInventory || !validEntries || !validShipments) throw new Error('invalid backup records');
+        const validEntries = (payload.entryHistory || []).every(item =>
+          item && typeof item === 'object' && !Array.isArray(item) && typeof item.entryNumber === 'string'
+        );
+        const validShipments = payload.shipments.every(item =>
+          item && typeof item === 'object' && !Array.isArray(item) &&
+          Array.isArray(item.items) &&
+          typeof item.voucherNumber === 'string' &&
+          typeof item.exitNumber === 'string' &&
+          typeof item.location === 'string' &&
+          item.items.every(line =>
+            line && typeof line === 'object' && typeof line.code === 'string' &&
+            Number.isFinite(Number(line.quantity)) && Number(line.quantity) > 0
+          )
+        );
+        const validActivity = payload.activityLog.every(item =>
+          item && typeof item === 'object' && !Array.isArray(item)
+        );
+        const permissionKeys = ['entry', 'shipment', 'entryHistory', 'shipmentHistory', 'manageLocations'];
+        const validUsers = (payload.managedUsers || []).every(user =>
+          user && typeof user === 'object' && !Array.isArray(user) &&
+          typeof user.username === 'string' && user.username.trim() &&
+          user.username.trim().toLowerCase() !== 'admin' &&
+          typeof user.password === 'string' && user.password.length > 0 &&
+          user.permissions && typeof user.permissions === 'object' && !Array.isArray(user.permissions) &&
+          Object.entries(user.permissions).every(([key, value]) =>
+            permissionKeys.includes(key) && typeof value === 'boolean'
+          )
+        );
+        if (!validInventory || !validEntries || !validShipments || !validActivity || !validUsers) {
+          throw new Error('invalid backup records');
+        }
 
         const analysis = analyzeRestorePayload(payload);
         pendingRestorePayload = { payload, analysis };
@@ -2061,6 +2144,7 @@
           'شماره‌های ورود جدید: ' + analysis.counts.entries,
           'ارسال‌های جدید: ' + analysis.counts.shipments,
           'محل‌های موجود در فهرست پس از ادغام: ' + analysis.shipmentLocations.length,
+          'حساب‌های کاربری جدید: ' + analysis.counts.users,
           'رخدادهای جدید: ' + analysis.counts.activity,
           'مغایرت‌ها و موارد تکراری: ' + analysis.conflicts.length,
           'اطلاعات فعلی حذف نمی‌شود؛ فقط رکوردهای جدید اضافه خواهند شد.'
@@ -2085,21 +2169,42 @@
         'کالاهای قابل افزودن: ' + analysis.counts.inventory + '\n' +
         'ورودی‌های قابل افزودن: ' + analysis.counts.entries + '\n' +
         'ارسال‌های قابل افزودن: ' + analysis.counts.shipments + '\n' +
+        'حساب‌های کاربری قابل افزودن: ' + analysis.counts.users + '\n' +
         'مغایرت‌ها/موارد تکراری: ' + analysis.conflicts.length + '\n\n' +
         'اطلاعات فعلی حفظ می‌شود و فقط موارد غیرتکراری اضافه می‌شوند. ادامه می‌دهید؟'
       );
       if (!confirmed) return;
+      const restoreRecords = [
+        [STORAGE_KEY, analysis.inventory],
+        [ENTRY_HISTORY_KEY, analysis.entryHistory],
+        [SHIPMENT_KEY, analysis.shipments],
+        [LOCATION_KEY, analysis.shipmentLocations],
+        [ACTIVITY_KEY, analysis.activityLog],
+        [AUTH_USERS_KEY, analysis.users]
+      ];
+      const previousValues = restoreRecords.map(([key]) => [key, localStorage.getItem(key)]);
+
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis.inventory));
-        localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(analysis.entryHistory));
-        localStorage.setItem(SHIPMENT_KEY, JSON.stringify(analysis.shipments));
-        localStorage.setItem(LOCATION_KEY, JSON.stringify(analysis.shipmentLocations));
-        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(analysis.activityLog));
-        recordActivity('بازگردانی بکاپ', 'کالاها، تاریخچه‌ها، فهرست محل‌های ارسال و رخدادها از فایل بکاپ ادغام شدند.');
+        restoreRecords.forEach(([key, value]) => {
+          localStorage.setItem(key, JSON.stringify(value));
+        });
+        recordActivity(
+          'بازگردانی بکاپ',
+          'کالاها، تاریخچه‌ها، محل‌های ارسال، حساب‌های کاربری و رخدادها از فایل بکاپ ادغام شدند.'
+        );
         restoreFeedback.textContent = 'بازگردانی تکمیل شد؛ اطلاعات قبلی حفظ و موارد جدید ادغام شدند.';
         window.location.reload();
       } catch (error) {
-        restoreFeedback.textContent = 'بازگردانی کامل نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید. اطلاعات ممکن است به‌طور کامل ذخیره نشده باشد.';
+        // localStorage تراکنش چندکلیدی ندارد؛ در صورت شکست، مقادیر قبلی را تا حد امکان برمی‌گردانیم.
+        previousValues.forEach(([key, value]) => {
+          try {
+            if (value === null) localStorage.removeItem(key);
+            else originalLocalStorageSetItem.call(localStorage, key, value);
+          } catch (rollbackError) {
+            // پیام نهایی به کاربر اعلام می‌کند که بازیابی کامل تضمین نشده است.
+          }
+        });
+        restoreFeedback.textContent = 'بازگردانی کامل نشد؛ ذخیره‌سازی به مشکل خورد و اطلاعات قبلی تا حد امکان بازگردانده شد. فضای مرورگر را بررسی کنید.';
       }
     });
 
@@ -2221,7 +2326,7 @@
       const count = document.getElementById('managed-users-count');
       if (count) count.textContent = toEnglishDigits(users.length) + ' کاربر';
       if (!users.length) {
-        body.innerHTML = '<tr><td colspan="6">هنوز کاربری ایجاد نشده است.</td></tr>';
+        body.innerHTML = '<tr><td colspan="7">هنوز کاربری ایجاد نشده است.</td></tr>';
         return;
       }
       body.innerHTML = users.map((user, index) => {
@@ -2230,8 +2335,9 @@
         const shipment = permissions.shipment ? 'دارد' : 'ندارد';
         const entryHistory = permissions.entryHistory ? 'دارد' : 'ندارد';
         const shipmentHistory = permissions.shipmentHistory ? 'دارد' : 'ندارد';
+        const manageLocations = permissions.manageLocations ? 'دارد' : 'ندارد';
         const actions = '<button class="action-button secondary" type="button" data-edit-managed-user="' + index + '">ویرایش دسترسی</button> <button class="action-button secondary" type="button" data-delete-managed-user="' + index + '">حذف کاربر</button>';
-        const row = '<tr><td>' + escapeHtml(user.username) + '</td><td>' + entry + '</td><td>' + shipment + '</td><td>' + entryHistory + '</td><td>' + shipmentHistory + '</td><td>' + actions + '</td></tr>';
+        const row = '<tr><td>' + escapeHtml(user.username) + '</td><td>' + entry + '</td><td>' + shipment + '</td><td>' + entryHistory + '</td><td>' + shipmentHistory + '</td><td>' + manageLocations + '</td><td>' + actions + '</td></tr>';
         if (editingManagedUserIndex !== index) return row;
         const options = [
           ['entry', 'ورود کالا'],
@@ -2243,7 +2349,7 @@
         const checks = options.map(([key, label]) =>
           '<label class="managed-permission-option"><input type="checkbox" data-edit-permission="' + key + '"' + (permissions[key] ? ' checked' : '') + '> ' + label + '</label>'
         ).join('');
-        return row + '<tr class="managed-user-editor"><td colspan="6"><form data-save-managed-user="' + index + '"><strong>ویرایش دسترسی‌های ' + escapeHtml(user.username) + '</strong><div class="permission-options">' + checks + '</div><div class="managed-user-editor-actions"><button class="action-button" type="submit">ذخیره دسترسی‌ها</button> <button class="action-button secondary" type="button" data-cancel-managed-user>انصراف</button></div><p class="feedback" data-managed-user-feedback role="status" aria-live="polite"></p></form></td></tr>';
+        return row + '<tr class="managed-user-editor"><td colspan="7"><form data-save-managed-user="' + index + '"><strong>ویرایش دسترسی‌های ' + escapeHtml(user.username) + '</strong><div class="permission-options">' + checks + '</div><div class="managed-user-editor-actions"><button class="action-button" type="submit">ذخیره دسترسی‌ها</button> <button class="action-button secondary" type="button" data-cancel-managed-user>انصراف</button></div><p class="feedback" data-managed-user-feedback role="status" aria-live="polite"></p></form></td></tr>';
       }).join('');
 
       body.querySelectorAll('[data-edit-managed-user]').forEach(button => button.addEventListener('click', () => {
