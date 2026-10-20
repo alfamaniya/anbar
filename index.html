@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="صفحه اولیه سامانه کنترل مصرف اقلام">
+  <meta name="description" content="سامانه فارسی کنترل مصرف اقلام؛ ورود کالا، کنترل موجودی، ارسال و گزارش‌گیری.">
   <title>کنترل مصرف اقلام</title>
   <link rel="stylesheet" href="index.css">
 </head>
@@ -18,19 +18,60 @@
       <nav aria-label="ناوبری بخش‌ها">
         <p class="nav-title">دسترسی به بخش‌ها</p>
         <ul class="nav-list">
-          <li><a class="nav-link" href="#section-1"><span class="nav-number">۱</span><span>ورودی کالا ها</span></a></li>
-          <li><a class="nav-link" href="#section-2"><span class="nav-number">۲</span><span>مشاهده کالاهای موجود و ارسال</span></a></li>
-          <li><a class="nav-link" href="#section-3"><span class="nav-number">۳</span><span>تنظیمات</span></a></li>
+          <li><a class="nav-link" href="#section-dashboard"><span class="nav-number">۱</span><span>نمای کلی</span></a></li>
+          <li><a class="nav-link" href="#section-1"><span class="nav-number">۲</span><span>ورود کالا</span></a></li>
+          <li><a class="nav-link" href="#section-2"><span class="nav-number">۳</span><span>موجودی و ارسال</span></a></li>
           <li><a class="nav-link" href="#section-4"><span class="nav-number">۴</span><span>گزارش‌ها</span></a></li>
-          <li><a class="nav-link" href="#section-5"><span class="nav-number">۵</span><span>بخش پنجم</span></a></li>
+          <li><a class="nav-link" href="#section-3"><span class="nav-number">۵</span><span>تنظیمات</span></a></li>
         </ul>
       </nav>
     </header>
 
     <main class="main">
-      <div class="section-subheader" aria-label="نوار ثابت زیرهدر" role="presentation"></div>
+      <div class="page-topline">
+        <div class="page-title-block">
+          <span class="page-eyebrow">سامانه مدیریت اقلام</span>
+          <h2>کنترل مصرف اقلام</h2>
+          <p>ورود کالا، کنترل موجودی، ثبت ارسال و بررسی گزارش‌ها در یک محیط یکپارچه.</p>
+        </div>
+        <div class="design-preview-status"><span class="status-dot" aria-hidden="true"></span><span>پیش‌نمایش بازطراحی</span></div>
+      </div>
 
       <div class="sections">
+        <section class="section-card dashboard-section is-active" id="section-dashboard" aria-labelledby="dashboard-title">
+          <div class="dashboard-hero">
+            <div class="dashboard-hero-copy">
+              <span class="dashboard-eyebrow">داشبورد</span>
+              <h2 id="dashboard-title">خلاصه وضعیت سامانه</h2>
+              <p>نمایی سریع از اطلاعات ثبت‌شده؛ اعداد این کارت‌ها از داده‌های ذخیره‌شده در همین مرورگر خوانده می‌شوند.</p>
+            </div>
+            <a class="dashboard-primary-link" href="#section-1" data-section-target="section-1">شروع ورود کالا <span aria-hidden="true">←</span></a>
+          </div>
+          <div class="dashboard-stats" aria-label="آمار خلاصه سامانه">
+            <article class="dashboard-stat stat-coral"><span class="dashboard-stat-icon" aria-hidden="true">▦</span><div class="dashboard-stat-content"><p>اقلام ثبت‌شده</p><strong id="dashboard-item-count" aria-live="polite">۰</strong><span>تعداد ردیف‌های موجودی</span></div></article>
+            <article class="dashboard-stat stat-orange"><span class="dashboard-stat-icon" aria-hidden="true">＋</span><div class="dashboard-stat-content"><p>مجموع موجودی</p><strong id="dashboard-stock-total" aria-live="polite">۰</strong><span>جمع مقادیر عددی کالاها</span></div></article>
+            <article class="dashboard-stat stat-rose"><span class="dashboard-stat-icon" aria-hidden="true">↙</span><div class="dashboard-stat-content"><p>ورودی‌های ثبت‌شده</p><strong id="dashboard-entry-count" aria-live="polite">۰</strong><span>تعداد سوابق ورود کالا</span></div></article>
+            <article class="dashboard-stat stat-amber"><span class="dashboard-stat-icon" aria-hidden="true">↗</span><div class="dashboard-stat-content"><p>ارسال‌های ثبت‌شده</p><strong id="dashboard-shipment-count" aria-live="polite">۰</strong><span>تعداد سوابق ارسال</span></div></article>
+          </div>
+          <div class="dashboard-panels">
+            <section class="dashboard-panel" aria-labelledby="dashboard-shortcuts-title">
+              <div class="dashboard-panel-heading"><div><span class="dashboard-panel-kicker">میان‌برها</span><h3 id="dashboard-shortcuts-title">دسترسی سریع</h3></div><span class="dashboard-panel-mark" aria-hidden="true">↙</span></div>
+              <div class="dashboard-quick-links">
+                <a class="dashboard-quick-link" href="#section-1" data-section-target="section-1"><span class="quick-link-symbol">＋</span><span><strong>ورود کالا</strong><small>ثبت دستی، اکسل یا کلیپ‌بورد</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
+                <a class="dashboard-quick-link" href="#section-2" data-section-target="section-2"><span class="quick-link-symbol">▦</span><span><strong>موجودی و ارسال</strong><small>جست‌وجو، مرتب‌سازی و ثبت خروج</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
+                <a class="dashboard-quick-link" href="#section-4" data-section-target="section-4"><span class="quick-link-symbol">▤</span><span><strong>گزارش‌ها</strong><small>مرور تاریخچه ورود و ارسال</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
+                <a class="dashboard-quick-link" href="#section-3" data-section-target="section-3"><span class="quick-link-symbol">⚙</span><span><strong>تنظیمات و پشتیبان</strong><small>مدیریت محل‌ها و فایل‌های JSON</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
+              </div>
+            </section>
+            <section class="dashboard-panel dashboard-health-panel" aria-labelledby="dashboard-health-title">
+              <div class="dashboard-panel-heading"><div><span class="dashboard-panel-kicker">وضعیت داده</span><h3 id="dashboard-health-title">نگاه سریع به موجودی</h3></div><span class="dashboard-panel-mark dashboard-panel-mark-warm" aria-hidden="true">!</span></div>
+              <div class="dashboard-stock-alert"><span class="dashboard-alert-icon" aria-hidden="true">!</span><div><strong id="dashboard-zero-stock-count">۰</strong><span> قلم با موجودی صفر یا منفی</span></div></div>
+              <p class="dashboard-note">این آمار به داده‌های فعلی مرورگر وابسته است. برای استفاده روی چند دستگاه، پایگاه داده مشترک سمت سرور لازم است.</p>
+              <div class="dashboard-tags"><span>راست‌چین و فارسی</span><span>بدون دادهٔ نمایشی ساختگی</span></div>
+            </section>
+          </div>
+        </section>
+
         <section class="section-card is-active" id="section-1" aria-labelledby="title-1">
           <div class="input-panels">
             <div class="input-panel">
@@ -138,60 +179,9 @@
           <p id="inventory-feedback" class="feedback" role="status" aria-live="polite"></p>
         </section>
 
-        <section class="section-card" id="section-3" aria-labelledby="title-3">
-          <div class="section-heading">
-            <span class="section-icon" aria-hidden="true">۳</span>
-            <h3 id="title-3">تنظیمات</h3>
-          </div>
-          <div class="settings-grid">
-            <article class="settings-box">
-              <h4>مدیریت محل‌های ارسال</h4>
-              <p>محل و زیرمجموعه را اضافه کنید؛ در ارسال‌های بعدی نیز قابل انتخاب خواهند بود.</p>
-              <form id="location-create-form" class="location-create-form">
-                <div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120" autocomplete="off"></div>
-                <div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500" placeholder="چند زیرمجموعه را با ویرگول جدا کنید"></div>
-                <button class="action-button" type="submit">ذخیره محل</button>
-              </form>
-              <p class="feedback" id="location-manager-feedback" role="status" aria-live="polite"></p>
-              <div class="saved-locations-section">
-                <h5>محل‌های ذخیره‌شده</h5>
-                <p class="field-hint">هر محل را از فهرست زیر به‌صورت دستی حذف کنید؛ سوابق ارسال قبلی باقی می‌مانند.</p>
-                <div id="location-manager-list" class="location-list" aria-live="polite"></div>
-              </div>
-            </article>
-            <article class="settings-box">
-              <h4>بکاپ خودکار فایل JSON</h4>
-              <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
-              <div class="backup-folder-actions">
-                <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه ذخیره‌شده</button>
-                <button class="action-button secondary" id="change-backup-folder" type="button">انتخاب یا تغییر پوشه بکاپ</button>
-              </div>
-              <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
-              <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
-            </article>
-            <article class="settings-box">
-              <h4>بازگردانی بکاپ JSON</h4>
-              <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
-              <div class="field-group">
-                <label for="restore-json-file">فایل پشتیبان JSON</label>
-                <input id="restore-json-file" type="file" accept=".json,application/json">
-              </div>
-              <button class="action-button" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
-              <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
-              <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
-            </article>
-            <article class="settings-box">
-              <h4>لاگ سایت</h4>
-              <p>تاریخچه رویدادهای سامانه شامل ورود و خروج کاربران، ثبت و ارسال کالا، مدیریت محل‌ها، حساب‌ها و دسترسی‌ها، و تغییر پوشه بکاپ؛ همراه با زمان، کاربر و جزئیات.</p>
-              <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ سایت</button>
-              <div class="preview-panel" id="backup-log-results" aria-live="polite"><p class="preview-empty">هنوز رخدادی ثبت نشده است.</p></div>
-            </article>
-          </div>
-        </section>
-
         <section class="section-card" id="section-4" aria-labelledby="title-4">
           <div class="section-heading">
-            <span class="section-icon" aria-hidden="true">۴</span>
+            <span class="section-icon" aria-hidden="true">گ</span>
             <h3 id="title-4">گزارش‌ها</h3>
           </div>
           <div class="settings-grid reports-grid">
@@ -242,13 +232,58 @@
           </div>
         </section>
 
-        <section class="section-card" id="section-5" aria-labelledby="title-5">
+        <section class="section-card" id="section-3" aria-labelledby="title-3">
           <div class="section-heading">
-            <span class="section-icon" aria-hidden="true">۵</span>
-            <h3 id="title-5">بخش پنجم</h3>
+            <span class="section-icon" aria-hidden="true">ت</span>
+            <h3 id="title-3">تنظیمات</h3>
           </div>
-          <p>محتوای این بخش در ادامه مشخص و تکمیل می‌شود.</p>
+          <div class="settings-grid">
+            <article class="settings-box">
+              <h4>مدیریت محل‌های ارسال</h4>
+              <p>محل و زیرمجموعه را اضافه کنید؛ در ارسال‌های بعدی نیز قابل انتخاب خواهند بود.</p>
+              <form id="location-create-form" class="location-create-form">
+                <div class="field-group"><label for="new-location-name">نام محل ارسال</label><input id="new-location-name" required maxlength="120" autocomplete="off"></div>
+                <div class="field-group"><label for="new-location-subs">زیرمجموعه‌ها</label><input id="new-location-subs" maxlength="500" placeholder="چند زیرمجموعه را با ویرگول جدا کنید"></div>
+                <button class="action-button" type="submit">ذخیره محل</button>
+              </form>
+              <p class="feedback" id="location-manager-feedback" role="status" aria-live="polite"></p>
+              <div class="saved-locations-section">
+                <h5>محل‌های ذخیره‌شده</h5>
+                <p class="field-hint">هر محل را از فهرست زیر به‌صورت دستی حذف کنید؛ سوابق ارسال قبلی باقی می‌مانند.</p>
+                <div id="location-manager-list" class="location-list" aria-live="polite"></div>
+              </div>
+            </article>
+            <article class="settings-box">
+              <h4>بکاپ خودکار فایل JSON</h4>
+              <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
+              <div class="backup-folder-actions">
+                <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه ذخیره‌شده</button>
+                <button class="action-button secondary" id="change-backup-folder" type="button">انتخاب یا تغییر پوشه بکاپ</button>
+              </div>
+              <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
+              <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
+            </article>
+            <article class="settings-box">
+              <h4>بازگردانی بکاپ JSON</h4>
+              <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
+              <div class="field-group">
+                <label for="restore-json-file">فایل پشتیبان JSON</label>
+                <input id="restore-json-file" type="file" accept=".json,application/json">
+              </div>
+              <button class="action-button" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
+              <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
+              <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
+            </article>
+            <article class="settings-box">
+              <h4>لاگ سایت</h4>
+              <p>تاریخچه رویدادهای سامانه شامل ورود و خروج کاربران، ثبت و ارسال کالا، مدیریت محل‌ها، حساب‌ها و دسترسی‌ها، و تغییر پوشه بکاپ؛ همراه با زمان، کاربر و جزئیات.</p>
+              <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ سایت</button>
+              <div class="preview-panel" id="backup-log-results" aria-live="polite"><p class="preview-empty">هنوز رخدادی ثبت نشده است.</p></div>
+            </article>
+          </div>
         </section>
+
+        
 
 
       </div>
