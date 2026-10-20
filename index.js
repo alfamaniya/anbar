@@ -1150,7 +1150,6 @@
 
     document.getElementById('duplicate-dialog-x').addEventListener('click', closeDuplicateDialog);
     let pendingImportConfirmation = null;
-    document.getElementById('duplicate-dialog-ok')?.addEventListener('click', closeDuplicateDialog);
     document.getElementById('duplicate-import-cancel').addEventListener('click', () => {
       pendingImportConfirmation = null;
       closeDuplicateDialog();
@@ -2088,9 +2087,9 @@
         const validShipments = payload.shipments.every(item =>
           item && typeof item === 'object' && !Array.isArray(item) &&
           Array.isArray(item.items) &&
-          typeof item.voucherNumber === 'string' &&
-          typeof item.exitNumber === 'string' &&
-          typeof item.location === 'string' &&
+          (item.voucherNumber === undefined || typeof item.voucherNumber === 'string') &&
+          (item.exitNumber === undefined || typeof item.exitNumber === 'string') &&
+          (item.location === undefined || typeof item.location === 'string') &&
           item.items.every(line =>
             line && typeof line === 'object' && typeof line.code === 'string' &&
             Number.isFinite(Number(line.quantity)) && Number(line.quantity) > 0
