@@ -602,17 +602,24 @@
             Number.isFinite(Number(item.stock)) &&
             Number(item.stock) >= 0
           )
-          .map(item => ({
-            code: item.code,
-            description: item.description,
-            stock: Number(item.stock),
-            sendQuantity: item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
-              ? ''
-              : Number(item.sendQuantity),
-            entryTimestamp: typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp))
-              ? item.entryTimestamp
-              : ''
-          }));
+          .map(item => {
+            const stock = Number(item.stock);
+            const requestedQuantity = item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
+              ? NaN
+              : Number(item.sendQuantity);
+            return {
+              code: item.code,
+              description: item.description,
+              stock,
+              // مقدار موقت ارسال فقط در صورتی معتبر است که عددی مثبت و در محدوده موجودی باشد.
+              sendQuantity: Number.isFinite(requestedQuantity) && requestedQuantity > 0 && requestedQuantity <= stock
+                ? requestedQuantity
+                : '',
+              entryTimestamp: typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp))
+                ? item.entryTimestamp
+                : ''
+            };
+          });
       } catch (error) {
         return [];
       }
@@ -831,7 +838,10 @@
         function normalizeRow(row) {
       const code = toEnglishDigits(String(row[0] ?? '').trim());
       const description = normalizeArabicLetters(String(row[1] ?? '')).trim();
-      const stockText = toEnglishDigits(String(row[2] ?? '').trim());
+      // همان نرمال‌سازی getRowError: جداکننده هزارگان و ممیز فارسی را پیش از اعتبارسنجی یکسان کن.
+      const stockText = toEnglishDigits(String(row[2] ?? '').trim())
+        .replace(/[٬,]/g, '')
+        .replace(/٫/g, '.');
       const stock = normalizeStock(stockText);
       if (!/^(?:\d{8}|\d{10})$/.test(code) || !description || !/^\d+(?:\.\d+)?$/.test(stockText) ||
           !Number.isFinite(stock) || stock < 0) return null;
@@ -1189,6 +1199,12 @@
         if (existing) {
           existing.description = item.description;
           existing.stock = item.stock;
+          const pendingQuantity = existing.sendQuantity === '' || existing.sendQuantity === null || existing.sendQuantity === undefined
+            ? NaN
+            : normalizeStock(existing.sendQuantity);
+          if (!Number.isFinite(pendingQuantity) || pendingQuantity <= 0 || pendingQuantity > item.stock) {
+            existing.sendQuantity = '';
+          }
           existing.entryTimestamp = entryTimestamp;
           updated += 1;
         } else {
