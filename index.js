@@ -1,54 +1,4 @@
 
-    const AUTH_USERS_KEY = 'anbar.auth-users.v1';
-    let currentSession = null;
-    const defaultAdminCredentials = { username: 'admin', password: '00604' };
-    function loadManagedUsers() {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(AUTH_USERS_KEY) || '[]');
-        return Array.isArray(parsed) ? parsed.filter(user => user && typeof user.username === 'string') : [];
-      } catch (error) { return []; }
-    }
-    function canAccessSection(sectionId) {
-      if (!currentSession) return false;
-      if (currentSession.role === 'admin') return true;
-      const permissions = currentSession.permissions || {};
-      if (sectionId === 'section-1') return Boolean(permissions.entry);
-      if (sectionId === 'section-2') return Boolean(permissions.shipment);
-      if (sectionId === 'section-3') return Boolean(permissions.manageLocations);
-      if (sectionId === 'section-4') return Boolean(permissions.entryHistory || permissions.shipmentHistory);
-      return false;
-    }
-    function applySessionAccess() {
-      const isAdmin = currentSession && currentSession.role === 'admin';
-      const managementLink = document.getElementById('management-nav-link');
-      if (managementLink) managementLink.hidden = !isAdmin;
-      const logoutButton = document.getElementById('logout-button');
-      const sessionUsername = document.getElementById('session-username');
-      if (logoutButton) logoutButton.hidden = !currentSession;
-      if (sessionUsername) sessionUsername.textContent = currentSession ? currentSession.username : '';
-      document.querySelectorAll('[data-location-manager]').forEach(panel => { panel.hidden = !isAdmin && !(currentSession && currentSession.permissions && currentSession.permissions.manageLocations); });
-      document.querySelectorAll('[data-admin-settings]').forEach(panel => { panel.hidden = !isAdmin; });
-      document.querySelectorAll('[data-history-permission]').forEach(panel => {
-        const permission = panel.getAttribute('data-history-permission');
-        panel.hidden = !isAdmin && !(currentSession && currentSession.permissions && currentSession.permissions[permission]);
-      });
-      document.querySelectorAll('.nav-link').forEach(link => {
-        const sectionId = link.getAttribute('href').slice(1);
-        const allowed = Boolean(currentSession) && canAccessSection(sectionId);
-        link.hidden = !allowed;
-        link.setAttribute('aria-hidden', String(!allowed));
-      });
-      document.querySelectorAll('.section-card').forEach(section => {
-        section.hidden = !currentSession || !canAccessSection(section.id);
-        section.classList.toggle('is-active', section.id === 'section-1' && canAccessSection('section-1'));
-      });
-      if (currentSession) {
-        const firstAllowed = ['section-1','section-2','section-3','section-4','section-6'].find(canAccessSection);
-        if (firstAllowed) openSection(firstAllowed);
-      }
-      document.getElementById('login-overlay').hidden = Boolean(currentSession);
-      document.getElementById('app-layout').toggleAttribute('inert', !currentSession);
-    }
     const sectionLinks = document.querySelectorAll('.nav-link');
     const sectionCards = document.querySelectorAll('.section-card');
     const inventoryGrid = document.getElementById('inventory-grid');
@@ -564,7 +514,7 @@
         logs.unshift({
           action: String(action || 'تغییر نامشخص'),
           details: safeDetails,
-          actor: currentSession && currentSession.username ? currentSession.username : 'سیستم',
+          actor: 'کاربر',
           timestamp: now.toISOString(),
           solarDate: new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
             year: 'numeric', month: '2-digit', day: '2-digit'
@@ -688,11 +638,6 @@
     }
 
     function openSection(sectionId) {
-      if (currentSession && !canAccessSection(sectionId)) {
-        const firstAllowed = ['section-1', 'section-2', 'section-3', 'section-4', 'section-6'].find(canAccessSection);
-        if (firstAllowed && firstAllowed !== sectionId) return openSection(firstAllowed);
-        return;
-      }
       sectionCards.forEach((section) => {
         const isSelected = section.id === sectionId;
         section.classList.toggle('is-active', isSelected);
@@ -1394,7 +1339,6 @@
 
     document.getElementById('location-create-form').addEventListener('submit', event => {
       event.preventDefault();
-      if (!currentSession || (currentSession.role !== 'admin' && !currentSession.permissions.manageLocations)) return;
 
       const name = document.getElementById('new-location-name').value.trim();
       const sublocations = [...new Set(document.getElementById('new-location-subs').value.split(',').map(value => value.trim()).filter(Boolean))];
@@ -1776,7 +1720,6 @@
         shipments: loadShipments(),
         shipmentLocations: loadShipmentLocations(),
         activityLog: loadActivityLog(),
-        managedUsers: loadManagedUsers()
       };
     }
     async function writeAutomaticBackup(directoryHandle = backupDirectoryHandle, allowPermissionPrompt = false) {
@@ -1959,7 +1902,7 @@
     const originalLocalStorageSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {
       originalLocalStorageSetItem.call(this, key, value);
-      if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY, LOCATION_KEY, AUTH_USERS_KEY].includes(String(key))) {
+      if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY, LOCATION_KEY].includes(String(key))) {
         scheduleAutomaticBackup();
       }
     };
@@ -2003,18 +1946,10 @@
       const currentInventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       const currentEntries = loadEntryHistory();
       const currentShipments = loadShipments();
-      const currentUsers = loadManagedUsers();
       const incomingInventory = mergeUniqueRecords(currentInventory, payload.inventory, ['code'], conflicts, 'کالای تکراری');
       const incomingEntries = mergeUniqueRecords(currentEntries, payload.entryHistory || [], ['entryNumber'], conflicts, 'ورود تکراری');
       // اگر شماره خروج یا شماره حواله تکراری باشد، کل رکورد ارسال وارد نمی‌شود.
       const incomingShipments = mergeUniqueRecords(currentShipments, payload.shipments, ['exitNumber', 'voucherNumber'], conflicts, 'ارسال دارای شماره تکراری');
-      const incomingUsers = mergeUniqueRecords(
-        currentUsers,
-        Array.isArray(payload.managedUsers) ? payload.managedUsers : [],
-        ['username'],
-        conflicts,
-        'کاربر تکراری'
-      );
       const currentLocations = loadShipmentLocations();
       const mergedLocations = currentLocations.map(location => ({
         name: location.name,
@@ -2049,14 +1984,12 @@
         shipments: currentShipments.concat(incomingShipments),
         activityLog: currentActivity.concat(incomingActivity).slice(0, 1000),
         shipmentLocations: mergedLocations,
-        users: currentUsers.concat(incomingUsers),
         counts: {
           inventory: incomingInventory.length,
           entries: incomingEntries.length,
           shipments: incomingShipments.length,
           activity: incomingActivity.length,
           locations: mergedLocations.length - currentLocations.length,
-          users: incomingUsers.length
         }
       };
     }
@@ -2072,8 +2005,7 @@
         if (!payload || !Array.isArray(payload.inventory) ||
             (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) ||
             !Array.isArray(payload.shipments) || !Array.isArray(payload.activityLog) ||
-            (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations)) ||
-            (payload.managedUsers !== undefined && !Array.isArray(payload.managedUsers))) {
+            (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations))) {
           throw new Error('invalid backup structure');
         }
 
@@ -2098,18 +2030,7 @@
         const validActivity = payload.activityLog.every(item =>
           item && typeof item === 'object' && !Array.isArray(item)
         );
-        const permissionKeys = ['entry', 'shipment', 'entryHistory', 'shipmentHistory', 'manageLocations'];
-        const validUsers = (payload.managedUsers || []).every(user =>
-          user && typeof user === 'object' && !Array.isArray(user) &&
-          typeof user.username === 'string' && user.username.trim() &&
-          user.username.trim().toLowerCase() !== 'admin' &&
-          typeof user.password === 'string' && user.password.length > 0 &&
-          user.permissions && typeof user.permissions === 'object' && !Array.isArray(user.permissions) &&
-          Object.entries(user.permissions).every(([key, value]) =>
-            permissionKeys.includes(key) && typeof value === 'boolean'
-          )
-        );
-        if (!validInventory || !validEntries || !validShipments || !validActivity || !validUsers) {
+        if (!validInventory || !validEntries || !validShipments || !validActivity) {
           throw new Error('invalid backup records');
         }
 
@@ -2122,7 +2043,6 @@
           'شماره‌های ورود جدید: ' + analysis.counts.entries,
           'ارسال‌های جدید: ' + analysis.counts.shipments,
           'محل‌های موجود در فهرست پس از ادغام: ' + analysis.shipmentLocations.length,
-          'حساب‌های کاربری جدید: ' + analysis.counts.users,
           'رخدادهای جدید: ' + analysis.counts.activity,
           'مغایرت‌ها و موارد تکراری: ' + analysis.conflicts.length,
           'اطلاعات فعلی حذف نمی‌شود؛ فقط رکوردهای جدید اضافه خواهند شد.'
@@ -2147,7 +2067,6 @@
         'کالاهای قابل افزودن: ' + analysis.counts.inventory + '\n' +
         'ورودی‌های قابل افزودن: ' + analysis.counts.entries + '\n' +
         'ارسال‌های قابل افزودن: ' + analysis.counts.shipments + '\n' +
-        'حساب‌های کاربری قابل افزودن: ' + analysis.counts.users + '\n' +
         'مغایرت‌ها/موارد تکراری: ' + analysis.conflicts.length + '\n\n' +
         'اطلاعات فعلی حفظ می‌شود و فقط موارد غیرتکراری اضافه می‌شوند. ادامه می‌دهید؟'
       );
@@ -2158,7 +2077,6 @@
         [SHIPMENT_KEY, analysis.shipments],
         [LOCATION_KEY, analysis.shipmentLocations],
         [ACTIVITY_KEY, analysis.activityLog],
-        [AUTH_USERS_KEY, analysis.users]
       ];
       const previousValues = restoreRecords.map(([key]) => [key, localStorage.getItem(key)]);
 
@@ -2168,7 +2086,7 @@
         });
         recordActivity(
           'بازگردانی بکاپ',
-          'کالاها، تاریخچه‌ها، محل‌های ارسال، حساب‌های کاربری و رخدادها از فایل بکاپ ادغام شدند.'
+          'کالاها، تاریخچه‌ها، محل‌های ارسال و رخدادها از فایل بکاپ ادغام شدند.'
         );
         restoreFeedback.textContent = 'بازگردانی تکمیل شد؛ اطلاعات قبلی حفظ و موارد جدید ادغام شدند.';
         window.location.reload();
@@ -2186,224 +2104,9 @@
       }
     });
 
-    document.getElementById('logout-button').addEventListener('click', () => {
-      const username = currentSession ? currentSession.username : 'نامشخص';
-      recordActivity('خروج کاربر', 'کاربر «' + username + '» از سامانه خارج شد.');
-      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
-      currentSession = null;
-      showLoginView('choice');
-      applySessionAccess();
-    });
-
     document.getElementById('refresh-backup-log').addEventListener('click', () => {
       renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
     });
-    const loginOverlay = document.getElementById('login-overlay');
-    const loginChoiceView = document.getElementById('login-choice-view');
-    const adminLoginView = document.getElementById('admin-login-view');
-    const userLoginView = document.getElementById('user-login-view');
-    const loginFeedback = document.getElementById('login-feedback');
-    function showLoginView(view) {
-      loginChoiceView.hidden = view !== 'choice';
-      adminLoginView.hidden = view !== 'admin';
-      userLoginView.hidden = view !== 'user';
-      loginFeedback.textContent = '';
-      const firstInput = view === 'admin' ? document.getElementById('admin-username')
-        : view === 'user' ? document.getElementById('user-login-username') : null;
-      if (firstInput) firstInput.focus();
-    }
-    document.getElementById('show-admin-login').addEventListener('click', () => showLoginView('admin'));
-    document.getElementById('show-user-login').addEventListener('click', () => showLoginView('user'));
-    document.querySelectorAll('[data-login-back]').forEach(button => button.addEventListener('click', () => showLoginView('choice')));
-
-    document.getElementById('admin-login-view').addEventListener('submit', event => {
-      event.preventDefault();
-      const username = document.getElementById('admin-username').value.trim();
-      const password = document.getElementById('admin-password').value;
-      if (username !== defaultAdminCredentials.username || password !== defaultAdminCredentials.password) {
-        loginFeedback.textContent = 'نام کاربری یا رمز عبور مدیر نادرست است.';
-        return;
-      }
-      currentSession = { role: 'admin', username: 'admin', permissions: { entry: true, shipment: true } };
-      recordActivity('ورود کاربر', 'مدیر admin وارد سامانه شد.');
-      applySessionAccess();
-      renderManagedUsers();
-      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
-    });
-    document.getElementById('user-login-view').addEventListener('submit', event => {
-      event.preventDefault();
-      const username = document.getElementById('user-login-username').value.trim();
-      const password = document.getElementById('user-login-password').value;
-      const user = loadManagedUsers().find(item => item.username.toLowerCase() === username.toLowerCase() && item.password === password);
-      if (!user) {
-        loginFeedback.textContent = 'نام کاربری یا رمز عبور نادرست است.';
-        return;
-      }
-      if (!user.permissions || !Object.values(user.permissions).some(Boolean)) {
-        loginFeedback.textContent = 'برای این حساب هنوز هیچ دسترسی‌ای تعریف نشده است؛ با مدیر تماس بگیرید.';
-        return;
-      }
-      currentSession = { role: 'user', username: user.username, permissions: user.permissions };
-      recordActivity('ورود کاربر', 'کاربر «' + user.username + '» وارد سامانه شد.');
-      applySessionAccess();
-      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
-    });
-
-    document.getElementById('create-user-form').addEventListener('submit', event => {
-      event.preventDefault();
-      if (!currentSession || currentSession.role !== 'admin') return;
-      const username = document.getElementById('new-username').value.trim();
-      const password = document.getElementById('new-user-password').value;
-      const permissions = {
-        entry: document.getElementById('permission-entry').checked,
-        shipment: document.getElementById('permission-shipment').checked,
-        entryHistory: document.getElementById('permission-entry-history').checked,
-        shipmentHistory: document.getElementById('permission-shipment-history').checked,
-        manageLocations: document.getElementById('permission-manage-locations').checked
-      };
-      const feedback = document.getElementById('management-feedback');
-      if (!username || !password) {
-        feedback.textContent = 'نام کاربری و رمز عبور الزامی است.';
-        return;
-      }
-      if (!permissions.entry && !permissions.shipment && !permissions.entryHistory && !permissions.shipmentHistory && !permissions.manageLocations) {
-        feedback.textContent = 'حداقل یکی از پنج دسترسی را انتخاب کنید.';
-        return;
-      }
-      if (username.toLowerCase() === 'admin' || loadManagedUsers().some(user => user.username.toLowerCase() === username.toLowerCase())) {
-        feedback.textContent = 'این نام کاربری قبلاً ثبت شده است یا برای مدیر رزرو شده است.';
-        return;
-      }
-      const users = loadManagedUsers();
-      users.push({ username, password, permissions, createdAt: new Date().toISOString() });
-      try {
-        localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
-        const permissionNames = {
-          entry: 'ورود کالا', shipment: 'ارسال کالا', entryHistory: 'تاریخچه ورود',
-          shipmentHistory: 'تاریخچه خروج', manageLocations: 'مدیریت محل‌های ارسال'
-        };
-        const grantedPermissions = Object.keys(permissionNames).filter(key => permissions[key]).map(key => permissionNames[key]);
-        recordActivity('ایجاد کاربر',
-          'حساب: «' + username + '»؛ دسترسی‌ها: ' + (grantedPermissions.join('، ') || 'بدون دسترسی') + '؛ رمز عبور در لاگ ثبت نمی‌شود.');
-        event.target.reset();
-        document.getElementById('permission-entry').checked = true;
-        feedback.textContent = 'کاربر با موفقیت ایجاد شد.';
-        renderManagedUsers();
-        renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
-      } catch (error) {
-        feedback.textContent = 'ذخیره کاربر انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
-      }
-    });
-
-    let editingManagedUserIndex = null;
-
-    function renderManagedUsers() {
-      const body = document.getElementById('managed-users-body');
-      if (!body) return;
-      const users = loadManagedUsers();
-      const count = document.getElementById('managed-users-count');
-      if (count) count.textContent = toEnglishDigits(users.length) + ' کاربر';
-      if (!users.length) {
-        body.innerHTML = '<tr><td colspan="7">هنوز کاربری ایجاد نشده است.</td></tr>';
-        return;
-      }
-      body.innerHTML = users.map((user, index) => {
-        const permissions = user.permissions || {};
-        const entry = permissions.entry ? 'دارد' : 'ندارد';
-        const shipment = permissions.shipment ? 'دارد' : 'ندارد';
-        const entryHistory = permissions.entryHistory ? 'دارد' : 'ندارد';
-        const shipmentHistory = permissions.shipmentHistory ? 'دارد' : 'ندارد';
-        const manageLocations = permissions.manageLocations ? 'دارد' : 'ندارد';
-        const actions = '<button class="action-button secondary" type="button" data-edit-managed-user="' + index + '">ویرایش دسترسی</button> <button class="action-button secondary" type="button" data-delete-managed-user="' + index + '">حذف کاربر</button>';
-        const row = '<tr><td>' + escapeHtml(user.username) + '</td><td>' + entry + '</td><td>' + shipment + '</td><td>' + entryHistory + '</td><td>' + shipmentHistory + '</td><td>' + manageLocations + '</td><td>' + actions + '</td></tr>';
-        if (editingManagedUserIndex !== index) return row;
-        const options = [
-          ['entry', 'ورود کالا'],
-          ['shipment', 'ارسال کالا'],
-          ['entryHistory', 'تاریخچه ورود'],
-          ['shipmentHistory', 'تاریخچه خروج'],
-          ['manageLocations', 'مدیریت محل‌های ارسال']
-        ];
-        const checks = options.map(([key, label]) =>
-          '<label class="managed-permission-option"><input type="checkbox" data-edit-permission="' + key + '"' + (permissions[key] ? ' checked' : '') + '> ' + label + '</label>'
-        ).join('');
-        return row + '<tr class="managed-user-editor"><td colspan="7"><form data-save-managed-user="' + index + '"><strong>ویرایش دسترسی‌های ' + escapeHtml(user.username) + '</strong><div class="permission-options">' + checks + '</div><div class="managed-user-editor-actions"><button class="action-button" type="submit">ذخیره دسترسی‌ها</button> <button class="action-button secondary" type="button" data-cancel-managed-user>انصراف</button></div><p class="feedback" data-managed-user-feedback role="status" aria-live="polite"></p></form></td></tr>';
-      }).join('');
-
-      body.querySelectorAll('[data-edit-managed-user]').forEach(button => button.addEventListener('click', () => {
-        if (!currentSession || currentSession.role !== 'admin') return;
-        const index = Number(button.getAttribute('data-edit-managed-user'));
-        if (!Number.isInteger(index) || index < 0 || index >= loadManagedUsers().length) return;
-        editingManagedUserIndex = index;
-        renderManagedUsers();
-      }));
-
-      body.querySelectorAll('[data-cancel-managed-user]').forEach(button => button.addEventListener('click', () => {
-        editingManagedUserIndex = null;
-        renderManagedUsers();
-      }));
-
-      body.querySelectorAll('[data-save-managed-user]').forEach(form => form.addEventListener('submit', event => {
-        event.preventDefault();
-        if (!currentSession || currentSession.role !== 'admin') return;
-        const index = Number(form.getAttribute('data-save-managed-user'));
-        const usersNow = loadManagedUsers();
-        if (!Number.isInteger(index) || index < 0 || index >= usersNow.length) return;
-        const permissions = {};
-        form.querySelectorAll('[data-edit-permission]').forEach(input => {
-          permissions[input.getAttribute('data-edit-permission')] = input.checked;
-        });
-        const feedback = form.querySelector('[data-managed-user-feedback]');
-        if (!Object.values(permissions).some(Boolean)) {
-          feedback.textContent = 'حداقل یکی از پنج دسترسی را انتخاب کنید.';
-          return;
-        }
-        const previousPermissions = usersNow[index].permissions || {};
-        usersNow[index].permissions = permissions;
-        try {
-          localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(usersNow));
-          if (currentSession.role === 'user' && currentSession.username === usersNow[index].username) {
-            currentSession.permissions = permissions;
-            applySessionAccess();
-          }
-          const permissionNames = {
-            entry: 'ورود کالا', shipment: 'ارسال کالا', entryHistory: 'تاریخچه ورود',
-            shipmentHistory: 'تاریخچه خروج', manageLocations: 'مدیریت محل‌های ارسال'
-          };
-          const describePermissions = value =>
-            Object.keys(permissionNames).filter(key => value[key]).map(key => permissionNames[key]).join('، ') || 'بدون دسترسی';
-          recordActivity('ویرایش دسترسی کاربر',
-            'حساب: «' + usersNow[index].username + '»؛ دسترسی‌های قبلی: ' + describePermissions(previousPermissions) +
-            '؛ دسترسی‌های جدید: ' + describePermissions(permissions));
-          editingManagedUserIndex = null;
-          renderManagedUsers();
-          renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
-        } catch (error) {
-          feedback.textContent = 'ذخیره دسترسی‌ها انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
-        }
-      }));
-
-      body.querySelectorAll('[data-delete-managed-user]').forEach(button => button.addEventListener('click', () => {
-        if (!currentSession || currentSession.role !== 'admin') return;
-        const index = Number(button.getAttribute('data-delete-managed-user'));
-        const usersNow = loadManagedUsers();
-        if (!Number.isInteger(index) || index < 0 || index >= usersNow.length) return;
-        if (!window.confirm('کاربر «' + usersNow[index].username + '» حذف شود؟')) return;
-        const removedUser = usersNow[index];
-        usersNow.splice(index, 1);
-        localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(usersNow));
-        editingManagedUserIndex = null;
-        recordActivity('حذف کاربر', 'حساب «' + removedUser.username + '» توسط مدیر حذف شد.');
-        renderManagedUsers();
-        renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
-      }));
-    }
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    }
-    applySessionAccess();
-    renderManagedUsers();
-
     renderEntryHistory();
     renderShipmentHistory();
     renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');

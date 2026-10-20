@@ -959,8 +959,6 @@
     .backup-setup-card .backup-gate-status { color: var(--text); font-weight: 700; }
     .backup-setup-card .backup-gate-feedback { color: #a52222; }
 
-      .login-overlay[hidden], .login-view[hidden], .nav-link[hidden], .section-card[hidden] { display: none !important; }
-    .login-overlay {
       position: fixed;
       inset: 0;
       z-index: 7000;
@@ -970,8 +968,6 @@
       padding: 20px;
       background: linear-gradient(135deg, #17253b, #314c72);
     }
-    .login-overlay[hidden], .login-view[hidden] { display: none !important; }
-    .login-card {
       width: min(480px, 100%);
       padding: clamp(22px, 5vw, 36px);
       border: 1px solid #d7e0ee;
@@ -979,14 +975,6 @@
       background: #fff;
       box-shadow: 0 24px 80px rgba(0,0,0,.28);
     }
-    .login-card h2 { margin: 0 0 8px; text-align: center; font-size: 25px; }
-    .login-card > p { margin: 0 0 22px; text-align: center; color: var(--muted); font-size: 13px; }
-    .login-choice { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
-    .login-choice .action-button { min-height: 58px; }
-    .login-card .field-group { margin-bottom: 14px; }
-    .login-card .login-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
-    .login-card .login-actions .action-button { flex:1; }
-    .login-error { min-height: 24px; margin: 12px 0 0 !important; color: #a52222 !important; text-align: right !important; }
     .management-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:20px; }
     .management-grid .settings-box { min-width:0; padding:18px; border:1px solid var(--border); border-radius:12px; background:#e5edf8; }
     .permission-options { display:flex; flex-wrap:wrap; gap:14px; margin:12px 0; }
@@ -996,12 +984,8 @@
     .user-table th,.user-table td { padding:9px; border:1px solid var(--border); text-align:right; white-space:nowrap; }
     .user-table th { background:#dce7f6; }
     .user-table td button { min-height:32px; padding:5px 9px; }
-    .session-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .logout-button { min-height:36px; padding:6px 10px; white-space:nowrap; }
-    .settings-box[hidden], .nav-link[hidden], .section-card[hidden], .logout-button[hidden] { display:none !important; }
     @media(max-width:650px) {
       .management-grid { grid-template-columns:1fr; }
-      .login-choice { grid-template-columns:1fr; }
     }
 
   
@@ -1036,7 +1020,6 @@
     }
 
     .section-card, .input-panel, .settings-box,
-    .login-card, .backup-setup-card, .duplicate-dialog,
     .shipment-dialog {
       overflow-wrap: anywhere;
     }
@@ -1110,7 +1093,6 @@
         line-height: 1.5;
       }
 
-      .session-tools {
         grid-area: session;
         justify-content: flex-start;
         min-width: 0;
@@ -1118,7 +1100,6 @@
         gap: 8px;
       }
 
-      #session-username {
         max-width: 130px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1126,7 +1107,6 @@
         font-size: 12px;
       }
 
-      .session-tools .logout-button {
         min-height: 38px;
         padding: 6px 10px;
         white-space: nowrap;
@@ -1253,12 +1233,10 @@
         grid-column: 1 / -1;
       }
 
-      .login-overlay,
       .backup-setup-gate {
         padding: 12px;
       }
 
-      .login-card {
         border-radius: 16px;
       }
 
@@ -1313,15 +1291,12 @@
         display: none;
       }
 
-      #session-username {
         max-width: 80px;
       }
 
-      .session-tools {
         gap: 5px;
       }
 
-      .session-tools .logout-button {
         min-height: 36px;
         padding: 5px 8px;
         font-size: 11px;
@@ -1375,15 +1350,12 @@
         white-space: normal;
       }
 
-      .login-card {
         padding: 20px 16px;
       }
 
-      .login-card h2 {
         font-size: 21px;
       }
 
-      .login-choice {
         grid-template-columns: minmax(0, 1fr);
       }
 
@@ -1415,7 +1387,6 @@
         padding-left: 8px;
       }
 
-      .session-tools #session-username {
         display: none;
       }
 
@@ -1432,7 +1403,6 @@
         flex-wrap: nowrap;
       }
 
-      .session-tools {
         flex: 0 1 auto;
       }
 
