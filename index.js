@@ -661,6 +661,63 @@
       });
     });
 
+    function formatDashboardNumber(value) {
+      const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
+      return new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2 }).format(safeValue);
+    }
+
+    function updateDashboardSummary() {
+      const setMetric = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = formatDashboardNumber(value);
+      };
+      try {
+        const inventoryData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const entryData = JSON.parse(localStorage.getItem(ENTRY_HISTORY_KEY) || '[]');
+        const shipmentData = JSON.parse(localStorage.getItem(SHIPMENT_KEY) || '[]');
+        const inventory = Array.isArray(inventoryData) ? inventoryData.filter(item =>
+          item && typeof item === 'object' && !Array.isArray(item)) : [];
+        const entries = Array.isArray(entryData) ? entryData : [];
+        const shipments = Array.isArray(shipmentData) ? shipmentData : [];
+        const totalStock = inventory.reduce((total, item) => {
+          const quantity = Number(item.stock);
+          return total + (Number.isFinite(quantity) ? quantity : 0);
+        }, 0);
+        const zeroStockCount = inventory.filter(item => {
+          const quantity = Number(item.stock);
+          return Number.isFinite(quantity) && quantity <= 0;
+        }).length;
+        setMetric('dashboard-item-count', inventory.length);
+        setMetric('dashboard-stock-total', totalStock);
+        setMetric('dashboard-entry-count', entries.length);
+        setMetric('dashboard-shipment-count', shipments.length);
+        setMetric('dashboard-zero-stock-count', zeroStockCount);
+      } catch (error) {
+        ['dashboard-item-count', 'dashboard-stock-total', 'dashboard-entry-count',
+          'dashboard-shipment-count', 'dashboard-zero-stock-count'].forEach(id => setMetric(id, 0));
+      }
+    }
+
+    function setupDashboard() {
+      document.querySelectorAll('[data-section-target]').forEach(link => {
+        link.addEventListener('click', event => {
+          event.preventDefault();
+          const sectionId = link.getAttribute('data-section-target');
+          if (sectionId && document.getElementById(sectionId)) openSection(sectionId);
+        });
+      });
+      updateDashboardSummary();
+      window.addEventListener('storage', updateDashboardSummary);
+      if (typeof MutationObserver === 'function') {
+        ['inventory-grid', 'entry-history-body', 'shipment-history-body'].forEach(id => {
+          const target = document.getElementById(id);
+          if (!target) return;
+          const observer = new MutationObserver(updateDashboardSummary);
+          observer.observe(target, { childList: true, subtree: true, characterData: true });
+        });
+      }
+    }
+
     function normalizeArabicLetters(value) {
       return String(value ?? '')
         .replace(/[يى]/g, 'ی')
@@ -1646,7 +1703,8 @@
 
     renderInventory();
     renderSinglePreview();
-    openSection('section-1');
+    openSection('section-dashboard');
+    setupDashboard();
   
     const appLayout = document.getElementById('app-layout');
     const backupSetupGate = document.getElementById('backup-setup-gate');
