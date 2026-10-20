@@ -1743,60 +1743,413 @@ input[type="search"], input[type="date"], select, textarea {
   }
 }
 
+/* === سامانه طراحی یکپارچه با چهار رنگ اصلی === */
+:root {
+  color-scheme: light;
+  --color-blue: #2563eb;
+  --color-blue-strong: #1d4ed8;
+  --color-red: #dc2626;
+  --color-red-strong: #b91c1c;
+  --color-yellow: #facc15;
+  --color-yellow-strong: #a16207;
+  --color-orange: #f97316;
+  --color-orange-strong: #c2410c;
 
-/* === رفع شکست عمودی کلمات فارسی در عرض کم === */
-html, body { max-width: 100%; }
-body { overflow-wrap: normal; word-break: normal; }
-.main, .sections, .section-card, .page-topline, .input-panels,
-.input-panel, .settings-grid, .settings-box, .dashboard-section,
-.dashboard-panel, .dashboard-stat, .dashboard-hero, .dashboard-quick-link {
-  min-width: 0;
-  overflow-wrap: normal;
-  word-break: normal;
+  --page: #f1f5fb;
+  --main-bg: #f8fafc;
+  --surface: #ffffff;
+  --panel-bg: #ffffff;
+  --sidebar: #17345c;
+  --sidebar-muted: #dbeafe;
+  --text: #1e293b;
+  --muted: #64748b;
+  --accent: var(--color-blue);
+  --accent-deep: var(--color-blue-strong);
+  --accent-orange: var(--color-orange);
+  --border: #d7e1ee;
+  --radius: 16px;
 }
-.section-card, .input-panel, .settings-box, .dashboard-panel { overflow-wrap: break-word; }
-.field-group, .field-group label, .settings-box label,
-.inventory-search-panel, .inventory-toolbar, .dashboard-stat,
-.dashboard-hero, .dashboard-quick-link, .dashboard-quick-link strong,
-.dashboard-quick-link small {
-  min-width: 0;
+
+body {
+  background: var(--main-bg);
+  color: var(--text);
+}
+
+.sidebar {
+  background: linear-gradient(105deg, #17345c 0%, #1e40af 100%);
+  border-bottom: 3px solid var(--color-orange);
+}
+
+.nav-link[aria-current="page"] {
+  color: #ffffff;
+  background: rgba(37, 99, 235, 0.28);
+  border-color: rgba(250, 204, 21, 0.5);
+}
+
+.nav-link[aria-current="page"] .nav-number {
+  background: var(--color-yellow);
+  color: #1e293b;
+}
+
+.page-topline,
+.dashboard-hero {
+  border-color: #dbeafe;
+  background: linear-gradient(115deg, #ffffff 0%, #eff6ff 72%, #fff7ed 100%);
+  box-shadow: 0 8px 26px rgba(30, 64, 175, 0.07);
+}
+
+.section-card,
+.input-panel,
+.settings-box,
+.preview-panel,
+.inventory-search-panel,
+.inventory-management-actions,
+.dashboard-panel,
+.dashboard-stat,
+.shipment-meta,
+.duplicate-group,
+.location-record {
+  border-color: var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 5px 18px rgba(30, 64, 175, 0.045);
+}
+
+.section-card {
+  background: #ffffff;
+}
+
+.input-panel h4,
+.settings-box h4,
+.dashboard-panel h3,
+.section-heading h3 {
+  color: var(--text);
+}
+
+.section-icon,
+.dashboard-panel-mark,
+.quick-link-symbol {
+  border-color: #bfdbfe;
+  background: #dbeafe;
+  color: var(--color-blue-strong);
+}
+
+.status-dot {
+  background: var(--color-blue);
+}
+
+.action-button,
+.dashboard-primary-link {
+  border: 1px solid var(--color-blue);
+  border-radius: 11px;
+  background: var(--color-blue);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.14);
+  font-weight: 700;
+}
+
+.action-button:hover:not(:disabled),
+.dashboard-primary-link:hover {
+  border-color: var(--color-blue-strong);
+  background: var(--color-blue-strong);
+  color: #ffffff;
+}
+
+.action-button.secondary,
+.location-delete-button {
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: var(--color-orange-strong);
+  box-shadow: none;
+}
+
+.action-button.secondary:hover:not(:disabled),
+.location-delete-button:hover:not(:disabled) {
+  border-color: var(--color-orange);
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.action-button.delete-selected-button {
+  border-color: var(--color-red);
+  background: var(--color-red);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.14);
+}
+
+.action-button.delete-selected-button:hover:not(:disabled) {
+  border-color: var(--color-red-strong);
+  background: var(--color-red-strong);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea,
+.shipment-items-table input {
+  border-color: #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--text);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus,
+.shipment-items-table input:focus {
+  border-color: var(--color-blue);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-blue);
+}
+
+.nav-link:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+.inventory-table thead th,
+.entry-history-table thead th,
+.shipment-history-table thead th,
+.sortable-data-table thead th,
+.preview-table th {
+  background: #dbeafe;
+  color: #1e3a8a;
+  border-color: #bfdbfe;
+}
+
+.inventory-table tbody tr:nth-child(odd),
+.sortable-data-table tbody tr:nth-child(odd) {
+  background: #ffffff;
+}
+
+.inventory-table tbody tr:nth-child(even),
+.sortable-data-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.inventory-table tbody tr:hover,
+.sortable-data-table tbody tr:hover,
+.entry-sort-button:hover,
+.inventory-sort-button:hover,
+.table-sort-button:hover {
+  background: #fef3c7;
+}
+
+.import-invalid-row {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.empty-state,
+.location-list-empty {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.backup-setup-card {
+  border-color: #bfdbfe;
+  background: linear-gradient(145deg, #ffffff 0%, #eff6ff 78%, #fff7ed 100%);
+}
+
+.backup-setup-card .action-button {
+  border-color: var(--color-blue);
+  background: var(--color-blue);
+}
+
+.backup-setup-card .backup-gate-status {
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #713f12;
+}
+
+.duplicate-dialog,
+.shipment-dialog {
+  border-color: #bfdbfe;
+  background: #ffffff;
+}
+
+.duplicate-dialog-header,
+.shipment-header,
+.shipment-footer {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.shipment-meta {
+  background: #fffbeb;
+}
+
+.shipment-items-table input[readonly] {
+  background: #f1f5f9;
+}
+
+.shipment-feedback,
+.backup-gate-feedback {
+  color: var(--color-red-strong);
+}
+
+.dashboard-stat-icon {
+  border-color: #bfdbfe;
+  background: #dbeafe;
+  color: var(--color-blue-strong);
+}
+
+.stat-coral .dashboard-stat-icon {
+  border-color: #bfdbfe;
+  background: #dbeafe;
+  color: var(--color-blue-strong);
+}
+
+.stat-rose .dashboard-stat-icon {
+  border-color: #fecaca;
+  background: #fee2e2;
+  color: var(--color-red-strong);
+}
+
+.stat-amber .dashboard-stat-icon {
+  border-color: #fde68a;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stat-orange .dashboard-stat-icon,
+.dashboard-panel-mark-warm {
+  border-color: #fed7aa;
+  background: #ffedd5;
+  color: var(--color-orange-strong);
+}
+
+.dashboard-stock-alert {
+  border-color: #fde68a;
+  background: linear-gradient(110deg, #fef3c7, #fffbeb);
+}
+
+.dashboard-alert-icon {
+  background: var(--color-yellow);
+  color: #713f12;
+}
+
+.dashboard-stock-alert strong {
+  color: var(--color-red-strong);
+}
+
+.dashboard-quick-link {
+  border-color: var(--border);
+  background: #ffffff;
+}
+
+.dashboard-quick-link:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.dashboard-tags span {
+  border-color: var(--border);
+  background: #ffffff;
+  color: var(--muted);
+}
+
+.design-preview-status {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: var(--color-orange-strong);
+}
+
+input[type="file"] {
+  border-color: var(--border);
+  background: #ffffff;
+}
+
+input[type="file"]::file-selector-button {
+  background: #dbeafe;
+  color: var(--color-blue-strong);
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: #bfdbfe;
+}
+
+.nav-link,
+.nav-link span,
+.nav-link strong,
+.action-button,
+.dashboard-primary-link,
+.design-preview-status,
+.field-group label,
+.settings-box label,
+.dashboard-stat-content,
+.dashboard-stat-content p,
+.dashboard-stat-content span,
+.location-record-details {
+  writing-mode: horizontal-tb;
   word-break: normal;
   overflow-wrap: break-word;
 }
-.field-group input, .field-group textarea, .field-group select,
-.inventory-search-control, input[type="text"], input[type="number"],
-input[type="search"], input[type="date"], select, textarea {
+
+.field-group,
+.field-group label,
+.settings-box label,
+.dashboard-stat,
+.dashboard-stat-content,
+.dashboard-hero,
+.dashboard-quick-link,
+.location-record-details {
+  min-width: 0;
+}
+
+.field-group input,
+.field-group textarea,
+.field-group select,
+.inventory-search-control,
+input[type="text"],
+input[type="number"],
+input[type="search"],
+input[type="date"],
+select,
+textarea {
   box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   min-width: 0;
 }
-.inventory-table th, .inventory-table td,
-.entry-history-table th, .entry-history-table td,
-.shipment-history-table th, .shipment-history-table td {
+
+.inventory-table th,
+.inventory-table td,
+.entry-history-table th,
+.entry-history-table td,
+.shipment-history-table th,
+.shipment-history-table td {
   white-space: nowrap;
   word-break: normal;
   overflow-wrap: normal;
 }
-.settings-log-table th, .settings-log-table td,
-.bulk-preview-table th, .bulk-preview-table td {
-  min-width: 76px;
-  word-break: normal;
-  overflow-wrap: anywhere;
-  vertical-align: top;
-}
-.nav-link, .nav-link span, .nav-link strong,
-.action-button, .dashboard-primary-link, .design-preview-status {
-  word-break: normal;
-  overflow-wrap: normal;
-}
+
 @media (max-width: 760px) {
-  .input-panels, .settings-grid, .reports-grid,
-  .dashboard-panels { grid-template-columns: minmax(0, 1fr) !important; }
-  .input-panel, .settings-box, .dashboard-panel { min-width: 0; }
-  .field-group label { display: block; line-height: 1.8; }
-  .settings-box h3, .input-panel h3, .dashboard-panel h3 {
+  .input-panels,
+  .settings-grid,
+  .reports-grid,
+  .dashboard-panels {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .input-panel,
+  .settings-box,
+  .dashboard-panel {
+    min-width: 0;
+  }
+
+  .field-group label {
+    display: block;
     line-height: 1.8;
-    overflow-wrap: break-word;
   }
 }
