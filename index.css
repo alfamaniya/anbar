@@ -1008,7 +1008,6 @@
     .inventory-table-wrap,
     .entry-history-table-wrap,
     .preview-table-wrap,
-    .user-table-wrap,
     .shipment-items,
     .bulk-preview-scroll,
     .sortable-table-wrap,
@@ -1019,8 +1018,7 @@
     }
 
     .preview-table,
-    .sortable-data-table,
-    .user-table {
+    .sortable-data-table {
       max-width: 100%;
     }
 
@@ -1394,35 +1392,12 @@
     .location-record p { margin:0; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
     .location-record .location-delete-button { flex:0 0 auto; min-height:34px; padding:5px 10px; }
 
-    .permission-fieldset { min-width:0; margin:16px 0; padding:12px; border:1px solid #bfd0e7; border-radius:12px; background:#edf3fb; }
-    .permission-fieldset legend { padding:0 8px; color:var(--text); font-size:13px; font-weight:700; }
-    .permission-fieldset .permission-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; }
-    .permission-fieldset .permission-option {
-      display:flex; align-items:center; justify-content:flex-start; gap:8px; min-width:0; margin:0;
-      padding:9px 10px; border:1px solid #ccd8e8; border-radius:9px; background:#fff;
-      text-align:right; line-height:1.5; cursor:pointer;
-    }
-    .permission-fieldset .permission-option input { flex:0 0 17px; width:17px; height:17px; min-height:17px; margin:0; accent-color:var(--accent); }
-    .permission-fieldset .permission-option span { font-size:12px; }
 
-    .managed-users-heading { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:22px; padding:14px 16px; border:1px solid #b6c9e2; border-radius:12px 12px 0 0; background:#e5edf8; }
-    .managed-users-heading h3 { margin:0; font-size:16px; }
-    .managed-users-heading p { margin:3px 0 0; font-size:12px; color:var(--muted); }
-    .managed-users-count { flex:0 0 auto; padding:5px 10px; border:1px solid #c5d5e8; border-radius:999px; background:#fff; color:#34445b; font-size:12px; font-weight:700; }
-    .user-table-wrap { margin-top:0; border:1px solid #b6c9e2; border-top:0; border-radius:0 0 12px 12px; background:#fff; }
-    .user-table thead th { position:sticky; top:0; z-index:1; }
-    .user-table tbody tr:nth-child(even) { background:#f0f5fb; }
-    .user-table tbody tr:hover { background:#e2edfb; }
-    .user-table td { vertical-align:middle; }
-    .user-table td:last-child { min-width:190px; }
-    .managed-user-editor .permission-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-    .managed-user-editor .managed-permission-option { padding:8px 10px; border:1px solid #ccd8e8; border-radius:8px; background:#fff; text-align:right; }
 
     .field-group input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
     .field-group select,.shipment-meta input,.shipment-meta select,.inventory-search-control input,.location-create-form input {
       min-height:36px; height:36px; padding:6px 10px; line-height:1.4; font-size:13px;
     }
-    .permission-fieldset .permission-option input { height:17px; min-height:17px; padding:0; }
     .shipment-items-table input { min-height:36px; height:36px; padding:5px 7px; line-height:1.4; font-size:13px; }
     /* Apply one consistent single-line input height across the inventory and management forms. */
     input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
@@ -1445,7 +1420,7 @@
       .inventory-management-actions { align-items:stretch; }
       .inventory-action-buttons { width:100%; }
       .inventory-action-buttons .action-button { flex:1 1 140px; }
-      .backup-folder-actions,.location-create-form,.permission-fieldset .permission-options,.managed-user-editor .permission-options { grid-template-columns:1fr; }
+      .backup-folder-actions,.location-create-form { grid-template-columns:1fr; }
       .location-record { align-items:flex-start; }
     }
 /* === بازطراحی نمایشی: تم گرم قرمز/نارنجی و کنترل‌های یکپارچه === */
