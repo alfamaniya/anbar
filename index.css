@@ -1684,3 +1684,61 @@ button:disabled, .action-button:disabled {
   .section-card { padding: 10px; }
   .dashboard-stats { grid-template-columns: minmax(0, 1fr); }
 }
+
+
+/* === رفع شکست عمودی کلمات فارسی در عرض کم === */
+html, body { max-width: 100%; }
+body { overflow-wrap: normal; word-break: normal; }
+.main, .sections, .section-card, .page-topline, .input-panels,
+.input-panel, .settings-grid, .settings-box, .dashboard-section,
+.dashboard-panel, .dashboard-stat, .dashboard-hero, .dashboard-quick-link {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.section-card, .input-panel, .settings-box, .dashboard-panel { overflow-wrap: break-word; }
+.field-group, .field-group label, .settings-box label,
+.inventory-search-panel, .inventory-toolbar, .dashboard-stat,
+.dashboard-hero, .dashboard-quick-link, .dashboard-quick-link strong,
+.dashboard-quick-link small {
+  min-width: 0;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+.field-group input, .field-group textarea, .field-group select,
+.inventory-search-control, input[type="text"], input[type="number"],
+input[type="search"], input[type="date"], select, textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.inventory-table th, .inventory-table td,
+.entry-history-table th, .entry-history-table td,
+.shipment-history-table th, .shipment-history-table td {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+.settings-log-table th, .settings-log-table td,
+.bulk-preview-table th, .bulk-preview-table td {
+  min-width: 76px;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.nav-link, .nav-link span, .nav-link strong,
+.action-button, .dashboard-primary-link, .design-preview-status {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+@media (max-width: 760px) {
+  .input-panels, .settings-grid, .reports-grid,
+  .dashboard-panels { grid-template-columns: minmax(0, 1fr) !important; }
+  .input-panel, .settings-box, .dashboard-panel { min-width: 0; }
+  .field-group label { display: block; line-height: 1.8; }
+  .settings-box h3, .input-panel h3, .dashboard-panel h3 {
+    line-height: 1.8;
+    overflow-wrap: break-word;
+  }
+}
