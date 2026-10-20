@@ -8,15 +8,11 @@
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
-  <div class="layout" id="app-layout" inert>
+  <div class="layout" id="app-layout">
     <header class="sidebar" aria-label="هدر ناوبری">
       <div class="brand">
         <h1>کنترل مصرف</h1>
         <p>سامانه مدیریت اقلام</p>
-      </div>
-      <div class="session-tools">
-        <span id="session-username" aria-live="polite"></span>
-        <button class="action-button logout-button" id="logout-button" type="button" hidden>خروج از سایت</button>
       </div>
 
       <nav aria-label="ناوبری بخش‌ها">
@@ -27,7 +23,6 @@
           <li><a class="nav-link" href="#section-3"><span class="nav-number">۳</span><span>تنظیمات</span></a></li>
           <li><a class="nav-link" href="#section-4"><span class="nav-number">۴</span><span>گزارش‌ها</span></a></li>
           <li><a class="nav-link" href="#section-5"><span class="nav-number">۵</span><span>بخش پنجم</span></a></li>
-          <li><a class="nav-link" href="#section-6" id="management-nav-link" hidden><span class="nav-number">۶</span><span>مدیریت</span></a></li>
         </ul>
       </nav>
     </header>
@@ -149,7 +144,7 @@
             <h3 id="title-3">تنظیمات</h3>
           </div>
           <div class="settings-grid">
-            <article class="settings-box" data-location-manager>
+            <article class="settings-box">
               <h4>مدیریت محل‌های ارسال</h4>
               <p>محل و زیرمجموعه را اضافه کنید؛ در ارسال‌های بعدی نیز قابل انتخاب خواهند بود.</p>
               <form id="location-create-form" class="location-create-form">
@@ -164,7 +159,7 @@
                 <div id="location-manager-list" class="location-list" aria-live="polite"></div>
               </div>
             </article>
-            <article class="settings-box" data-admin-settings>
+            <article class="settings-box">
               <h4>بکاپ خودکار فایل JSON</h4>
               <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
               <div class="backup-folder-actions">
@@ -174,7 +169,7 @@
               <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
               <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
             </article>
-            <article class="settings-box" data-admin-settings>
+            <article class="settings-box">
               <h4>بازگردانی بکاپ JSON</h4>
               <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
               <div class="field-group">
@@ -185,7 +180,7 @@
               <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
               <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
             </article>
-            <article class="settings-box" data-admin-settings>
+            <article class="settings-box">
               <h4>لاگ سایت</h4>
               <p>تاریخچه رویدادهای سامانه شامل ورود و خروج کاربران، ثبت و ارسال کالا، مدیریت محل‌ها، حساب‌ها و دسترسی‌ها، و تغییر پوشه بکاپ؛ همراه با زمان، کاربر و جزئیات.</p>
               <button class="action-button secondary" id="refresh-backup-log" type="button">به‌روزرسانی لاگ سایت</button>
@@ -200,7 +195,7 @@
             <h3 id="title-4">گزارش‌ها</h3>
           </div>
           <div class="settings-grid reports-grid">
-            <article class="settings-box" data-history-permission="entryHistory">
+            <article class="settings-box">
               <h4>مشاهده تاریخچه ورود اقلام</h4>
               <p>فهرست ورودها؛ برای مرتب‌سازی روی عنوان هر ستون بزنید.</p>
               <div class="preview-panel entry-history-panel">
@@ -222,7 +217,7 @@
                 <button class="action-button secondary" id="entry-history-next" type="button" disabled>بعدی</button>
               </div>
             </article>
-            <article class="settings-box entry-history-panel" data-history-permission="shipmentHistory">
+            <article class="settings-box entry-history-panel">
               <h4>تاریخچه ارسال کالا</h4>
               <p>سوابق ارسال ثبت‌شده؛ برای مرتب‌سازی روی عنوان هر ستون کلیک کنید.</p>
               <div class="entry-history-table-wrap">
@@ -255,103 +250,10 @@
           <p>محتوای این بخش در ادامه مشخص و تکمیل می‌شود.</p>
         </section>
 
-        <section class="section-card" id="section-6" aria-labelledby="title-6" hidden>
-          <div class="section-heading">
-            <span class="section-icon" aria-hidden="true">۶</span>
-            <h3 id="title-6">مدیریت</h3>
-          </div>
-          <p>ایجاد حساب کاربری و تعیین دسترسی به ورود کالا و ارسال کالا فقط در اختیار مدیر است.</p>
-          <div class="management-grid">
-            <article class="settings-box">
-              <h4>ایجاد نام کاربری و رمز عبور</h4>
-              <form id="create-user-form">
-                <div class="field-group">
-                  <label for="new-username">نام کاربری</label>
-                  <input id="new-username" name="username" type="text" autocomplete="off" required maxlength="40">
-                </div>
-                <div class="field-group">
-                  <label for="new-user-password">رمز عبور</label>
-                  <input id="new-user-password" name="password" type="password" autocomplete="new-password" required minlength="4" maxlength="100">
-                </div>
-                <fieldset class="permission-fieldset">
-                  <legend>تعیین دسترسی‌ها</legend>
-                  <div class="permission-options">
-                    <label class="permission-option"><input id="permission-entry" type="checkbox" checked><span>ورود کالا</span></label>
-                    <label class="permission-option"><input id="permission-shipment" type="checkbox"><span>ارسال کالا</span></label>
-                    <label class="permission-option"><input id="permission-entry-history" type="checkbox"><span>تاریخچه ورود</span></label>
-                    <label class="permission-option"><input id="permission-shipment-history" type="checkbox"><span>تاریخچه خروج</span></label>
-                    <label class="permission-option"><input id="permission-manage-locations" type="checkbox"><span>مدیریت محل‌های ارسال</span></label>
-                  </div>
-                </fieldset>
-                <button class="action-button" type="submit">ایجاد کاربر</button>
-                <p class="feedback" id="management-feedback" role="status" aria-live="polite"></p>
-              </form>
-            </article>
-            <article class="settings-box">
-              <h4>راهنمای دسترسی‌ها</h4>
-              <p>«ورود کالا» اجازه ثبت کالا، «ارسال کالا» اجازه ثبت ارسال، «مشاهده تاریخچه ورود» اجازه مشاهده سوابق ورود و «مشاهده تاریخچه خروج» اجازه مشاهده سوابق خروج را می‌دهد. این مجوزها مستقل از هم قابل انتخاب‌اند.</p>
-              <p class="field-hint">حساب مدیر به همه بخش‌ها دسترسی دارد و از این فهرست حذف نمی‌شود.</p>
-            </article>
-          </div>
-          <div class="managed-users-heading">
-            <div>
-              <h3>کاربران ثبت‌شده</h3>
-              <p>دسترسی‌ها را بررسی، مجوزها را ویرایش یا حساب را حذف کنید.</p>
-            </div>
-            <span id="managed-users-count" class="managed-users-count">۰ کاربر</span>
-          </div>
-          <div class="user-table-wrap">
-            <table class="user-table" aria-label="فهرست کاربران و دسترسی‌ها">
-              <thead><tr><th>نام کاربری</th><th>ورود کالا</th><th>ارسال کالا</th><th>تاریخچه ورود</th><th>تاریخچه خروج</th><th>مدیریت محل‌ها</th><th>عملیات</th></tr></thead>
-              <tbody id="managed-users-body"><tr><td colspan="7">فهرست کاربران بارگذاری می‌شود.</td></tr></tbody>
-            </table>
-          </div>
-        </section>
+
       </div>
     </main>
   </div>
-
-  <section class="login-overlay" id="login-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
-    <div class="login-card">
-      <h2 id="login-title">ورود به سامانه کنترل مصرف</h2>
-      <p>نوع ورود را انتخاب کنید.</p>
-      <div class="login-view" id="login-choice-view">
-        <div class="login-choice">
-          <button class="action-button" id="show-admin-login" type="button">ورود مدیر</button>
-          <button class="action-button secondary" id="show-user-login" type="button">ورود کاربران</button>
-        </div>
-      </div>
-      <form class="login-view" id="admin-login-view" hidden>
-        <div class="field-group">
-          <label for="admin-username">نام کاربری مدیر</label>
-          <input id="admin-username" type="text" value="admin" autocomplete="username" required>
-        </div>
-        <div class="field-group">
-          <label for="admin-password">رمز عبور مدیر</label>
-          <input id="admin-password" type="password" autocomplete="current-password" required>
-        </div>
-        <div class="login-actions">
-          <button class="action-button" type="submit">ورود مدیر</button>
-          <button class="action-button secondary" data-login-back type="button">بازگشت</button>
-        </div>
-      </form>
-      <form class="login-view" id="user-login-view" hidden>
-        <div class="field-group">
-          <label for="user-login-username">نام کاربری</label>
-          <input id="user-login-username" type="text" autocomplete="username" required>
-        </div>
-        <div class="field-group">
-          <label for="user-login-password">رمز عبور</label>
-          <input id="user-login-password" type="password" autocomplete="current-password" required>
-        </div>
-        <div class="login-actions">
-          <button class="action-button" type="submit">ورود به سایت</button>
-          <button class="action-button secondary" data-login-back type="button">بازگشت</button>
-        </div>
-      </form>
-      <p class="login-error" id="login-feedback" role="alert" aria-live="assertive"></p>
-    </div>
-  </section>
 
   <section class="backup-setup-gate" id="backup-setup-gate" role="dialog" aria-modal="true" aria-labelledby="backup-gate-title">
     <div class="backup-setup-card">
