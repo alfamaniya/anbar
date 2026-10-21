@@ -969,10 +969,10 @@
     function saveInventory() {
       const inventoryFields = new Set(['code', 'description', 'stock', 'sendQuantity', 'entryTimestamp']);
       const preservesInventoryRecord = item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
         const stockTypeValid = typeof item.stock === 'number' ||
           (typeof item.stock === 'string' && item.stock.trim() !== '');
-        if (!item || typeof item !== 'object' || Array.isArray(item) ||
-            typeof item.code !== 'string' || typeof item.description !== 'string' ||
+        if (typeof item.code !== 'string' || typeof item.description !== 'string' ||
             !stockTypeValid || !Number.isFinite(Number(item.stock)) || Number(item.stock) < 0 ||
             Object.keys(item).some(key => !inventoryFields.has(key))) return false;
         const quantity = item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
