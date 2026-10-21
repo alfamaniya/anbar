@@ -960,7 +960,7 @@
         const quantity = item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
           ? NaN : Number(item.sendQuantity);
         if (item.sendQuantity !== '' && item.sendQuantity !== null && item.sendQuantity !== undefined &&
-            (!Number.isFinite(quantity) || quantity <= 0 || quantity > Number(item.stock))) return false;
+            (!Number.isFinite(quantity) || quantity < 0 || quantity > Number(item.stock))) return false;
         return !item.entryTimestamp ||
           (typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp)));
       };
@@ -2132,7 +2132,8 @@
             return;
           }
           const previousQuantity = item.sendQuantity;
-          item.sendQuantity = numericValue;
+          // صفر معادل «مقدار آماده‌ارسال خالی» است؛ ذخیره آن را یکسان‌سازی کن تا با بارگذاری بعدی تعارض نداشته باشد.
+          item.sendQuantity = numericValue === 0 ? '' : numericValue;
           if (!saveInventory()) {
             item.sendQuantity = previousQuantity;
             sendInput.value = previousQuantity === '' ? '' : String(previousQuantity);
