@@ -2278,3 +2278,323 @@ textarea {
 #location-manager-list .location-edit-button,#location-manager-list .location-delete-button{min-height:34px;padding:5px 9px;white-space:nowrap}
 #reset-shared-preview{margin-inline-end:auto}
 @media(max-width:600px){#location-manager-list .location-record{grid-template-columns:minmax(0,1fr) auto}.location-record-details{grid-column:1/-1}}
+
+/* ==========================================================================
+   بازسازی ظاهری «نمای کلی» (section-dashboard)
+   - فقط CSS؛ ساختار HTML، شناسه‌ها و منطق JavaScript تغییری نمی‌کنند.
+   - این بلوک باید در انتهای index.css اضافه شود تا بر قواعد قدیمی داشبورد اولویت داشته باشد.
+   - همه قواعد با #section-dashboard محدود شده‌اند و بخش‌های دیگر را تحت تأثیر قرار نمی‌دهند.
+   ========================================================================== */
+
+#section-dashboard {
+  --dash-ink: #14284b;
+  --dash-ink-soft: #1d3a6b;
+  --dash-blue: #2563eb;
+  --dash-red: #dc2626;
+  --dash-yellow: #facc15;
+  --dash-orange: #f97316;
+  --dash-line: #d7e1ee;
+  --dash-wash: #f4f7fc;
+  padding: clamp(14px, 2.4vw, 26px);
+  border-top: 0;
+  background: #fff;
+}
+
+/* برچسب‌های کوچک بالای عنوان‌ها اطلاعات جدیدی نمی‌دهند؛ عنوان خود بخش کافی است. */
+#section-dashboard .dashboard-eyebrow,
+#section-dashboard .dashboard-panel-kicker { display: none; }
+
+/* ---------- سربرگ: نوار وضعیت با شبکه ظریف شبیه برگه انبار ---------- */
+#section-dashboard .dashboard-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin-bottom: 18px;
+  padding: clamp(20px, 3vw, 32px);
+  border: 0;
+  border-radius: 20px;
+  color: #fff;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.045) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.045) 0 1px, transparent 1px 28px),
+    linear-gradient(120deg, var(--dash-ink) 0%, var(--dash-ink-soft) 100%);
+  box-shadow: 0 10px 28px rgba(20, 40, 75, .18);
+}
+#section-dashboard .dashboard-hero::after {
+  /* نوار رنگی چهارتکه پایین سربرگ؛ پالت برنامه را در یک نگاه نشان می‌دهد. */
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 5px;
+  z-index: -1;
+  background: linear-gradient(90deg,
+    var(--dash-blue) 0 25%, var(--dash-yellow) 25% 50%,
+    var(--dash-orange) 50% 75%, var(--dash-red) 75% 100%);
+}
+#section-dashboard .dashboard-hero h2 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: clamp(22px, 3vw, 32px);
+  line-height: 1.5;
+}
+#section-dashboard .dashboard-hero p {
+  max-width: 560px;
+  margin: 0;
+  color: #cddcf5;
+  font-size: 13px;
+  line-height: 1.95;
+}
+#section-dashboard .dashboard-primary-link {
+  min-height: 48px;
+  padding: 11px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--dash-yellow);
+  color: #1b2a44;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .22);
+}
+#section-dashboard .dashboard-primary-link:hover {
+  background: #fde047;
+  color: #1b2a44;
+  filter: none;
+  transform: translateY(-1px);
+}
+
+/* ---------- شاخص‌ها: یک نوار یکپارچه با چهار خانه، نه چهار کارت مجزا ---------- */
+#section-dashboard .dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-bottom: 18px;
+  overflow: hidden;
+  border: 1px solid var(--dash-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(20, 40, 75, .06);
+}
+#section-dashboard .dashboard-stat {
+  --tone: var(--dash-blue);
+  --tone-soft: #dbeafe;
+  position: relative;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 20px 24px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+#section-dashboard .dashboard-stat + .dashboard-stat { border-inline-start: 1px solid var(--dash-line); }
+#section-dashboard .dashboard-stat::after {
+  /* خط رنگی کف هر خانه؛ رنگ، نوع شاخص را مشخص می‌کند. */
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 4px;
+  background: var(--tone);
+}
+#section-dashboard .stat-orange { --tone: var(--dash-orange); --tone-soft: #ffedd5; }
+#section-dashboard .stat-rose   { --tone: var(--dash-red);    --tone-soft: #fee2e2; }
+#section-dashboard .stat-amber  { --tone: var(--dash-yellow); --tone-soft: #fef3c7; }
+#section-dashboard .dashboard-stat-icon,
+#section-dashboard .stat-coral .dashboard-stat-icon,
+#section-dashboard .stat-orange .dashboard-stat-icon,
+#section-dashboard .stat-rose .dashboard-stat-icon,
+#section-dashboard .stat-amber .dashboard-stat-icon {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--tone-soft);
+  color: #1b2a44;
+  font-size: 18px;
+}
+#section-dashboard .dashboard-stat-content { flex: 1; gap: 2px; text-align: right; }
+#section-dashboard .dashboard-stat-content p {
+  color: #3b4a63;
+  font-size: 13px;
+  font-weight: 700;
+}
+#section-dashboard .dashboard-stat-content strong {
+  color: var(--dash-ink);
+  font-size: clamp(28px, 2.8vw, 38px);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -.5px;
+}
+#section-dashboard .dashboard-stat-content span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ---------- پنل‌ها ---------- */
+#section-dashboard .dashboard-panels {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr);
+  gap: 16px;
+}
+#section-dashboard .dashboard-panel {
+  padding: 20px;
+  border: 1px solid var(--dash-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(20, 40, 75, .05);
+}
+#section-dashboard .dashboard-panel-heading {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--dash-line);
+}
+#section-dashboard .dashboard-panel-heading h3 {
+  margin: 0;
+  color: var(--dash-ink);
+  font-size: 17px;
+}
+#section-dashboard .dashboard-panel-mark,
+#section-dashboard .dashboard-panel-mark-warm {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--dash-wash);
+  color: var(--dash-ink);
+  font-size: 16px;
+}
+#section-dashboard .dashboard-panel-mark-warm { background: #fff7ed; color: #c2410c; }
+
+/* میان‌برها: فهرست ردیفی؛ هر ردیف یک مقصد دارد و با نوار رنگی کنار خود شناخته می‌شود. */
+#section-dashboard .dashboard-quick-links {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+#section-dashboard .dashboard-quick-link {
+  position: relative;
+  min-height: 62px;
+  padding: 10px 16px 10px 12px;
+  border: 1px solid var(--dash-line);
+  border-radius: 12px;
+  background: var(--dash-wash);
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+#section-dashboard .dashboard-quick-link::before {
+  content: "";
+  position: absolute;
+  inset-block: 10px;
+  inset-inline-start: 0;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--dash-blue);
+}
+#section-dashboard .dashboard-quick-link:nth-child(2)::before { background: var(--dash-yellow); }
+#section-dashboard .dashboard-quick-link:nth-child(3)::before { background: var(--dash-orange); }
+#section-dashboard .dashboard-quick-link:nth-child(4)::before { background: var(--dash-red); }
+#section-dashboard .dashboard-quick-link:hover {
+  transform: none;
+  border-color: #93b4f0;
+  background: #fff;
+}
+#section-dashboard .quick-link-symbol {
+  width: 36px;
+  height: 36px;
+  flex-basis: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--dash-ink);
+  box-shadow: inset 0 0 0 1px var(--dash-line);
+}
+#section-dashboard .dashboard-quick-link strong { color: var(--dash-ink); font-size: 13px; }
+#section-dashboard .dashboard-quick-link small { color: var(--muted); font-size: 11px; }
+#section-dashboard .quick-link-arrow { color: var(--dash-blue); font-size: 18px; }
+
+/* هشدار موجودی: عدد درشت روی زمینه زرد و علامت قرمز؛ فوری‌ترین اطلاعات این پنل. */
+#section-dashboard .dashboard-stock-alert {
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  background: #fffbeb;
+}
+#section-dashboard .dashboard-alert-icon {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+  border-radius: 12px;
+  background: var(--dash-red);
+  color: #fff;
+  font-size: 20px;
+}
+#section-dashboard .dashboard-stock-alert strong {
+  color: #991b1b;
+  font-size: 30px;
+  font-weight: 800;
+}
+#section-dashboard .dashboard-stock-alert span:last-child { color: #713f12; font-size: 13px; }
+
+/* یادداشت‌ها و گزارش کیفیت داده (عنصر #dashboard-data-quality-report را JavaScript می‌سازد). */
+#section-dashboard .dashboard-note {
+  margin: 14px 0 0 !important;
+  color: #4b5b73;
+  font-size: 12px !important;
+  line-height: 1.95;
+}
+#section-dashboard #dashboard-data-quality-report {
+  padding: 10px 12px;
+  border: 1px solid #bbf7d0;
+  border-right: 4px solid #16a34a;
+  border-radius: 10px;
+  background: #f0fdf4;
+  color: #14532d;
+  text-align: right;
+}
+#section-dashboard #dashboard-data-quality-report.feedback {
+  border-color: #fecaca;
+  border-right-color: var(--dash-red);
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+#section-dashboard .dashboard-tags { gap: 6px; margin-top: 14px; }
+#section-dashboard .dashboard-tags span {
+  padding: 4px 10px;
+  border: 1px solid var(--dash-line);
+  background: var(--dash-wash);
+  color: #4b5b73;
+  font-size: 11px;
+}
+
+/* ---------- کنترل‌های کیبورد ---------- */
+#section-dashboard a:focus-visible {
+  outline: 3px solid var(--dash-blue);
+  outline-offset: 3px;
+}
+#section-dashboard .dashboard-hero a:focus-visible { outline-color: #fff; }
+
+/* ---------- واکنش‌گرایی ---------- */
+@media (max-width: 1080px) {
+  #section-dashboard .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #section-dashboard .dashboard-stat:nth-child(3) { border-inline-start: 0; }
+  #section-dashboard .dashboard-stat:nth-child(n + 3) { border-top: 1px solid var(--dash-line); }
+}
+@media (max-width: 760px) {
+  #section-dashboard .dashboard-hero { flex-direction: column; align-items: stretch; }
+  #section-dashboard .dashboard-primary-link { align-self: stretch; }
+  #section-dashboard .dashboard-panels { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@media (max-width: 480px) {
+  #section-dashboard { padding: 12px; }
+  #section-dashboard .dashboard-stats { grid-template-columns: minmax(0, 1fr); }
+  #section-dashboard .dashboard-stat + .dashboard-stat {
+    border-inline-start: 0;
+    border-top: 1px solid var(--dash-line);
+  }
+  #section-dashboard .dashboard-stat { padding: 18px 16px 20px; }
+  #section-dashboard .dashboard-panel { padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #section-dashboard .dashboard-primary-link:hover { transform: none; }
+}
