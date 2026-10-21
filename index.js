@@ -94,6 +94,7 @@
       }
       try {
         localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(records.slice(0, 1000)));
+        renderDataQualityReport();
         return true;
       } catch (error) {
         inventoryFeedback.textContent = 'ذخیره تاریخچه ورود ممکن نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
@@ -284,7 +285,7 @@
      */
     function saveShipments(records) {
       if (!canSafelyRewriteStoredArray(SHIPMENT_KEY, 'تاریخچه ارسال', shipmentFeedback)) return false;
-      try { localStorage.setItem(SHIPMENT_KEY, JSON.stringify(records)); return true; }
+      try { localStorage.setItem(SHIPMENT_KEY, JSON.stringify(records)); renderDataQualityReport(); return true; }
       catch (error) { shipmentFeedback.textContent = 'ذخیره تاریخچه ارسال انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.'; return false; }
     }
 
@@ -786,7 +787,7 @@
         if (!Number.isFinite(stock) || stock < 0) findings.push('موجودی، رکورد ' + row + ' مقدار موجودی نامعتبر دارد.');
         if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
           const quantity = typeof item.sendQuantity === 'number' ? item.sendQuantity : normalizeStock(item.sendQuantity);
-          if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(stock) || quantity > stock) {
+          if (!Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(stock) || quantity > stock) {
             findings.push('موجودی، رکورد ' + row + ' مقدار آماده‌ارسال خارج از محدوده دارد.');
           }
         }
@@ -953,15 +954,17 @@
     function saveInventory() {
       const inventoryFields = new Set(['code', 'description', 'stock', 'sendQuantity', 'entryTimestamp']);
       const preservesInventoryRecord = item => {
+        const stockTypeValid = typeof item.stock === 'number' ||
+          (typeof item.stock === 'string' && item.stock.trim() !== '');
         if (!item || typeof item !== 'object' || Array.isArray(item) ||
             typeof item.code !== 'string' || typeof item.description !== 'string' ||
-            !Number.isFinite(Number(item.stock)) || Number(item.stock) < 0 ||
+            !stockTypeValid || !Number.isFinite(Number(item.stock)) || Number(item.stock) < 0 ||
             Object.keys(item).some(key => !inventoryFields.has(key))) return false;
         const quantity = item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
           ? NaN : Number(item.sendQuantity);
         if (item.sendQuantity !== '' && item.sendQuantity !== null && item.sendQuantity !== undefined &&
             (!Number.isFinite(quantity) || quantity < 0 || quantity > Number(item.stock))) return false;
-        return !item.entryTimestamp ||
+        return item.entryTimestamp === undefined || item.entryTimestamp === '' ||
           (typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp)));
       };
       if (!canSafelyRewriteStoredArray(STORAGE_KEY, 'موجودی', inventoryFeedback, preservesInventoryRecord)) {
@@ -970,6 +973,7 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(inventoryItems));
         recordActivity('ذخیره / تغییر موجودی', 'تعداد اقلام فعلی: ' + toEnglishDigits(inventoryItems.length));
+        renderDataQualityReport();
         return true;
       } catch (error) {
         inventoryFeedback.textContent = 'ذخیره‌سازی در مرورگر انجام نشد؛ ممکن است حافظه مرورگر محدود یا غیرفعال باشد.';
@@ -1070,12 +1074,8 @@
         });
       });
       updateDashboardSummary();
-      renderDataQualityReport();
       // رویداد «تغییر ذخیره‌سازی در زبانه دیگر» برای عنصر رابط کاربری؛ همگام‌سازی شاخص‌ها با تغییر داده در زبانه دیگر.
-      window.addEventListener('storage', () => {
-        updateDashboardSummary();
-        renderDataQualityReport();
-      });
+      window.addEventListener('storage', updateDashboardSummary);
       if (typeof MutationObserver === 'function') {
         ['inventory-grid', 'entry-history-body', 'shipment-history-body'].forEach(id => {
           const target = document.getElementById(id);
@@ -1844,13 +1844,14 @@
           typeof location.name === 'string' && location.name.trim()) &&
         (location.sublocations === undefined ||
           (Array.isArray(location.sublocations) &&
-           location.sublocations.every(value => typeof value === 'string' && value.trim()))) &&
+           location.sublocations.every(value => typeof value === 'string'))) &&
         Object.keys(location).every(key => key === 'name' || key === 'sublocations');
       if (!canSafelyRewriteStoredArray(LOCATION_KEY, 'محل‌های ارسال', shipmentFeedback, preservesLocationRecord)) {
         return false;
       }
       try {
         localStorage.setItem(LOCATION_KEY, JSON.stringify(locations));
+        renderDataQualityReport();
         return true;
       } catch (error) {
         return false;
