@@ -783,10 +783,21 @@
         if (typeof item.description !== 'string' || !item.description.trim()) {
           findings.push('موجودی، رکورد ' + row + ' شرح کالا خالی دارد.');
         }
-        const stock = typeof item.stock === 'number' ? item.stock : normalizeStock(item.stock);
-        if (!Number.isFinite(stock) || stock < 0) findings.push('موجودی، رکورد ' + row + ' مقدار موجودی نامعتبر دارد.');
+        const stock = Number(item.stock);
+        if ((typeof item.stock !== 'number' && typeof item.stock !== 'string') ||
+            (typeof item.stock === 'string' && !item.stock.trim()) ||
+            !Number.isFinite(stock) || stock < 0) {
+          findings.push('موجودی، رکورد ' + row + ' مقدار موجودی نامعتبر دارد.');
+        }
+        if (item.entryTimestamp !== undefined && item.entryTimestamp !== '' &&
+            !(typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp)))) {
+          findings.push('موجودی، رکورد ' + row + ' زمان ورود نامعتبر دارد.');
+        }
+        if (Object.keys(item).some(key => !['code', 'description', 'stock', 'sendQuantity', 'entryTimestamp'].includes(key))) {
+          findings.push('موجودی، رکورد ' + row + ' فیلد اضافی دارد که نسخه جاری هنگام ذخیره حفظ نمی‌کند.');
+        }
         if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
-          const quantity = typeof item.sendQuantity === 'number' ? item.sendQuantity : normalizeStock(item.sendQuantity);
+          const quantity = Number(item.sendQuantity);
           if (!Number.isFinite(quantity) || quantity < 0 || !Number.isFinite(stock) || quantity > stock) {
             findings.push('موجودی، رکورد ' + row + ' مقدار آماده‌ارسال خارج از محدوده دارد.');
           }
@@ -803,7 +814,8 @@
         if (!number) findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' شماره ورود ندارد.');
         else if (entryNumbers.has(number)) findings.push('شماره ورود تکراری: «' + String(entry.entryNumber).slice(0, 60) + '».');
         if (number) entryNumbers.add(number);
-        if (entry.timestamp && (typeof entry.timestamp !== 'string' || !Number.isFinite(Date.parse(entry.timestamp)))) {
+        if (entry.timestamp !== undefined && entry.timestamp !== '' &&
+            !(typeof entry.timestamp === 'string' && Number.isFinite(Date.parse(entry.timestamp)))) {
           findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' زمان نامعتبر دارد.');
         }
         ['itemCount', 'pieceCount'].forEach(field => {
@@ -853,6 +865,9 @@
         const name = dataQualityKey(location.name);
         if (locationNames.has(name)) findings.push('نام محل ارسال تکراری: «' + location.name.slice(0, 60) + '».');
         locationNames.add(name);
+        if (Object.keys(location).some(key => key !== 'name' && key !== 'sublocations')) {
+          findings.push('محل «' + location.name.slice(0, 40) + '» فیلد اضافی دارد که نسخه جاری حفظ نمی‌کند.');
+        }
         if (location.sublocations !== undefined &&
             (!Array.isArray(location.sublocations) ||
              !location.sublocations.every(value => typeof value === 'string' && value.trim()))) {
