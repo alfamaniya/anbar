@@ -1,4 +1,5 @@
 
+    // اتصال‌های ثابت DOM؛ شناسه‌ها باید با index.html هماهنگ بمانند.
     const sectionLinks = document.querySelectorAll('.nav-link');
     const sectionCards = document.querySelectorAll('.section-card');
     const inventoryGrid = document.getElementById('inventory-grid');
@@ -16,6 +17,7 @@
     const shipmentLocationInput = document.getElementById('shipment-location');
     const shipmentSublocationInput = document.getElementById('shipment-sublocation');
     const shipmentSublocationGroup = document.getElementById('shipment-sublocation-group');
+    // کلیدهای پایدار localStorage؛ تغییر نام آن‌ها بدون مهاجرت می‌تواند داده‌های قبلی را از دسترس خارج کند.
     const LOCATION_KEY = 'anbar.shipment-locations.v1';
     const shipmentVoucherInput = document.getElementById('shipment-voucher');
     const shipmentExitInput = document.getElementById('shipment-exit-number');
@@ -29,6 +31,7 @@
       description: document.getElementById('item-description'),
       stock: document.getElementById('item-stock')
     };
+    // کلیدهای اصلی داده و وضعیت صفحه‌بندی گزارش‌ها.
     const STORAGE_KEY = 'anbar.inventory.v1';
     const ACTIVITY_KEY = 'anbar.activity-log.v1';
     const ENTRY_HISTORY_KEY = 'anbar.entry-history.v1';
@@ -38,6 +41,11 @@
     let shipmentHistoryPage = 0;
     let shipmentHistorySort = { key: 'date', direction: 'desc' };
 
+    /**
+     * هدف: خواندن لاگ فعالیت از localStorage و کنارگذاشتن رکوردهای نامعتبر.
+     * ورودی: پارامتر ندارد.
+     * خروجی: آرایه رخدادهای معتبر؛ هنگام خطا آرایه خالی.
+     */
     function loadActivityLog() {
       try {
         const records = JSON.parse(localStorage.getItem(ACTIVITY_KEY) || '[]');
@@ -49,6 +57,11 @@
       }
     }
 
+    /**
+     * هدف: خواندن تاریخچه ورود و نرمال‌سازی timestamp رکوردها.
+     * ورودی: پارامتر ندارد.
+     * خروجی: آرایه سوابق با زمان معتبر یا مقدار خالی.
+     */
     function loadEntryHistory() {
       try {
         const records = JSON.parse(localStorage.getItem(ENTRY_HISTORY_KEY) || '[]');
@@ -66,6 +79,11 @@
       }
     }
 
+    /**
+     * هدف: ذخیره حداکثر ۱۰۰۰ سابقه ورود و گزارش شکست ذخیره‌سازی.
+     * ورودی: records: آرایه سوابق ورود.
+     * خروجی: true در موفقیت یا false در شکست.
+     */
     function saveEntryHistory(records) {
       try {
         localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(records.slice(0, 1000)));
@@ -76,6 +94,11 @@
       }
     }
 
+    /**
+     * هدف: ساخت شناسه ورود با تاریخ شمسی و بخش میلی‌ثانیه.
+     * ورودی: date: زمان مبنا از نوع Date؛ به‌صورت پیش‌فرض زمان جاری.
+     * خروجی: رشته شناسه ورود.
+     */
     function makeEntryNumber(date = new Date()) {
       const parts = solarDateTime(date).label
         .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
@@ -84,6 +107,11 @@
       return 'ورود-' + parts + '-' + String(date.getMilliseconds()).padStart(3, '0');
     }
 
+    /**
+     * هدف: ثبت سابقه تجمیعی برای ورود موفق کالاها و درج جزئیات آن در لاگ فعالیت.
+     * ورودی: items: کالاهای ثبت‌شده در این نوبت.
+     * خروجی: بدون مقدار بازگشتی؛ برای فهرست خالی عملیات نمی‌کند.
+     */
     function recordIncomingEntry(items) {
       if (!items.length) return;
       const now = new Date();
@@ -109,6 +137,11 @@
       }
     }
 
+    /**
+     * هدف: ساخت جدول تاریخچه ورود با مرتب‌سازی، صفحه‌بندی و وضعیت دکمه‌های پیمایش.
+     * ورودی: پارامتر ندارد؛ داده‌ها از ذخیره‌سازی محلی خوانده می‌شوند.
+     * خروجی: DOM تاریخچه ورود به‌روزرسانی می‌شود.
+     */
     function renderEntryHistory() {
       const body = document.getElementById('entry-history-body');
       const pageLabel = document.getElementById('entry-history-page');
@@ -180,6 +213,7 @@
     }
 
     document.querySelectorAll('[data-entry-sort]').forEach(button => {
+      // رویداد «کلیک» برای دکمه‌های مرتب‌سازی/صفحه‌بندی تاریخچه ورود؛ تغییر ترتیب ردیف‌ها و نشانگر مرتب‌سازی.
       button.addEventListener('click', () => {
         const key = button.dataset.entrySort;
         if (entryHistorySort.key === key) {
@@ -192,9 +226,11 @@
       });
     });
 
+    // رویداد «کلیک» برای دکمه صفحه قبلی تاریخچه ورود؛ نمایش صفحه قبلی.
     document.getElementById('entry-history-prev').addEventListener('click', () => {
       if (entryHistoryPage > 0) { entryHistoryPage -= 1; renderEntryHistory(); }
     });
+    // رویداد «کلیک» برای دکمه صفحه بعدی تاریخچه ورود؛ نمایش صفحه بعدی.
     document.getElementById('entry-history-next').addEventListener('click', () => {
       if ((entryHistoryPage + 1) * ENTRY_PAGE_SIZE < loadEntryHistory().length) {
         entryHistoryPage += 1;
@@ -202,15 +238,30 @@
       }
     });
 
+    /**
+     * هدف: خواندن تاریخچه ارسال و کنترل آرایه بودن داده اصلی.
+     * ورودی: پارامتر ندارد.
+     * خروجی: آرایه ارسال‌ها؛ هنگام خطا آرایه خالی.
+     */
     function loadShipments() {
       try { const records = JSON.parse(localStorage.getItem(SHIPMENT_KEY) || '[]'); return Array.isArray(records) ? records : []; }
       catch (error) { return []; }
     }
+    /**
+     * هدف: ذخیره آرایه سوابق ارسال و نمایش پیام خطا در صورت شکست.
+     * ورودی: records: فهرست نهایی ارسال‌ها.
+     * خروجی: true یا false بر اساس نتیجه ذخیره.
+     */
     function saveShipments(records) {
       try { localStorage.setItem(SHIPMENT_KEY, JSON.stringify(records)); return true; }
       catch (error) { shipmentFeedback.textContent = 'ذخیره تاریخچه ارسال انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.'; return false; }
     }
 
+    /**
+     * هدف: ساخت جدول تاریخچه ارسال با مرتب‌سازی و صفحه‌بندی.
+     * ورودی: پارامتر ندارد.
+     * خروجی: DOM تاریخچه ارسال و وضعیت صفحه به‌روزرسانی می‌شود.
+     */
     function renderShipmentHistory() {
       const body = document.getElementById('shipment-history-body');
       const pageLabel = document.getElementById('shipment-history-page');
@@ -299,6 +350,7 @@
     }
 
     document.querySelectorAll('[data-shipment-sort]').forEach(button => {
+      // رویداد «کلیک» برای دکمه‌های مرتب‌سازی/صفحه‌بندی تاریخچه ارسال؛ تغییر ترتیب ردیف‌ها و نشانگر مرتب‌سازی.
       button.addEventListener('click', () => {
         const key = button.dataset.shipmentSort;
         if (shipmentHistorySort.key === key) {
@@ -310,23 +362,40 @@
         renderShipmentHistory();
       });
     });
+    // رویداد «کلیک» برای دکمه صفحه قبلی تاریخچه ارسال؛ نمایش صفحه قبلی.
     document.getElementById('shipment-history-prev').addEventListener('click', () => {
       if (shipmentHistoryPage > 0) { shipmentHistoryPage -= 1; renderShipmentHistory(); }
     });
+    // رویداد «کلیک» برای دکمه صفحه بعدی تاریخچه ارسال؛ نمایش صفحه بعدی.
     document.getElementById('shipment-history-next').addEventListener('click', () => {
       if ((shipmentHistoryPage + 1) * ENTRY_PAGE_SIZE < loadShipments().length) {
         shipmentHistoryPage += 1;
         renderShipmentHistory();
       }
     });
+    /**
+     * هدف: تبدیل زمان به تاریخ و ساعت شمسی برای نمایش فارسی.
+     * ورودی: date: شیء Date معتبر.
+     * خروجی: شیء اجزای تاریخ و ساعت مورد استفاده رابط.
+     */
     function solarDateTime(date = new Date()) {
       const datePart = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {year:'numeric',month:'2-digit',day:'2-digit'}).format(date);
       const timePart = new Intl.DateTimeFormat('fa-IR', {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);
       return {date:datePart,time:timePart,label:datePart+' '+timePart};
     }
+    /**
+     * هدف: ساخت شماره پیش‌فرض حواله یا خروج با پیشوند و زمان.
+     * ورودی: prefix: نوع شماره؛ date: زمان مبنا؛ epoch: مقدار زمانی برای یکتاسازی.
+     * خروجی: رشته شماره تولیدشده.
+     */
     function makeShipmentNumber(prefix, date, epoch) {
       return prefix+'-'+solarDateTime(date).label.replace(/[^۰-۹٠-٩0-9]/g,'-')+'-'+String(epoch);
     }
+    /**
+     * هدف: ساخت ورودی جدول ارسال با برچسب، مقدار و نوع مشخص.
+     * ورودی: labelText: عنوان؛ value: مقدار اولیه؛ type: نوع کنترل.
+     * خروجی: عنصر DOM ورودی.
+     */
     function createShipmentField(labelText, value, type='text') {
       const group=document.createElement('div'); group.className='field-group';
       const label=document.createElement('label'); label.textContent=labelText;
@@ -336,6 +405,11 @@
       input.id='shipment-field-'+Math.random().toString(36).slice(2); label.htmlFor=input.id;
       group.append(label,input); return {group,input};
     }
+    /**
+     * هدف: آماده‌سازی پنجره ارسال برای کالاهای انتخاب‌شده و نمایش مقدارهای قابل ویرایش.
+     * ورودی: پارامتر ندارد؛ از موجودی و انتخاب‌های جاری استفاده می‌کند.
+     * خروجی: پنجره ارسال نمایش داده می‌شود یا پیام مناسبی نشان داده می‌شود.
+     */
     function openShipmentDialog() {
       const candidates = inventoryItems.filter(item => {
         const quantity = item.sendQuantity === '' ? 0 : Number(item.sendQuantity);
@@ -367,9 +441,19 @@
       if (typeof shipmentDialog.showModal === 'function') shipmentDialog.showModal();
       else shipmentDialog.setAttribute('open', '');
     }
+    /**
+     * هدف: بستن پنجره ارسال با مسیر جایگزین برای مرورگرهای فاقد close.
+     * ورودی: پارامتر ندارد.
+     * خروجی: بدون مقدار بازگشتی.
+     */
     function closeShipmentDialog() {
       if(typeof shipmentDialog.close==='function'&&shipmentDialog.open)shipmentDialog.close();else shipmentDialog.removeAttribute('open');
     }
+    /**
+     * هدف: اعتبارسنجی و ثبت ارسال؛ کنترل شماره‌های تکراری، به‌روزرسانی موجودی و بازگردانی تغییرات در شکست ذخیره.
+     * ورودی: event: رویداد submit فرم.
+     * خروجی: بدون مقدار بازگشتی؛ نتیجه با پیام رابط و داده ذخیره‌شده مشخص می‌شود.
+     */
     function commitShipment(event) {
       event.preventDefault();
       shipmentFeedback.textContent = '';
@@ -503,6 +587,11 @@
       renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
     }
 
+    /**
+     * هدف: افزودن رخداد به ابتدای لاگ همراه زمان و محدودکردن اندازه جزئیات.
+     * ورودی: action: عنوان عملیات؛ details: شرح رخداد.
+     * خروجی: بدون مقدار بازگشتی؛ خطای ثبت لاگ مانع عملیات اصلی نمی‌شود.
+     */
     function recordActivity(action, details) {
       try {
         const now = new Date();
@@ -526,6 +615,11 @@
       }
     }
 
+    /**
+     * هدف: ساخت جدول رخدادها با textContent برای جلوگیری از اجرای متن به‌عنوان HTML.
+     * ورودی: target: ظرف نمایشی؛ logs: رخدادها؛ emptyText: پیام حالت خالی.
+     * خروجی: DOM گزارش فعالیت به‌روزرسانی می‌شود.
+     */
     function renderActivityResults(target, logs, emptyText) {
       target.replaceChildren();
       if (!logs.length) {
@@ -587,6 +681,11 @@
     let pendingClipboardRows = [];
     let pendingExcelRows = [];
 
+    /**
+     * هدف: خواندن موجودی و پالایش کد، شرح، موجودی، مقدار آماده‌ارسال و زمان ورود.
+     * ورودی: پارامتر ندارد.
+     * خروجی: آرایه کالاهای نرمال‌شده؛ در خطا آرایه خالی.
+     */
     function loadInventory() {
       try {
         const savedData = localStorage.getItem(STORAGE_KEY);
@@ -627,12 +726,18 @@
 
     const inventoryItems = loadInventory();
 
+    // رویداد «کلیک» برای دکمه پاک‌کردن جست‌وجوی موجودی؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('clear-inventory-search').addEventListener('click', () => {
       inventorySearchInput.value = '';
       renderInventory();
       inventorySearchInput.focus();
     });
 
+    /**
+     * هدف: ذخیره موجودی جاری و ثبت خلاصه تغییر در لاگ فعالیت.
+     * ورودی: پارامتر ندارد؛ از inventoryItems استفاده می‌شود.
+     * خروجی: true در ذخیره موفق و false در شکست.
+     */
     function saveInventory() {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(inventoryItems));
@@ -644,6 +749,11 @@
       }
     }
 
+    /**
+     * هدف: نمایش سکشن منتخب و تنظیم aria-current پیوند ناوبری متناظر.
+     * ورودی: sectionId: شناسه سکشن مقصد.
+     * خروجی: نمایش رابط به‌روزرسانی می‌شود.
+     */
     function openSection(sectionId) {
       sectionCards.forEach((section) => {
         const isSelected = section.id === sectionId;
@@ -662,17 +772,28 @@
     }
 
     sectionLinks.forEach((link) => {
+      // رویداد «کلیک» برای پیوند ناوبری؛ بازکردن بخش مقصد بدون بارگذاری دوباره صفحه.
       link.addEventListener('click', (event) => {
         event.preventDefault();
         openSection(link.getAttribute('href').slice(1));
       });
     });
 
+    /**
+     * هدف: قالب‌بندی شاخص داشبورد با رقم‌های فارسی و محافظت از مقدار عددی نامعتبر.
+     * ورودی: value: مقداری که باید به عدد تبدیل شود.
+     * خروجی: رشته عدد قالب‌بندی‌شده.
+     */
     function formatDashboardNumber(value) {
       const safeValue = Number.isFinite(Number(value)) ? Number(value) : 0;
       return new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 2 }).format(safeValue);
     }
 
+    /**
+     * هدف: محاسبه شاخص‌های داشبورد از داده واقعی ذخیره‌شده، بدون افزودن آمار نمونه.
+     * ورودی: پارامتر ندارد.
+     * خروجی: مقادیر عناصر داشبورد به‌روزرسانی می‌شوند.
+     */
     function updateDashboardSummary() {
       const setMetric = (id, value) => {
         const element = document.getElementById(id);
@@ -705,8 +826,14 @@
       }
     }
 
+    /**
+     * هدف: اتصال میان‌برهای داشبورد و همگام‌سازی شاخص‌ها پس از تغییر داده یا DOM.
+     * ورودی: پارامتر ندارد.
+     * خروجی: رویدادها و مشاهده‌گرهای داشبورد فعال می‌شوند.
+     */
     function setupDashboard() {
       document.querySelectorAll('[data-section-target]').forEach(link => {
+        // رویداد «کلیک» برای پیوند ناوبری؛ بازکردن بخش مقصد بدون بارگذاری دوباره صفحه.
         link.addEventListener('click', event => {
           event.preventDefault();
           const sectionId = link.getAttribute('data-section-target');
@@ -714,6 +841,7 @@
         });
       });
       updateDashboardSummary();
+      // رویداد «تغییر ذخیره‌سازی در زبانه دیگر» برای عنصر رابط کاربری؛ همگام‌سازی شاخص‌ها با تغییر داده در زبانه دیگر.
       window.addEventListener('storage', updateDashboardSummary);
       if (typeof MutationObserver === 'function') {
         ['inventory-grid', 'entry-history-body', 'shipment-history-body'].forEach(id => {
@@ -725,18 +853,33 @@
       }
     }
 
+    /**
+     * هدف: یکسان‌سازی شکل‌های عربی و فارسی برخی حروف در متن ورودی.
+     * ورودی: value: متن یا مقدار ورودی.
+     * خروجی: رشته نرمال‌شده.
+     */
     function normalizeArabicLetters(value) {
       return String(value ?? '')
         .replace(/[يى]/g, 'ی')
         .replace(/ك/g, 'ک');
     }
 
+    /**
+     * هدف: تبدیل رقم‌های فارسی و عربی به رقم‌های لاتین جهت مقایسه و اعتبارسنجی.
+     * ورودی: value: متن یا مقدار ورودی.
+     * خروجی: رشته با رقم‌های لاتین.
+     */
     function toEnglishDigits(value) {
       return String(value ?? '')
         .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
         .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
     }
 
+    /**
+     * هدف: تبدیل متن موجودی به عدد و پشتیبانی از جداکننده‌های عددی رایج.
+     * ورودی: value: مقدار متنی.
+     * خروجی: عدد یا NaN برای مقدار خالی/نامعتبر.
+     */
     function normalizeStock(value) {
       const normalized = toEnglishDigits(value)
         .replace(/[٬,]/g, '')
@@ -746,6 +889,11 @@
       return Number(normalized);
     }
 
+    /**
+     * هدف: تجزیه CSV یا متن جدولی با رعایت جداکننده و کوتیشن سلول‌ها.
+     * ورودی: text: متن خام فایل یا کلیپ‌بورد.
+     * خروجی: آرایه دوبعدی ردیف‌ها و سلول‌ها.
+     */
     function parseDelimitedText(text) {
       const trimmed = String(text || '').trim();
       if (!trimmed) return [];
@@ -789,9 +937,19 @@
       return rows;
     }
 
+    /**
+     * هدف: استانداردسازی عنوان ستون برای تشخیص نام ستون‌ها.
+     * ورودی: value: عنوان خام.
+     * خروجی: رشته عنوان نرمال‌شده.
+     */
     function normalizeHeader(value) {
       return String(value ?? '').toLowerCase().replace(/[\s_\-()\[\]]+/g, '').replace(/[يى]/g, 'ی').replace(/ك/g, 'ک');
     }
+    /**
+     * هدف: شناسایی موقعیت ستون‌های کد، شرح و موجودی از روی سرستون.
+     * ورودی: row: ردیف سرستون.
+     * خروجی: نگاشت فیلدها به شماره ستون یا نتیجه عدم تشخیص.
+     */
     function getHeaderMap(row) {
       const aliases = {
         code: ['کدتدارکاتی','کدکالا','کد','کدمحصول','itemcode','productcode','code'],
@@ -803,7 +961,17 @@
       Object.keys(aliases).forEach(field => { map[field] = values.findIndex(value => aliases[field].includes(value)); });
       return Object.values(map).filter(index => index >= 0).length >= 2 ? map : null;
     }
+    /**
+     * هدف: بررسی اینکه یک ردیف به‌احتمال زیاد سرستون است یا داده کالا.
+     * ورودی: row: سلول‌های ردیف.
+     * خروجی: مقدار بولی.
+     */
     function isHeaderRow(row) { return Boolean(getHeaderMap(row)); }
+    /**
+     * هدف: پالایش ردیف‌های فایل/کلیپ‌بورد و هماهنگ‌سازی ستون‌ها در صورت وجود سرستون.
+     * ورودی: rows: آرایه دوبعدی داده خام.
+     * خروجی: آرایه ردیف‌های آماده پیش‌نمایش و اعتبارسنجی.
+     */
     function prepareImportRows(rows) {
       const source = Array.isArray(rows) ? rows : [];
       let headerIndex = -1, headerMap = null;
@@ -823,6 +991,11 @@
         return mapped;
       }).filter(Boolean);
     }
+    /**
+     * هدف: اعتبارسنجی کد، شرح و موجودی و تولید پیام خطا برای یک ردیف.
+     * ورودی: row: سلول‌های ورودی کالا.
+     * خروجی: رشته خطاها؛ رشته خالی یعنی داده معتبر است.
+     */
     function getRowError(row) {
       const code = toEnglishDigits(String(row?.[0] ?? '').trim());
       const description = normalizeArabicLetters(String(row?.[1] ?? '')).trim();
@@ -835,6 +1008,11 @@
       return errors.join('؛ ');
     }
 
+        /**
+         * هدف: تبدیل ردیف معتبر به شیء کالا با کد، شرح و موجودی استاندارد.
+         * ورودی: row: سلول‌های کالا.
+         * خروجی: شیء کالا یا null در صورت نامعتبر بودن.
+         */
         function normalizeRow(row) {
       const code = toEnglishDigits(String(row[0] ?? '').trim());
       const description = normalizeArabicLetters(String(row[1] ?? '')).trim();
@@ -848,6 +1026,11 @@
       return { code, description, stock };
     }
 
+    /**
+     * هدف: افزودن کنترل‌های مرتب‌سازی دسترس‌پذیر به سرستون‌های جدول.
+     * ورودی: table: جدول DOM؛ options: تنظیم ستون و جهت اولیه.
+     * خروجی: رویدادها و نشانگرهای مرتب‌سازی روی جدول فعال می‌شوند.
+     */
     function enableTableSorting(table, options = {}) {
       if (!table || table.dataset.sortingReady === 'true') return;
       const head = table.tHead;
@@ -876,6 +1059,11 @@
         cell.replaceChildren(button);
       });
 
+      /**
+       * هدف: به‌روزرسانی فلش‌ها و نام دسترس‌پذیر کنترل‌های مرتب‌سازی.
+       * ورودی: پارامتر ندارد؛ وضعیت تابع پیرامونی استفاده می‌شود.
+       * خروجی: نشانگرهای جدول به‌روزرسانی می‌شوند.
+       */
       function updateMarkers() {
         headers.forEach((cell, column) => {
           const button = cell.querySelector('button[data-sort-column]');
@@ -890,6 +1078,7 @@
       }
 
       headers.forEach((cell, column) => {
+        // رویداد «کلیک» برای دکمه مرتب‌سازی ستون جدول؛ تغییر ترتیب ردیف‌ها و نشانگر مرتب‌سازی.
         cell.querySelector('button[data-sort-column]').addEventListener('click', () => {
           if (sortState.column === column) sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
           else sortState = { column, direction: 'asc' };
@@ -912,6 +1101,11 @@
       updateMarkers();
     }
 
+    /**
+     * هدف: ساخت جدول عمومی با سرستون‌ها و کلاس CSS تعیین‌شده.
+     * ورودی: headers: عنوان ستون‌ها؛ className: کلاس اختیاری.
+     * خروجی: شیء شامل table و tbody.
+     */
     function createDataTable(headers, className = '') {
       const table = document.createElement('table');
       table.className = 'preview-table sortable-data-table ' + className;
@@ -928,6 +1122,11 @@
       return { table, tbody };
     }
 
+    /**
+     * هدف: ترکیب ردیف‌های موقت ورود دستی، Excel و کلیپ‌بورد برای پردازش یکپارچه.
+     * ورودی: پارامتر ندارد.
+     * خروجی: آرایه ورودی‌ها همراه اطلاعات منبع.
+     */
     function getCombinedPendingRows() {
       const combined = [];
       pendingExcelRows.forEach(row => combined.push({ row, source: 'Excel/CSV' }));
@@ -937,6 +1136,11 @@
       return combined;
     }
 
+    /**
+     * هدف: به‌روزرسانی پیش‌نمایش مشترک بر اساس ردیف‌های موقت همه روش‌های ورود.
+     * ورودی: پارامتر ندارد.
+     * خروجی: بخش پیش‌نمایش بازسازی می‌شود.
+     */
     function renderSharedInputPreview() {
       const shared = document.getElementById('shared-input-preview');
       const confirmButton = document.getElementById('confirm-all-imports');
@@ -976,6 +1180,11 @@
       if (confirmButton) confirmButton.disabled = !combined.some(item => normalizeRow(item.row));
     }
 
+    /**
+     * هدف: نمایش پیش‌نمایش چندردیفی و وضعیت اعتبار هر ردیف.
+     * ورودی: rows: داده‌ها؛ sourceLabel: نام منبع؛ previewTarget: ظرف مقصد.
+     * خروجی: DOM پیش‌نمایش ساخته یا به‌روزرسانی می‌شود.
+     */
     function renderBulkPreview(rows, sourceLabel, previewTarget) {
       const previewRows = (Array.isArray(rows) ? rows : []).filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== ''));
       previewTarget.replaceChildren();
@@ -1008,6 +1217,11 @@
       renderSharedInputPreview();
     }
 
+    /**
+     * هدف: ساخت پیش‌نمایش ورود دستی بر اساس مقدارهای فرم جاری.
+     * ورودی: پارامتر ندارد.
+     * خروجی: DOM پیش‌نمایش ورود دستی به‌روزرسانی می‌شود.
+     */
     function renderSinglePreview() {
       const row = [itemFormInputs.code.value.trim(), itemFormInputs.description.value.trim(), itemFormInputs.stock.value.trim()];
       const item = normalizeRow(row);
@@ -1036,6 +1250,11 @@
       renderSharedInputPreview();
     }
 
+    /**
+     * هدف: تشخیص کدهای تکراری در مجموعه ورودی پیش از ذخیره.
+     * ورودی: rows: ردیف‌های ورودی.
+     * خروجی: گروه‌های کد تکراری.
+     */
     function findIncomingDuplicates(rows) {
       const rowsByCode = new Map();
       let firstDataRowChecked = false;
@@ -1066,6 +1285,11 @@
 
     const importErrorDialog = document.getElementById('import-error-dialog');
     const importErrorDetails = document.getElementById('import-error-details');
+    /**
+     * هدف: نمایش ردیف‌های نامعتبر همراه علت خطا.
+     * ورودی: rows: داده‌های بررسی‌شده.
+     * خروجی: پنجره خطای ورود نمایش داده می‌شود.
+     */
     function showImportErrors(rows) {
       const invalid = rows.filter(row => Array.isArray(row) && row.some(value => String(value ?? '').trim() !== '') && !normalizeRow(row));
       if (!invalid.length) return;
@@ -1087,12 +1311,24 @@
       if (typeof importErrorDialog.showModal === 'function') importErrorDialog.showModal();
       else window.alert(invalid.map(row => 'ردیف ' + (row._sourceRow || '?') + ': ' + getRowError(row)).join('\n'));
     }
+    /**
+     * هدف: بستن پنجره خطاهای ورود.
+     * ورودی: پارامتر ندارد.
+     * خروجی: پنجره بسته می‌شود.
+     */
     function closeImportErrorDialog() {
       if (importErrorDialog.open) importErrorDialog.close();
     }
+    // رویداد «کلیک» برای دکمه بستن پنجره خطاهای ورود؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('import-error-close').addEventListener('click', closeImportErrorDialog);
+    // رویداد «کلیک» برای دکمه تأیید پنجره خطاهای ورود؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('import-error-ok').addEventListener('click', closeImportErrorDialog);
 
+    /**
+     * هدف: نمایش کدهای تکراری در ورودی/موجودی جاری و آماده‌سازی تصمیم کاربر.
+     * ورودی: duplicateGroups: تکرار در ورودی؛ existingDuplicates: کدهای موجود.
+     * خروجی: پنجره تکراری‌ها ساخته می‌شود.
+     */
     function showDuplicateError(duplicateGroups, existingDuplicates = []) {
       if (!duplicateGroups.length && !existingDuplicates.length) return;
       duplicateDialogDetails.replaceChildren();
@@ -1156,27 +1392,41 @@
       ).join('\n'));
     }
 
+    /**
+     * هدف: بستن پنجره تکراری‌ها و پاک‌کردن وضعیت تأیید معلق در مسیر مربوط.
+     * ورودی: پارامتر ندارد.
+     * خروجی: پنجره بسته می‌شود.
+     */
     function closeDuplicateDialog() {
       if (duplicateDialog.open) duplicateDialog.close();
     }
 
+    // رویداد «کلیک» برای دکمه بستن پنجره تکراری‌ها؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('duplicate-dialog-x').addEventListener('click', closeDuplicateDialog);
     let pendingImportConfirmation = null;
+    // رویداد «کلیک» برای دکمه انصراف از ورود تکراری‌ها؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('duplicate-import-cancel').addEventListener('click', () => {
       pendingImportConfirmation = null;
       closeDuplicateDialog();
       inputFeedback.textContent = 'ورود لغو شد؛ اطلاعات انبار تغییری نکرد.';
     });
+    // رویداد «کلیک» برای دکمه ادامه ورود پس از بررسی تکراری‌ها؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('duplicate-import-confirm').addEventListener('click', () => {
       const confirm = pendingImportConfirmation;
       pendingImportConfirmation = null;
       closeDuplicateDialog();
       if (confirm) confirm();
     });
+    // رویداد «کلیک» برای عنصر رابط کاربری؛ اجرای رفتار متناسب با این کنترل و رویداد.
     duplicateDialog.addEventListener('click', event => {
       if (event.target === duplicateDialog) closeDuplicateDialog();
     });
 
+    /**
+     * هدف: ثبت داده معتبر و به‌روزرسانی کالاهای موجود؛ تاریخچه فقط پس از ذخیره موفق ثبت می‌شود.
+     * ورودی: rows: ردیف‌های ورودی.
+     * خروجی: نتیجه شامل شمار افزوده/به‌روزرسانی/ردشده و saved.
+     */
     function addOrUpdateItems(rows) {
       let added = 0;
       let updated = 0;
@@ -1229,6 +1479,11 @@
       return { added, updated, skipped, saved: true };
     }
 
+    /**
+     * هدف: نمایش نتیجه ورود و تفکیک خطای ذخیره از ثبت موفق.
+     * ورودی: result: نتیجه پردازش؛ target: عنصر پیام.
+     * خروجی: متن نتیجه در رابط نمایش داده می‌شود.
+     */
     function showImportResult(result, target) {
       if (result.saved === false) {
         target.textContent = 'ذخیره‌سازی ناموفق بود؛ هیچ تغییری ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید و دوباره تلاش کنید.';
@@ -1245,6 +1500,11 @@
         : 'داده معتبر جدیدی برای افزودن پیدا نشد.';
     }
 
+    /**
+     * هدف: هماهنگ‌کردن انتخاب همه، شمار انتخاب‌ها و وضعیت دکمه‌های عملیات دسته‌جمعی.
+     * ورودی: پارامتر ندارد.
+     * خروجی: کنترل‌های انتخاب به‌روزرسانی می‌شوند.
+     */
     function updateSelectionControls() {
       const visibleCheckboxes = [...inventoryGrid.querySelectorAll('.item-select-checkbox')];
       const selectedCount = selectedItemCodes.size;
@@ -1257,6 +1517,7 @@
       deleteSelectedItemsButton.textContent = 'حذف انتخاب‌شده‌ها (' + toEnglishDigits(selectedCount) + ')';
     }
 
+    // رویداد «تغییر» برای عنصر رابط کاربری؛ به‌روزرسانی داده‌ها و رابط پس از تغییر انتخاب.
     selectAllItems.addEventListener('change', () => {
       if (selectAllItems.checked) {
         inventoryItems.forEach(item => selectedItemCodes.add(item.code));
@@ -1266,6 +1527,7 @@
       renderInventory();
     });
 
+    // رویداد «کلیک» برای عنصر رابط کاربری؛ اجرای رفتار متناسب با این کنترل و رویداد.
     deleteSelectedItemsButton.addEventListener('click', () => {
       const codesToDelete = new Set(selectedItemCodes);
       if (!codesToDelete.size) {
@@ -1302,10 +1564,20 @@
       inventoryFeedback.textContent = toEnglishDigits(beforeCount - inventoryItems.length) + ' کالای انتخاب‌شده حذف شد.';
     });
 
+    /**
+     * هدف: نرمال‌سازی نام محل برای مقایسه با درنظرگرفتن فاصله و رقم‌ها.
+     * ورودی: value: نام محل.
+     * خروجی: کلید متنی نرمال‌شده.
+     */
     function normLocation(value) {
       return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fa');
     }
 
+    /**
+     * هدف: خواندن فهرست محل‌ها و زیرمجموعه‌های ذخیره‌شده.
+     * ورودی: پارامتر ندارد.
+     * خروجی: آرایه محل‌های قابل استفاده.
+     */
     function loadShipmentLocations() {
       try {
         const stored = JSON.parse(localStorage.getItem(LOCATION_KEY) || '[]');
@@ -1320,6 +1592,11 @@
       }
     }
 
+    /**
+     * هدف: ذخیره محل‌ها و زیرمجموعه‌های ارسال.
+     * ورودی: locations: فهرست جدید محل‌ها.
+     * خروجی: true در موفقیت یا false در شکست.
+     */
     function saveShipmentLocations(locations) {
       try {
         localStorage.setItem(LOCATION_KEY, JSON.stringify(locations));
@@ -1329,6 +1606,11 @@
       }
     }
 
+    /**
+     * هدف: ساخت پیشنهادهای محل ارسال در datalist.
+     * ورودی: پارامتر ندارد.
+     * خروجی: پیشنهادهای فیلد محل به‌روزرسانی می‌شوند.
+     */
     function renderShipmentLocationOptions() {
       const list = document.getElementById('shipment-location-options');
       list.replaceChildren();
@@ -1340,6 +1622,11 @@
       updateShipmentSublocations();
     }
 
+    /**
+     * هدف: فیلتر پیشنهادهای زیرمجموعه براساس محل انتخاب‌شده.
+     * ورودی: پارامتر ندارد؛ مقدار فیلد محل خوانده می‌شود.
+     * خروجی: پیشنهادهای زیرمجموعه به‌روزرسانی می‌شوند.
+     */
     function updateShipmentSublocations() {
       const selectedLocation = loadShipmentLocations().find(item =>
         normLocation(item.name) === normLocation(shipmentLocationInput.value)
@@ -1355,6 +1642,11 @@
       shipmentSublocationGroup.hidden = false;
     }
 
+    /**
+     * هدف: نمایش فهرست محل‌ها و ساخت کنترل حذف برای هر محل.
+     * ورودی: پارامتر ندارد.
+     * خروجی: بخش مدیریت محل‌ها بازسازی می‌شود.
+     */
     function renderLocationManager() {
       const root = document.getElementById('location-manager-list');
       if (!root) return;
@@ -1386,6 +1678,7 @@
         removeButton.className = 'action-button secondary location-delete-button';
         removeButton.textContent = 'حذف محل';
         removeButton.setAttribute('aria-label', 'حذف محل ' + location.name);
+        // رویداد «کلیک» برای دکمه حذف محل ذخیره‌شده؛ انجام حذف پس از بررسی و تأیید لازم.
         removeButton.addEventListener('click', () => {
           if (!window.confirm('محل «' + location.name + '» و زیرمجموعه‌های آن از فهرست محل‌های ذخیره‌شده حذف شود؟ سوابق ارسال قبلی حذف نمی‌شوند.')) return;
           const remainingLocations = loadShipmentLocations().filter(item =>
@@ -1410,6 +1703,7 @@
       });
     }
 
+    // رویداد «ارسال فرم» برای فرم ثبت محل ارسال؛ اعتبارسنجی و مدیریت ارسال فرم در برنامه.
     document.getElementById('location-create-form').addEventListener('submit', event => {
       event.preventDefault();
 
@@ -1443,12 +1737,22 @@
     });
 
     renderLocationManager();
+    // رویداد «تغییر مقدار ورودی» برای فیلد محل ارسال؛ همگام‌سازی پیش‌نمایش یا وضعیت رابط با مقدار جاری.
     shipmentLocationInput.addEventListener('input',updateShipmentSublocations);shipmentLocationInput.addEventListener('change',updateShipmentSublocations);renderShipmentLocationOptions();
+    // رویداد «کلیک» برای عنصر رابط کاربری؛ اجرای رفتار متناسب با این کنترل و رویداد.
     openShipmentDialogButton.addEventListener('click', openShipmentDialog);
+    // رویداد «ارسال فرم» برای عنصر رابط کاربری؛ اعتبارسنجی و مدیریت ارسال فرم در برنامه.
     shipmentForm.addEventListener('submit', commitShipment);
+    // رویداد «کلیک» برای دکمه بستن پنجره ارسال؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('shipment-dialog-x').addEventListener('click', closeShipmentDialog);
+    // رویداد «کلیک» برای دکمه انصراف از ارسال؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('shipment-cancel').addEventListener('click', closeShipmentDialog);
 
+    /**
+     * هدف: ساخت جدول موجودی، فیلتر جست‌وجو، مرتب‌سازی، انتخاب کالا و ورودی مقدار ارسال.
+     * ورودی: پارامتر ندارد؛ وضعیت جست‌وجو و مرتب‌سازی جاری خوانده می‌شود.
+     * خروجی: جدول و کنترل‌های موجودی به‌روزرسانی می‌شوند.
+     */
     function renderInventory() {
       const { key, direction } = inventorySort;
       const multiplier = direction === 'desc' ? -1 : 1;
@@ -1509,6 +1813,7 @@
         selectionCheckbox.className = 'item-select-checkbox';
         selectionCheckbox.checked = selectedItemCodes.has(item.code);
         selectionCheckbox.setAttribute('aria-label', 'انتخاب کالا با کد تدارکاتی ' + item.code);
+        // رویداد «تغییر» برای چک‌باکس انتخاب قلم کالا؛ به‌روزرسانی داده‌ها و رابط پس از تغییر انتخاب.
         selectionCheckbox.addEventListener('change', () => {
           if (selectionCheckbox.checked) selectedItemCodes.add(item.code);
           else selectedItemCodes.delete(item.code);
@@ -1539,6 +1844,7 @@
         sendInput.placeholder = '۰';
         sendInput.value = item.sendQuantity;
         sendInput.setAttribute('aria-label', 'تعداد برای ارسال کالا ' + item.code);
+        // رویداد «تغییر» برای فیلد مقدار آماده‌ارسال؛ به‌روزرسانی داده‌ها و رابط پس از تغییر انتخاب.
         sendInput.addEventListener('change', () => {
           const value = sendInput.value.trim();
           const numericValue = value === '' ? '' : normalizeStock(value);
@@ -1589,6 +1895,7 @@
     }
 
     document.querySelectorAll('[data-inventory-sort]').forEach(button => {
+      // رویداد «کلیک» برای دکمه‌های مرتب‌سازی جدول موجودی؛ تغییر ترتیب ردیف‌ها و نشانگر مرتب‌سازی.
       button.addEventListener('click', () => {
         const key = button.dataset.inventorySort;
         if (inventorySort.key === key) {
@@ -1600,20 +1907,24 @@
       });
     });
 
+    // رویداد «تغییر مقدار ورودی» برای فیلد جست‌وجوی موجودی؛ همگام‌سازی پیش‌نمایش یا وضعیت رابط با مقدار جاری.
     inventorySearchInput.addEventListener('input', renderInventory);
 
+    // رویداد «تغییر مقدار ورودی» برای فیلد کد کالا در ورود دستی؛ همگام‌سازی پیش‌نمایش یا وضعیت رابط با مقدار جاری.
     itemFormInputs.code.addEventListener('input', () => {
       const normalized = toEnglishDigits(itemFormInputs.code.value).replace(/[^0-9]/g, '').slice(0, 10);
       if (itemFormInputs.code.value !== normalized) itemFormInputs.code.value = normalized;
     });
 
     Object.values(itemFormInputs).forEach(input => {
+      // رویداد «تغییر مقدار ورودی» برای عنصر رابط کاربری؛ همگام‌سازی پیش‌نمایش یا وضعیت رابط با مقدار جاری.
       input.addEventListener('input', () => {
         renderSinglePreview();
         singleFeedback.textContent = '';
       });
     });
 
+    // رویداد «کلیک» برای دکمه بررسی/ثبت پیش‌نمایش؛ اجرای رفتار متناسب با این کنترل و رویداد.
     importPreviewButton.addEventListener('click', () => {
       const combinedRows = getCombinedPendingRows().map(item => item.row);
       if (!combinedRows.length) {
@@ -1666,6 +1977,7 @@
       commitImport();
     });
 
+    // رویداد «تغییر مقدار ورودی» برای فیلد داده‌های کپی‌شده؛ همگام‌سازی پیش‌نمایش یا وضعیت رابط با مقدار جاری.
     pastedDataInput.addEventListener('input', () => {
       pendingClipboardRows = prepareImportRows(parseDelimitedText(pastedDataInput.value));
       inputFeedback.textContent = '';
@@ -1673,6 +1985,7 @@
       importPreviewButton.disabled = !getCombinedPendingRows().some(item => normalizeRow(item.row));
     });
 
+    // رویداد «تغییر» برای فیلد انتخاب فایل Excel یا CSV؛ به‌روزرسانی داده‌ها و رابط پس از تغییر انتخاب.
     document.getElementById('excel-file').addEventListener('change', async (event) => {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
@@ -1722,6 +2035,7 @@
     openSection('section-dashboard');
     setupDashboard();
   
+    // بخش راه‌اندازی بکاپ؛ تا ذخیره موفق فایل اولیه، رابط اصلی قفل می‌ماند.
     const appLayout = document.getElementById('app-layout');
     const backupSetupGate = document.getElementById('backup-setup-gate');
     const backupGateChooseFolder = document.getElementById('backup-gate-choose-folder');
@@ -1739,6 +2053,11 @@
     let backupWriteQueued = false;
     let applicationReady = false;
 
+    /**
+     * هدف: قفل/آزادکردن رابط اصلی براساس موفقیت راه‌اندازی بکاپ.
+     * ورودی: ready: فقط پس از آماده‌شدن بکاپ باید true باشد.
+     * خروجی: وضعیت inert و دروازه شروع تغییر می‌کند.
+     */
     function setApplicationReady(ready) {
       applicationReady = Boolean(ready);
       appLayout.inert = !applicationReady;
@@ -1751,6 +2070,11 @@
       }
     }
 
+    /**
+     * هدف: بازکردن IndexedDB برای نگهداری مرجع پوشه بکاپ.
+     * ورودی: پارامتر ندارد.
+     * خروجی: Promise پایگاه داده یا خطای بازکردن.
+     */
     function openBackupHandleDatabase() {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(BACKUP_HANDLE_DB, 1);
@@ -1759,6 +2083,11 @@
         request.onerror = () => reject(request.error);
       });
     }
+    /**
+     * هدف: ذخیره مرجع پوشه در IndexedDB برای استفاده در مراجعه بعدی.
+     * ورودی: handle: مرجع پوشه انتخاب‌شده.
+     * خروجی: Promise که پس از پایان تراکنش تمام می‌شود.
+     */
     async function storeBackupDirectoryHandle(handle) {
       const db = await openBackupHandleDatabase();
       await new Promise((resolve, reject) => {
@@ -1770,6 +2099,11 @@
       });
       db.close();
     }
+    /**
+     * هدف: بازیابی مرجع پوشه بکاپ از IndexedDB.
+     * ورودی: پارامتر ندارد.
+     * خروجی: Promise شامل مرجع پوشه یا null.
+     */
     async function loadBackupDirectoryHandle() {
       const db = await openBackupHandleDatabase();
       const handle = await new Promise((resolve, reject) => {
@@ -1780,12 +2114,22 @@
       db.close();
       return handle;
     }
+    /**
+     * هدف: ساخت نام فایل بکاپ براساس سال و ماه تقویم شمسی.
+     * ورودی: date: زمان مبنا؛ به‌طور پیش‌فرض زمان جاری.
+     * خروجی: نام فایل JSON.
+     */
     function getSolarBackupFileName(date = new Date()) {
       const parts = new Intl.DateTimeFormat('en-u-ca-persian', { year: 'numeric', month: '2-digit' }).formatToParts(date);
       const year = parts.find(part => part.type === 'year')?.value;
       const month = parts.find(part => part.type === 'month')?.value;
       return 'anbar-backup-' + year + '-' + month + '.json';
     }
+    /**
+     * هدف: گردآوری موجودی، تاریخچه‌ها، محل‌ها و لاگ در یک شیء پشتیبان.
+     * ورودی: پارامتر ندارد.
+     * خروجی: شیء دارای exportedAt و آرایه‌های داده.
+     */
     function buildBackupPayload() {
       return {
         exportedAt: new Date().toISOString(),
@@ -1796,6 +2140,11 @@
         activityLog: loadActivityLog(),
       };
     }
+    /**
+     * هدف: نوشتن بکاپ JSON همراه کنترل مجوز، جلوگیری از نوشتن هم‌زمان و مدیریت شکست.
+     * ورودی: directoryHandle: مرجع پوشه؛ allowPermissionPrompt: اجازه درخواست مجوز.
+     * خروجی: Promise بولی؛ true فقط پس از ذخیره موفق فایل.
+     */
     async function writeAutomaticBackup(directoryHandle = backupDirectoryHandle, allowPermissionPrompt = false) {
       if (!directoryHandle) return false;
       if (backupWriteInProgress) {
@@ -1841,6 +2190,11 @@
         }
       }
     }
+    /**
+     * هدف: زمان‌بندی ذخیره بکاپ پس از تغییر داده و تجمیع تغییرهای سریع.
+     * ورودی: پارامتر ندارد.
+     * خروجی: زمان‌سنج بکاپ تنظیم می‌شود.
+     */
     function scheduleAutomaticBackup() {
       if (!backupDirectoryHandle || !applicationReady) return;
       clearTimeout(backupWriteTimer);
@@ -1853,6 +2207,11 @@
       }, 350);
     }
 
+    /**
+     * هدف: انتخاب/فعال‌سازی پوشه، بررسی مجوز و ذخیره اولین بکاپ پیش از آزادکردن رابط.
+     * ورودی: forceChooseNew: اجبار به انتخاب پوشه تازه.
+     * خروجی: Promise؛ رابط بر اساس نتیجه آماده یا قفل می‌شود.
+     */
     async function chooseBackupFolder(forceChooseNew = false) {
       if (typeof window.showDirectoryPicker !== 'function') {
         const message = 'این مرورگر انتخاب پوشه و ذخیره مستقیم فایل را پشتیبانی نمی‌کند. برای استفاده از سایت، آن را در نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS باز کنید.';
@@ -1942,8 +2301,11 @@
       }
     }
 
+    // رویداد «کلیک» برای دکمه انتخاب پوشه بکاپ در صفحه شروع؛ اجرای رفتار متناسب با این کنترل و رویداد.
     backupGateChooseFolder.addEventListener('click', () => chooseBackupFolder(false));
+    // رویداد «کلیک» برای دکمه فعال‌سازی پوشه بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
     if (backupFolderButton) backupFolderButton.addEventListener('click', () => chooseBackupFolder(false));
+    // رویداد «کلیک» برای دکمه تغییر پوشه بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
     if (changeBackupFolderButton) changeBackupFolderButton.addEventListener('click', () => chooseBackupFolder(true));
 
     (async () => {
@@ -1973,6 +2335,7 @@
     })();
 
     // فقط تغییرات ذخیره‌شده در کلیدهای داده‌ای برنامه، بکاپ خودکار را زمان‌بندی می‌کنند.
+    // رهگیری ذخیره‌سازی کلیدهای برنامه برای زمان‌بندی بکاپ پس از تغییر واقعی داده.
     const originalLocalStorageSetItem = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key, value) {
       originalLocalStorageSetItem.call(this, key, value);
@@ -1985,8 +2348,12 @@
     const restoreFeedback = document.getElementById('restore-feedback');
     let pendingRestorePayload = null;
 
+    /** نرمال‌سازی کلید متنی برای تشخیص تکرار با یکسان‌سازی فاصله و رقم‌ها. */
+    // توابع کمکی ادغام بکاپ برای تشخیص رکوردهای تکراری.
     const normalizedKey = value => String(value ?? '').trim().replace(/[۰-۹]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).toLocaleLowerCase('fa');
+    /** استخراج مجموعه مقادیر یکتای یک فیلد؛ مقدارهای خالی حذف می‌شوند. */
     const uniqueValues = (records, field) => new Set(records.map(record => normalizedKey(record && record[field])).filter(Boolean));
+    /** ادغام بدون تکرار؛ رکورد دارای هر کلید تکراری رد می‌شود و دلیل آن به conflicts افزوده می‌شود. */
     const mergeUniqueRecords = (existing, incoming, fields, conflicts, label) => {
       const seen = new Set();
       existing.forEach(record => fields.forEach(field => {
@@ -2015,6 +2382,11 @@
       return accepted;
     };
 
+    /**
+     * هدف: تشخیص رکوردهای تکراری و ساخت داده ادغام‌شده بدون حذف داده‌های فعلی.
+     * ورودی: payload: بکاپ پس از کنترل ساختار.
+     * خروجی: شیء شامل آرایه‌های ادغام‌شده، شمارش‌ها و مغایرت‌ها.
+     */
     function analyzeRestorePayload(payload) {
       const conflicts = [];
       const currentInventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -2068,6 +2440,7 @@
       };
     }
 
+    // رویداد «تغییر» برای فیلد انتخاب فایل بکاپ؛ به‌روزرسانی داده‌ها و رابط پس از تغییر انتخاب.
     restoreFileInput.addEventListener('change', async () => {
       pendingRestorePayload = null;
       restoreBackupButton.disabled = true;
@@ -2127,6 +2500,7 @@
       }
     });
 
+    // رویداد «کلیک» برای دکمه تأیید بازگردانی بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
     restoreBackupButton.addEventListener('click', () => {
       if (!pendingRestorePayload) return;
       // تحلیل را در لحظه تأیید دوباره انجام می‌دهیم تا تغییرات پس از انتخاب فایل هم لحاظ شود.
@@ -2178,6 +2552,7 @@
       }
     });
 
+    // رویداد «کلیک» برای دکمه به‌روزرسانی گزارش فعالیت؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('refresh-backup-log').addEventListener('click', () => {
       renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
     });
