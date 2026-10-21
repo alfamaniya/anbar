@@ -15,28 +15,28 @@
 /* ---------- ۱) توکن‌ها و پایه ---------- */
 :root {
   color-scheme: light;
-  --ink: #14284b;
-  --ink-soft: #1d3a6b;
+  --ink: #0f172a;
+  --ink-soft: #1d4ed8;
   --blue: #2563eb;
   --blue-strong: #1d4ed8;
   --blue-wash: #dbeafe;
   --blue-faint: #eff6ff;
-  --red: #dc2626;
-  --red-strong: #b91c1c;
-  --red-wash: #fee2e2;
+  --red: #ff5a5f;
+  --red-strong: #e11d48;
+  --red-wash: #ffe4e6;
   --yellow: #facc15;
-  --yellow-wash: #fef3c7;
-  --orange: #f97316;
-  --orange-strong: #0cc218;
-  --orange-wash: #ffedd5;
-  --text: #1e293b;
-  --muted: #5b6b82;
-  --line: #d7e1ee;
-  --wash: #f4f7fc;
-  --page: #eef3fa;
+  --yellow-wash: #fff7cc;
+  --orange: #ff8a3d;
+  --orange-strong: #ea580c;
+  --orange-wash: #fff1e6;
+  --text: #1f2937;
+  --muted: #52607a;
+  --line: #dfeaf7;
+  --wash: #f5f9ff;
+  --page: #f7fbff;
   --surface: #ffffff;
   --radius: 16px;
-  --shadow: 0 6px 20px rgba(20, 40, 75, .06);
+  --shadow: 0 10px 28px rgba(37, 99, 235, .08);
 }
 
 * { box-sizing: border-box; }
