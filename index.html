@@ -310,6 +310,9 @@
       <h2 id="backup-gate-title">پیش از شروع، محل ذخیره بکاپ را مشخص کنید</h2>
       <p>تا زمانی که پوشه ذخیره انتخاب نشده و اولین فایل بکاپ با موفقیت ذخیره نشده باشد، تمام بخش‌های سایت قفل می‌مانند و امکان تغییر اطلاعات وجود ندارد.</p>
       <button class="action-button" id="backup-gate-choose-folder" type="button">انتخاب پوشه و فعال‌سازی سایت</button>
+      <!-- مسیر جایگزین برای مرورگرهایی که انتخاب پوشه یا ذخیره مستقیم فایل را پشتیبانی نمی‌کنند. -->
+      <button class="action-button secondary" id="backup-gate-continue-without-backup" type="button">ادامه بدون بکاپ خودکار</button>
+      <p class="backup-gate-note">در این حالت اطلاعات همچنان در حافظه محلی مرورگر ذخیره می‌شود، اما فایل پشتیبان خودکار ساخته نمی‌شود. پاک‌شدن داده‌های مرورگر یا خرابی دستگاه می‌تواند باعث از دست رفتن اطلاعات شود؛ از بخش بکاپ، فایل JSON را دستی دریافت کنید.</p>
       <p class="backup-gate-status" id="backup-gate-status" role="status" aria-live="polite">برای شروع، یک پوشه انتخاب کنید.</p>
       <p class="backup-gate-feedback" id="backup-gate-feedback" role="alert" aria-live="assertive"></p>
       <p>برای ذخیره مستقیم فایل، از نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS استفاده کنید.</p>
