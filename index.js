@@ -2052,6 +2052,8 @@
     let backupWriteInProgress = false;
     let backupWriteQueued = false;
     let applicationReady = false;
+    // این گزینه فقط بکاپ خودکار را در همین نشست غیرفعال می‌کند؛ ذخیره عادی localStorage فعال می‌ماند.
+    let automaticBackupDisabledForSession = false;
 
     /**
      * هدف: قفل/آزادکردن رابط اصلی براساس موفقیت راه‌اندازی بکاپ.
@@ -2196,7 +2198,7 @@
      * خروجی: زمان‌سنج بکاپ تنظیم می‌شود.
      */
     function scheduleAutomaticBackup() {
-      if (!backupDirectoryHandle || !applicationReady) return;
+      if (!backupDirectoryHandle || !applicationReady || automaticBackupDisabledForSession) return;
       clearTimeout(backupWriteTimer);
       backupWriteTimer = setTimeout(() => {
         writeAutomaticBackup().then(saved => {
@@ -2212,6 +2214,20 @@
      * ورودی: forceChooseNew: اجبار به انتخاب پوشه تازه.
      * خروجی: Promise؛ رابط بر اساس نتیجه آماده یا قفل می‌شود.
      */
+    /**
+     * هدف: اجازه استفاده از سامانه در مرورگرهایی که انتخاب پوشه/ذخیره فایل در آن‌ها در دسترس نیست.
+     * ورودی: ندارد.
+     * خروجی: رابط اصلی آزاد می‌شود؛ داده‌ها در localStorage می‌مانند ولی بکاپ خودکار این نشست متوقف است.
+     */
+    function startWithoutAutomaticBackup() {
+      automaticBackupDisabledForSession = true;
+      clearTimeout(backupWriteTimer);
+      setApplicationReady(true);
+      backupGateStatus.textContent = 'سامانه فعال شد؛ بکاپ خودکار این نشست غیرفعال است.';
+      backupFeedback.textContent = 'بکاپ خودکار غیرفعال است. اطلاعات در حافظه محلی مرورگر ذخیره می‌شوند؛ از بخش بکاپ، نسخه JSON دستی تهیه کنید.';
+      recordActivity('شروع بدون بکاپ خودکار', 'کاربر سامانه را بدون فعال‌سازی ذخیره خودکار فایل بکاپ اجرا کرد.');
+    }
+
     async function chooseBackupFolder(forceChooseNew = false) {
       if (typeof window.showDirectoryPicker !== 'function') {
         const message = 'این مرورگر انتخاب پوشه و ذخیره مستقیم فایل را پشتیبانی نمی‌کند. برای استفاده از سایت، آن را در نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS باز کنید.';
@@ -2271,6 +2287,7 @@
 
         await storeBackupDirectoryHandle(selectedDirectory);
         backupDirectoryHandle = selectedDirectory;
+        automaticBackupDisabledForSession = false;
         const selectedDirectoryName = selectedDirectory && selectedDirectory.name ? selectedDirectory.name : 'پوشه انتخاب‌شده';
         const changed = forceChooseNew || previousDirectoryName !== selectedDirectoryName;
         recordActivity(changed ? 'تغییر پوشه بکاپ' : 'فعال‌سازی پوشه بکاپ',
@@ -2303,6 +2320,13 @@
 
     // رویداد «کلیک» برای دکمه انتخاب پوشه بکاپ در صفحه شروع؛ اجرای رفتار متناسب با این کنترل و رویداد.
     backupGateChooseFolder.addEventListener('click', () => chooseBackupFolder(false));
+    // رویداد کلیک برای شروع جایگزین؛ در صورت خطای مرورگر اجازه استفاده بدون فایل بکاپ خودکار داده می‌شود.
+    document.getElementById('backup-gate-continue-without-backup').addEventListener('click', () => {
+      const confirmed = window.confirm(
+        'بدون بکاپ خودکار ادامه می‌دهید؟\\n\\nاطلاعات در حافظه محلی مرورگر ذخیره می‌شود، اما فایل پشتیبان خودکار ساخته نخواهد شد. پاک‌شدن داده‌های مرورگر ممکن است اطلاعات را از بین ببرد.\\n\\nبرای ادامه تأیید کنید.'
+      );
+      if (confirmed) startWithoutAutomaticBackup();
+    });
     // رویداد «کلیک» برای دکمه فعال‌سازی پوشه بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
     if (backupFolderButton) backupFolderButton.addEventListener('click', () => chooseBackupFolder(false));
     // رویداد «کلیک» برای دکمه تغییر پوشه بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
