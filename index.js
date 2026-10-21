@@ -113,7 +113,7 @@
      * خروجی: بدون مقدار بازگشتی؛ برای فهرست خالی عملیات نمی‌کند.
      */
     function recordIncomingEntry(items) {
-      if (!items.length) return;
+      if (!items.length) return true;
       const now = new Date();
       const dateTime = solarDateTime(now);
       const record = {
@@ -126,16 +126,16 @@
       };
       const records = loadEntryHistory();
       records.unshift(record);
-      if (saveEntryHistory(records)) {
-        renderEntryHistory();
-        const itemDetails = items.map(item =>
-          String(item.code || 'بدون کد') + ' (' + String(item.description || 'بدون شرح') + '): ' + toEnglishDigits(item.stock)
-        ).join('؛ ');
-        recordActivity('ثبت ورود کالا', {
-          'شماره ورود': record.entryNumber, 'تاریخ و ساعت': record.date + ' ' + record.time,
-          'تعداد اقلام': items.length, 'تعداد کل قطعه': record.pieceCount, 'اقلام (کد، شرح، تعداد)': itemDetails
-        });
-      }
+      if (!saveEntryHistory(records)) return false;
+      renderEntryHistory();
+      const itemDetails = items.map(item =>
+        String(item.code || 'بدون کد') + ' (' + String(item.description || 'بدون شرح') + '): ' + toEnglishDigits(item.stock)
+      ).join('؛ ');
+      recordActivity('ثبت ورود کالا', {
+        'شماره ورود': record.entryNumber, 'تاریخ و ساعت': record.date + ' ' + record.time,
+        'تعداد اقلام': items.length, 'تعداد کل قطعه': record.pieceCount, 'اقلام (کد، شرح، تعداد)': itemDetails
+      });
+      return true;
     }
 
     /**
@@ -503,14 +503,23 @@
       }
 
       const quantities = [];
+      const quantitiesByCode = new Map();
       for (const input of shipmentItemsContainer.querySelectorAll('.shipment-quantity')) {
-        const item = inventoryItems.find(candidate => candidate.code === input.dataset.code);
-        const quantity = normalizeStock(input.value);
-        if (!item || !Number.isFinite(quantity) || quantity <= 0 || quantity > item.stock) {
-          shipmentFeedback.textContent = 'تعداد ارسالی باید بیشتر از صفر و حداکثر برابر موجودی فعلی باشد. مقدار ردیف مشخص‌شده را اصلاح کنید.';
+        const matchingItems = inventoryItems.filter(candidate => candidate.code === input.dataset.code);
+        if (matchingItems.length !== 1) {
+          shipmentFeedback.textContent = 'کد کالای این ردیف در موجودی تکراری یا نامعتبر است؛ ارسال ثبت نشد. ابتدا رکوردهای دارای کد تکراری را بررسی و اصلاح کنید.';
           input.focus();
           return;
         }
+        const item = matchingItems[0];
+        const quantity = normalizeStock(input.value);
+        const totalForCode = (quantitiesByCode.get(item.code) || 0) + quantity;
+        if (!Number.isFinite(quantity) || quantity <= 0 || quantity > item.stock || totalForCode > item.stock) {
+          shipmentFeedback.textContent = 'مجموع تعداد ارسالی هر کالا باید بیشتر از صفر و حداکثر برابر موجودی فعلی همان کالا باشد. مقدار ردیف مشخص‌شده را اصلاح کنید.';
+          input.focus();
+          return;
+        }
+        quantitiesByCode.set(item.code, totalForCode);
         quantities.push({ item, quantity });
       }
       if (!quantities.length) {
@@ -537,6 +546,12 @@
       }
 
       const previousLocations = loadShipmentLocations();
+      const previousStoredValues = {
+        [LOCATION_KEY]: localStorage.getItem(LOCATION_KEY),
+        [SHIPMENT_KEY]: localStorage.getItem(SHIPMENT_KEY),
+        [STORAGE_KEY]: localStorage.getItem(STORAGE_KEY)
+      };
+      const previousInventoryItems = inventoryItems.map(item => ({ ...item }));
       const nextLocations = previousLocations.map(item => ({
         name: item.name,
         sublocations: [...item.sublocations]
@@ -557,7 +572,10 @@
         !locationRecord.sublocations.some(item => normLocation(item) === normLocation(sublocation));
       if (isNewSublocation) locationRecord.sublocations.push(sublocation);
       if (!saveShipmentLocations(nextLocations)) {
-        shipmentFeedback.textContent = 'ذخیره محل ارسال ممکن نشد؛ ارسال ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید.';
+        const rollbackSucceeded = restoreLocalStorageValue(LOCATION_KEY, previousStoredValues[LOCATION_KEY]);
+        shipmentFeedback.textContent = rollbackSucceeded
+          ? 'ذخیره محل ارسال ممکن نشد؛ ارسال ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید.'
+          : 'ذخیره محل ارسال ناموفق بود و بازگردانی مقدار قبلی کامل نشد؛ داده‌ها را بررسی کنید.';
         return;
       }
 
@@ -578,7 +596,13 @@
       };
 
       if (!saveShipments([shipment, ...existingShipments])) {
-        saveShipmentLocations(previousLocations);
+        const rollbackSucceeded = [
+          restoreLocalStorageValue(SHIPMENT_KEY, previousStoredValues[SHIPMENT_KEY]),
+          restoreLocalStorageValue(LOCATION_KEY, previousStoredValues[LOCATION_KEY])
+        ].every(Boolean);
+        shipmentFeedback.textContent = rollbackSucceeded
+          ? 'ذخیره تاریخچه ارسال انجام نشد؛ ارسال ثبت نشد و اطلاعات قبلی حفظ شد.'
+          : 'ذخیره تاریخچه ارسال انجام نشد و بازگردانی همه مقادیر قبلی کامل نشد؛ داده‌ها را بررسی کنید.';
         return;
       }
 
@@ -588,16 +612,18 @@
       });
 
       if (!saveInventory()) {
-        quantities.forEach(({ item, quantity }) => {
-          item.stock = Number((item.stock + quantity).toFixed(8));
-          item.sendQuantity = quantity;
-        });
-        saveShipments(existingShipments);
-        saveShipmentLocations(previousLocations);
+        inventoryItems.splice(0, inventoryItems.length, ...previousInventoryItems);
+        const rollbackSucceeded = [
+          restoreLocalStorageValue(STORAGE_KEY, previousStoredValues[STORAGE_KEY]),
+          restoreLocalStorageValue(SHIPMENT_KEY, previousStoredValues[SHIPMENT_KEY]),
+          restoreLocalStorageValue(LOCATION_KEY, previousStoredValues[LOCATION_KEY])
+        ].every(Boolean);
         renderShipmentLocationOptions();
         renderLocationManager();
         renderInventory();
-        shipmentFeedback.textContent = 'ذخیره موجودی انجام نشد؛ ارسال ثبت نشد. دوباره تلاش کنید.';
+        shipmentFeedback.textContent = rollbackSucceeded
+          ? 'ذخیره موجودی انجام نشد؛ ارسال ثبت نشد و داده‌های قبلی بازیابی شدند. دوباره تلاش کنید.'
+          : 'ذخیره موجودی ناموفق بود و بازگردانی همه داده‌های قبلی کامل نشد؛ موجودی، تاریخچه ارسال و فایل بکاپ را بررسی کنید.';
         return;
       }
 
@@ -1416,6 +1442,7 @@
       let skipped = 0;
       const incomingItems = new Map();
       const previousItems = inventoryItems.map(item => ({ ...item }));
+      const previousInventoryStorage = localStorage.getItem(STORAGE_KEY);
       const entryTimestamp = new Date().toISOString();
 
       rows.forEach(row => {
@@ -1458,7 +1485,12 @@
       }
 
       renderInventory();
-      recordIncomingEntry([...incomingItems.values()]);
+      if (!recordIncomingEntry([...incomingItems.values()])) {
+        inventoryItems.splice(0, inventoryItems.length, ...previousItems);
+        const rollbackSucceeded = restoreLocalStorageValue(STORAGE_KEY, previousInventoryStorage);
+        renderInventory();
+        return { added: 0, updated: 0, skipped, saved: false, rollbackFailed: !rollbackSucceeded };
+      }
       return { added, updated, skipped, saved: true };
     }
 
@@ -1469,7 +1501,9 @@
      */
     function showImportResult(result, target) {
       if (result.saved === false) {
-        target.textContent = 'ذخیره‌سازی ناموفق بود؛ هیچ تغییری ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید و دوباره تلاش کنید.';
+        target.textContent = result.rollbackFailed
+          ? 'ثبت تاریخچه ورود ناموفق بود و بازگردانی موجودی نیز کامل نشد؛ پیش از ادامه، موجودی و فایل بکاپ را بررسی کنید.'
+          : 'ذخیره‌سازی ناموفق بود؛ هیچ تغییری ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید و دوباره تلاش کنید.';
         return;
       }
 
@@ -2371,6 +2405,22 @@
     // فقط تغییرات ذخیره‌شده در کلیدهای داده‌ای برنامه، بکاپ خودکار را زمان‌بندی می‌کنند.
     // رهگیری ذخیره‌سازی کلیدهای برنامه برای زمان‌بندی بکاپ پس از تغییر واقعی داده.
     const originalLocalStorageSetItem = Storage.prototype.setItem;
+
+    /**
+     * هدف: بازگرداندن مقدار خام ذخیره‌سازی پس از شکست یک عملیات چندمرحله‌ای.
+     * ورودی: key: کلید localStorage؛ previousValue: مقدار قبلی یا null اگر وجود نداشته است.
+     * خروجی: true در موفقیت و false در شکست؛ مقدار خام پیشین بدون نرمال‌سازی حفظ می‌شود.
+     */
+    function restoreLocalStorageValue(key, previousValue) {
+      try {
+        if (previousValue === null) localStorage.removeItem(key);
+        else originalLocalStorageSetItem.call(localStorage, key, previousValue);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
     Storage.prototype.setItem = function(key, value) {
       originalLocalStorageSetItem.call(this, key, value);
       if ([STORAGE_KEY, ACTIVITY_KEY, ENTRY_HISTORY_KEY, SHIPMENT_KEY, LOCATION_KEY].includes(String(key))) {
