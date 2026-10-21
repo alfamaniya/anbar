@@ -26,6 +26,9 @@
     const selectedItemCodes = new Set();
     const inputFeedback = document.getElementById('input-feedback');
     let inventorySort = { key: 'code', direction: 'asc' };
+    // فیلتر هشدار موجودی؛ مقدار حداقل هر کالا در همان رکورد نگهداری می‌شود.
+    let inventoryStatusFilter = 'all';
+    let inventoryStatusFilterSelect = null;
     const itemFormInputs = {
       code: document.getElementById('supply-code'),
       description: document.getElementById('item-description'),
@@ -793,7 +796,13 @@
             !(typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp)))) {
           findings.push('موجودی، رکورد ' + row + ' زمان ورود نامعتبر دارد.');
         }
-        if (Object.keys(item).some(key => !['code', 'description', 'stock', 'sendQuantity', 'entryTimestamp'].includes(key))) {
+        const minimumStock = item.minimumStock === undefined || item.minimumStock === '' || item.minimumStock === null
+          ? 0 : Number(item.minimumStock);
+        if (item.minimumStock !== undefined && item.minimumStock !== '' && item.minimumStock !== null &&
+            (!Number.isFinite(minimumStock) || minimumStock < 0)) {
+          findings.push('موجودی، رکورد ' + row + ' حداقل موجودی نامعتبر دارد.');
+        }
+        if (Object.keys(item).some(key => !['code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp'].includes(key))) {
           findings.push('موجودی، رکورد ' + row + ' فیلد اضافی دارد که نسخه جاری هنگام ذخیره حفظ نمی‌کند.');
         }
         if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
@@ -938,6 +947,10 @@
               code: item.code,
               description: item.description,
               stock,
+              // رکوردهای قدیمی حداقل موجودی ندارند؛ مقدار صفر یعنی آستانه اختصاصی هنوز تنظیم نشده است.
+              minimumStock: item.minimumStock === undefined || item.minimumStock === '' || item.minimumStock === null
+                ? 0
+                : (Number.isFinite(Number(item.minimumStock)) && Number(item.minimumStock) >= 0 ? Number(item.minimumStock) : 0),
               // مقدار موقت ارسال فقط در صورتی معتبر است که عددی مثبت و در محدوده موجودی باشد.
               sendQuantity: Number.isFinite(requestedQuantity) && requestedQuantity > 0 && requestedQuantity <= stock
                 ? requestedQuantity
@@ -967,7 +980,7 @@
      * خروجی: true در ذخیره موفق و false در شکست.
      */
     function saveInventory() {
-      const inventoryFields = new Set(['code', 'description', 'stock', 'sendQuantity', 'entryTimestamp']);
+      const inventoryFields = new Set(['code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp']);
       const preservesInventoryRecord = item => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
         const stockTypeValid = typeof item.stock === 'number' ||
@@ -975,6 +988,9 @@
         if (typeof item.code !== 'string' || typeof item.description !== 'string' ||
             !stockTypeValid || !Number.isFinite(Number(item.stock)) || Number(item.stock) < 0 ||
             Object.keys(item).some(key => !inventoryFields.has(key))) return false;
+        if (item.minimumStock !== undefined && item.minimumStock !== '' && item.minimumStock !== null &&
+            ((typeof item.minimumStock !== 'number' && typeof item.minimumStock !== 'string') ||
+              !Number.isFinite(Number(item.minimumStock)) || Number(item.minimumStock) < 0)) return false;
         const quantity = item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
           ? NaN : Number(item.sendQuantity);
         if (item.sendQuantity !== '' && item.sendQuantity !== null && item.sendQuantity !== undefined &&
@@ -1698,6 +1714,8 @@
         if (existing) {
           existing.description = item.description;
           existing.stock = item.stock;
+          // به‌روزرسانی مقدار انبار، آستانه‌ای را که کاربر قبلاً برای این کد تعیین کرده پاک نمی‌کند.
+          if (!Number.isFinite(Number(existing.minimumStock)) || Number(existing.minimumStock) < 0) existing.minimumStock = 0;
           const pendingQuantity = existing.sendQuantity === '' || existing.sendQuantity === null || existing.sendQuantity === undefined
             ? NaN
             : normalizeStock(existing.sendQuantity);
@@ -1707,7 +1725,7 @@
           existing.entryTimestamp = entryTimestamp;
           updated += 1;
         } else {
-          inventoryItems.push({ ...item, sendQuantity: '', entryTimestamp });
+          inventoryItems.push({ ...item, minimumStock: 0, sendQuantity: '', entryTimestamp });
           added += 1;
         }
       });
@@ -2047,7 +2065,70 @@
      * ورودی: پارامتر ندارد؛ وضعیت جست‌وجو و مرتب‌سازی جاری خوانده می‌شود.
      * خروجی: جدول و کنترل‌های موجودی به‌روزرسانی می‌شوند.
      */
+    function isLowStockItem(item) {
+      const stock = Number(item && item.stock);
+      const minimum = Number(item && item.minimumStock);
+      return Number.isFinite(stock) && Number.isFinite(minimum) && minimum > 0 && stock <= minimum;
+    }
+
+    /**
+     * هدف: ایجاد کنترل‌های فیلتر و ستون حداقل موجودی در همان جدول موجود، بدون وابستگی به HTML جداگانه.
+     * ورودی: پارامتر ندارد.
+     * خروجی: کنترل‌های فیلتر و حداقل موجودی در صورت نیاز به DOM افزوده می‌شوند.
+     */
+    function ensureInventoryManagementControls() {
+      const searchPanel = inventorySearchInput.closest('.inventory-search-panel');
+      if (searchPanel && !inventoryStatusFilterSelect) {
+        const group = document.createElement('div');
+        group.className = 'inventory-status-filter-group';
+        const label = document.createElement('label');
+        label.htmlFor = 'inventory-status-filter';
+        label.textContent = 'فیلتر موجودی';
+        const select = document.createElement('select');
+        select.id = 'inventory-status-filter';
+        select.className = 'inventory-status-filter';
+        select.setAttribute('aria-label', 'فیلتر اقلام بر اساس وضعیت موجودی');
+        [['all', 'همه اقلام'], ['low', 'کمبود نسبت به حداقل'], ['zero', 'موجودی صفر']].forEach(([value, text]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = text;
+          select.append(option);
+        });
+        select.value = inventoryStatusFilter;
+        select.addEventListener('change', () => {
+          inventoryStatusFilter = select.value;
+          renderInventory();
+        });
+        group.append(label, select);
+        const liveText = searchPanel.querySelector('.search-live-text');
+        searchPanel.insertBefore(group, liveText || null);
+        inventoryStatusFilterSelect = select;
+      }
+
+      const headerRow = inventoryGrid.closest('table')?.querySelector('thead tr');
+      if (headerRow && !headerRow.querySelector('[data-inventory-sort="minimumStock"]')) {
+        const heading = document.createElement('th');
+        heading.scope = 'col';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'inventory-sort-button';
+        button.dataset.inventorySort = 'minimumStock';
+        button.innerHTML = 'حداقل موجودی <span class="inventory-sort-marker" aria-hidden="true">↕</span>';
+        button.addEventListener('click', () => {
+          inventorySort = inventorySort.key === 'minimumStock'
+            ? { key: 'minimumStock', direction: inventorySort.direction === 'asc' ? 'desc' : 'asc' }
+            : { key: 'minimumStock', direction: 'asc' };
+          renderInventory();
+        });
+        heading.append(button);
+        const stockHeading = headerRow.querySelector('[data-inventory-sort="stock"]')?.closest('th');
+        if (stockHeading && stockHeading.nextSibling) headerRow.insertBefore(heading, stockHeading.nextSibling);
+        else headerRow.append(heading);
+      }
+    }
+
     function renderInventory() {
+      ensureInventoryManagementControls();
       const { key, direction } = inventorySort;
       const multiplier = direction === 'desc' ? -1 : 1;
       const searchTerm = toEnglishDigits(inventorySearchInput.value).trim().toLocaleLowerCase('fa');
@@ -2067,7 +2148,7 @@
         const a = first[key] ?? '';
         const b = second[key] ?? '';
         let comparison;
-        if (key === 'stock' || key === 'sendQuantity') {
+        if (key === 'stock' || key === 'minimumStock' || key === 'sendQuantity') {
           comparison = (Number(a) || 0) - (Number(b) || 0);
         } else {
           comparison = String(a).localeCompare(String(b), 'fa', {
@@ -2079,17 +2160,21 @@
       });
 
       const filteredItems = sortedItems.filter(item => {
+        if (inventoryStatusFilter === 'low' && !isLowStockItem(item)) return false;
+        if (inventoryStatusFilter === 'zero' && Number(item.stock) !== 0) return false;
         if (!searchTerm) return true;
         const searchable = toEnglishDigits([
-          item.code, item.description, item.stock, item.sendQuantity,
+          item.code, item.description, item.stock, item.minimumStock, item.sendQuantity,
           item.entryTimestamp ? solarDateTime(new Date(item.entryTimestamp)).date : ''
         ].join(' ')).toLocaleLowerCase('fa');
         return searchable.includes(searchTerm);
       });
 
       inventoryGrid.replaceChildren();
+      const lowStockCount = inventoryItems.filter(isLowStockItem).length;
       inventoryCount.textContent = 'تعداد کالاها: ' + toEnglishDigits(inventoryItems.length) +
-        (searchTerm ? '؛ نتیجه جست‌وجو: ' + toEnglishDigits(filteredItems.length) : '');
+        '؛ هشدار کمبود: ' + toEnglishDigits(lowStockCount) +
+        ((searchTerm || inventoryStatusFilter !== 'all') ? '؛ نتیجه فیلتر: ' + toEnglishDigits(filteredItems.length) : '');
       inventoryEmpty.hidden = filteredItems.length > 0;
       if (inventoryItems.length && !filteredItems.length) {
         inventoryEmpty.textContent = 'کالایی با عبارت جست‌وجوشده پیدا نشد؛ عبارت را تغییر دهید یا پاک کنید.';
@@ -2127,6 +2212,46 @@
         const stockCell = document.createElement('td');
         stockCell.className = 'inventory-quantity-cell';
         stockCell.textContent = toEnglishDigits(item.stock);
+
+        const minimumStockCell = document.createElement('td');
+        minimumStockCell.className = 'inventory-minimum-stock-cell';
+        const minimumStockInput = document.createElement('input');
+        minimumStockInput.type = 'number';
+        minimumStockInput.min = '0';
+        minimumStockInput.step = 'any';
+        minimumStockInput.inputMode = 'decimal';
+        minimumStockInput.className = 'inventory-minimum-stock-input';
+        minimumStockInput.value = String(Number(item.minimumStock) || 0);
+        minimumStockInput.setAttribute('aria-label', 'حداقل موجودی کالا با کد ' + item.code);
+        minimumStockInput.title = 'موجودی برابر یا کمتر از این مقدار، هشدار کمبود ایجاد می‌کند؛ صفر یعنی آستانه اختصاصی تنظیم نشده است.';
+        minimumStockInput.addEventListener('change', () => {
+          const rawValue = minimumStockInput.value.trim();
+          const nextMinimum = rawValue === '' ? 0 : normalizeStock(rawValue);
+          if (!Number.isFinite(nextMinimum) || nextMinimum < 0) {
+            minimumStockInput.value = String(Number(item.minimumStock) || 0);
+            inventoryFeedback.textContent = 'حداقل موجودی باید عددی معتبر و بزرگ‌تر یا مساوی صفر باشد.';
+            minimumStockInput.focus();
+            return;
+          }
+          const previousMinimum = Number(item.minimumStock) || 0;
+          item.minimumStock = nextMinimum;
+          if (!saveInventory()) {
+            item.minimumStock = previousMinimum;
+            minimumStockInput.value = String(previousMinimum);
+            return;
+          }
+          inventoryFeedback.textContent = 'حداقل موجودی ذخیره شد؛ هشدار کمبود برای کد ' + item.code + ' به‌روز شد.';
+          renderInventory();
+        });
+        minimumStockCell.append(minimumStockInput);
+        if (isLowStockItem(item)) {
+          stockCell.classList.add('inventory-low-stock-cell');
+          const badge = document.createElement('span');
+          badge.className = 'inventory-low-stock-badge';
+          badge.textContent = 'هشدار کمبود';
+          badge.setAttribute('role', 'status');
+          stockCell.append(document.createTextNode(' '), badge);
+        }
 
         const sendCell = document.createElement('td');
         const sendInput = document.createElement('input');
@@ -2178,7 +2303,7 @@
           entryDateCell.dataset.sortValue = '';
         }
 
-        row.append(selectionCell, codeCell, descriptionCell, stockCell, sendCell, entryDateCell);
+        row.append(selectionCell, codeCell, descriptionCell, stockCell, minimumStockCell, sendCell, entryDateCell);
         inventoryGrid.append(row);
       });
 
@@ -2800,6 +2925,9 @@
         }
         if (item.entryTimestamp && (typeof item.entryTimestamp !== 'string' || !Number.isFinite(Date.parse(item.entryTimestamp)))) {
           return 'زمان ورود کالا نامعتبر است.';
+        }
+        if (item.minimumStock !== undefined && !validNumber(item.minimumStock, true)) {
+          return 'حداقل موجودی باید صفر یا مثبت باشد.';
         }
         return '';
       });
