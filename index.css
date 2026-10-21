@@ -930,9 +930,6 @@
     .settings-box input { width: 100%; min-height: 40px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
     .settings-box .preview-panel { max-height: 240px; overflow: auto; }
     /* لاگ بکاپ فقط یک ناحیه اسکرول داشته باشد؛ اسکرول بیرونی پنل غیرفعال است. */
-    #backup-log-results { max-height: none; overflow: visible; }
-    #backup-log-results .bulk-preview-scroll { max-height: 240px; overflow: auto; }
-    .settings-log-row { padding: 8px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
     .sortable-data-table { width:100%; border-collapse:collapse; font-size:12px; text-align:center; }
     .sortable-data-table th, .sortable-data-table td { padding:8px; border:1px solid var(--border); vertical-align:middle; }
     .sortable-data-table thead th { position:sticky; top:0; z-index:1; background:#dce7f6; color:var(--text); }
@@ -942,8 +939,6 @@
     .table-sort-button { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; min-height:34px; padding:4px 6px; border:0; border-radius:6px; background:transparent; color:inherit; font:inherit; font-weight:700; cursor:pointer; }
     .table-sort-button:hover, .table-sort-button:focus-visible { background:rgba(255,255,255,.8); outline:2px solid var(--accent); outline-offset:-2px; }
     .table-sort-marker { color:var(--accent); min-width:1em; }
-    .settings-log-table { min-width:620px; }
-    .settings-log-table td { white-space:normal; text-align:right; }
     .shipment-items-table { min-width:700px; }
     .shipment-items-table input { width:100%; min-width:95px; }
     .duplicate-group-table { min-width:460px; }
@@ -1450,9 +1445,6 @@
       font-size:13px;
     }
     input[type="checkbox"], input[type="radio"] { width:17px; height:17px; min-height:17px; }
-    .settings-log-table { min-width:760px; }
-    .settings-log-table th,.settings-log-table td { white-space:normal; vertical-align:top; overflow-wrap:anywhere; }
-    #backup-log-results .bulk-preview-scroll { max-height:380px; }
 
     /* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width:700px). */
     @media (max-width:700px) {
@@ -1771,7 +1763,6 @@ input[type="search"], input[type="date"], select, textarea {
   word-break: normal;
   overflow-wrap: normal;
 }
-.settings-log-table th, .settings-log-table td,
 .bulk-preview-table th, .bulk-preview-table td {
   min-width: 76px;
   word-break: normal;
@@ -2209,23 +2200,19 @@ textarea {
 
 
 /* اصلاح خوانایی جدول لاگ: سرستون‌ها یکپارچه می‌مانند و فقط متن جزئیات اجازه شکست در رشته‌های طولانی را دارد. */
-.settings-log-table {
   width: 100%;
   min-width: 900px;
   table-layout: auto;
 }
-.settings-log-table th {
   white-space: nowrap;
   word-break: normal;
   overflow-wrap: normal;
   min-width: 100px;
 }
-.settings-log-table td {
   word-break: normal;
   overflow-wrap: break-word;
   vertical-align: top;
 }
-.settings-log-table td:last-child {
   min-width: 300px;
   overflow-wrap: anywhere;
 }
@@ -2242,11 +2229,9 @@ textarea {
 .settings-grid > .settings-box:nth-child(4) {
   grid-column: 1 / -1;
 }
-.settings-grid > .settings-box:nth-child(4) #backup-log-results {
   width: 100%;
   min-width: 0;
 }
-.settings-grid > .settings-box:nth-child(4) .settings-log-table {
   width: 100%;
   min-width: 900px;
 }
@@ -2293,9 +2278,5 @@ textarea {
 #location-manager-list{max-height:320px;overflow-y:auto;overscroll-behavior:contain;padding:4px;border:1px solid var(--border,#d7e1ef);border-radius:12px;background:rgba(238,244,252,.55)}
 #location-manager-list .location-record{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px}
 #location-manager-list .location-edit-button,#location-manager-list .location-delete-button{min-height:34px;padding:5px 9px;white-space:nowrap}
-.activity-detail-fields{display:grid;grid-template-columns:minmax(90px,.35fr) minmax(180px,1fr);gap:4px 10px;margin:0;min-width:280px}
-.activity-detail-fields dt{font-weight:700;color:var(--text,#1e293b);overflow-wrap:anywhere}
-.activity-detail-fields dd{margin:0;overflow-wrap:anywhere;white-space:normal}
-.settings-log-table td:last-child{min-width:320px;max-width:650px}
 #reset-shared-preview{margin-inline-end:auto}
 @media(max-width:600px){#location-manager-list .location-record{grid-template-columns:minmax(0,1fr) auto}.location-record-details{grid-column:1/-1}.activity-detail-fields{grid-template-columns:1fr;min-width:220px}.activity-detail-fields dd{margin-bottom:6px}}
