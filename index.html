@@ -1,5 +1,7 @@
+<!-- سند HTML5؛ زبان صفحه فارسی و جهت کلی راست‌به‌چپ است. -->
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
+<!-- فراداده‌ها، عنوان صفحه و اتصال شیوه‌نامه اصلی. -->
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,12 +11,14 @@
 </head>
 <body>
   <div class="layout" id="app-layout">
+    <!-- هدر ثابت و ناوبری اصلی؛ پیوندها شناسه سکشن‌های داخل main را هدف می‌گیرند. -->
     <header class="sidebar" aria-label="هدر ناوبری">
       <div class="brand">
         <h1>کنترل مصرف</h1>
         <p>سامانه مدیریت اقلام</p>
       </div>
 
+      <!-- فهرست ناوبری؛ مقدار href هر پیوند باید با ID سکشن مربوط هماهنگ بماند. -->
       <nav aria-label="ناوبری بخش‌ها">
         <p class="nav-title">دسترسی به بخش‌ها</p>
         <ul class="nav-list">
@@ -27,7 +31,9 @@
       </nav>
     </header>
 
+    <!-- محتوای اصلی برنامه: سربرگ، داشبورد و بخش‌های عملیاتی. -->
     <main class="main">
+      <!-- سربرگ معرفی سامانه و وضعیت نمایشی فعلی رابط. -->
       <div class="page-topline">
         <div class="page-title-block">
           <span class="page-eyebrow">سامانه مدیریت اقلام</span>
@@ -38,6 +44,7 @@
       </div>
 
       <div class="sections">
+        <!-- داشبورد؛ مقادیر آماری پس از اجرا از داده واقعی ذخیره‌شده خوانده می‌شوند. -->
         <section class="section-card dashboard-section is-active" id="section-dashboard" aria-labelledby="dashboard-title">
           <div class="dashboard-hero">
             <div class="dashboard-hero-copy">
@@ -47,12 +54,14 @@
             </div>
             <a class="dashboard-primary-link" href="#section-1" data-section-target="section-1">شروع ورود کالا <span aria-hidden="true">←</span></a>
           </div>
+          <!-- کارت‌های آماری؛ ID هر عدد در updateDashboardSummary به‌روزرسانی می‌شود. -->
           <div class="dashboard-stats" aria-label="آمار خلاصه سامانه">
             <article class="dashboard-stat stat-coral"><span class="dashboard-stat-icon" aria-hidden="true">▦</span><div class="dashboard-stat-content"><p>اقلام ثبت‌شده</p><strong id="dashboard-item-count" aria-live="polite">۰</strong><span>تعداد ردیف‌های موجودی</span></div></article>
             <article class="dashboard-stat stat-orange"><span class="dashboard-stat-icon" aria-hidden="true">＋</span><div class="dashboard-stat-content"><p>مجموع موجودی</p><strong id="dashboard-stock-total" aria-live="polite">۰</strong><span>جمع مقادیر عددی کالاها</span></div></article>
             <article class="dashboard-stat stat-rose"><span class="dashboard-stat-icon" aria-hidden="true">↙</span><div class="dashboard-stat-content"><p>ورودی‌های ثبت‌شده</p><strong id="dashboard-entry-count" aria-live="polite">۰</strong><span>تعداد سوابق ورود کالا</span></div></article>
             <article class="dashboard-stat stat-amber"><span class="dashboard-stat-icon" aria-hidden="true">↗</span><div class="dashboard-stat-content"><p>ارسال‌های ثبت‌شده</p><strong id="dashboard-shipment-count" aria-live="polite">۰</strong><span>تعداد سوابق ارسال</span></div></article>
           </div>
+          <!-- میان‌برهای ناوبری و هشدار موجودی. -->
           <div class="dashboard-panels">
             <section class="dashboard-panel" aria-labelledby="dashboard-shortcuts-title">
               <div class="dashboard-panel-heading"><div><span class="dashboard-panel-kicker">میان‌برها</span><h3 id="dashboard-shortcuts-title">دسترسی سریع</h3></div><span class="dashboard-panel-mark" aria-hidden="true">↙</span></div>
@@ -72,6 +81,7 @@
           </div>
         </section>
 
+        <!-- ورود کالا: داده دستی، فایل و کلیپ‌بورد پیش از ثبت در پیش‌نمایش مشترک جمع می‌شوند. -->
         <section class="section-card" id="section-1" aria-labelledby="title-1">
           <div class="section-heading"><span class="section-icon" aria-hidden="true">＋</span><h3 id="title-1">ورود کالا</h3></div>
           <div class="input-panels">
@@ -134,6 +144,7 @@
           </div>
         </section>
 
+        <!-- موجودی و ارسال: جدول ردیف‌ها در JavaScript ساخته می‌شود؛ جست‌وجو و مرتب‌سازی همان داده را کنترل می‌کنند. -->
         <section class="section-card" id="section-2" aria-labelledby="title-2">
           <div class="section-heading">
             <span class="section-icon" aria-hidden="true">▦</span>
@@ -180,6 +191,7 @@
           <p id="inventory-feedback" class="feedback" role="status" aria-live="polite"></p>
         </section>
 
+        <!-- گزارش‌ها: تاریخچه ورود و ارسال، جدول‌های مستقل و قابل مرتب‌سازی دارند. -->
         <section class="section-card" id="section-4" aria-labelledby="title-4">
           <div class="section-heading">
             <span class="section-icon" aria-hidden="true">▤</span>
@@ -233,6 +245,7 @@
           </div>
         </section>
 
+        <!-- تنظیمات: مدیریت محل‌ها، بکاپ JSON، بازگردانی و لاگ فعالیت. -->
         <section class="section-card" id="section-3" aria-labelledby="title-3">
           <div class="section-heading">
             <span class="section-icon" aria-hidden="true">⚙</span>
@@ -291,6 +304,7 @@
     </main>
   </div>
 
+  <!-- دروازه آغاز؛ تا ذخیره موفق بکاپ اولیه، رابط اصلی غیرقابل تعامل است. -->
   <section class="backup-setup-gate" id="backup-setup-gate" role="dialog" aria-modal="true" aria-labelledby="backup-gate-title">
     <div class="backup-setup-card">
       <h2 id="backup-gate-title">پیش از شروع، محل ذخیره بکاپ را مشخص کنید</h2>
@@ -302,7 +316,9 @@
     </div>
   </section>
 
+  <!-- وابستگی Excel باید پیش از index.js بارگیری شود تا XLSX هنگام ورود فایل در دسترس باشد. -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!-- پنجره‌های محاوره‌ای؛ JavaScript محتوای پویا و رفتار دکمه‌های آن‌ها را کنترل می‌کند. -->
   <dialog class="duplicate-dialog" id="duplicate-dialog" aria-labelledby="duplicate-dialog-title">
     <div class="duplicate-dialog-header">
       <h3 id="duplicate-dialog-title">بررسی اقلام تکراری پیش از ورود</h3>
@@ -320,6 +336,7 @@
     <div class="duplicate-dialog-body" id="import-error-details"></div>
     <div class="duplicate-dialog-footer"><button class="action-button" id="import-error-ok" type="button">متوجه شدم</button></div>
   </dialog>
+  <!-- فرم تأیید ارسال؛ مقادیر دوباره با موجودی جاری اعتبارسنجی می‌شوند. -->
   <dialog class="shipment-dialog" id="shipment-dialog" aria-labelledby="shipment-dialog-title">
     <form id="shipment-form" novalidate>
       <div class="shipment-header"><h3 id="shipment-dialog-title">تأیید نهایی ارسال کالاها</h3><button class="action-button shipment-close" id="shipment-dialog-x" type="button">بستن ✕</button></div>
@@ -339,6 +356,7 @@
     </form>
   </dialog>
 
+  <!-- منطق برنامه در انتهای body بارگیری می‌شود تا عناصر HTML پیش از اتصال رویدادها حاضر باشند. -->
   <script src="index.js"></script>
 </body>
 </html>
