@@ -675,6 +675,12 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .shipment-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
+  .inventory-status-filter-group { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .report-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-filter-actions { align-items: stretch; }
+  .report-filter-actions .action-button { flex: 1 1 150px; }
+  .reports-consumption-panel { padding: 14px 12px; }
+  .shipment-document-cell details ul { min-width: 180px; }
   .main { padding: 18px 12px 28px; }
   .page-topline { flex-direction: column; align-items: flex-start; padding: 16px; }
   .section-card { min-height: 0; padding: 16px 12px; border-radius: 16px; }
@@ -703,6 +709,11 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .backup-setup-gate { padding: 12px; }
 }
 @media (max-width: 480px) {
+  .report-filter-grid { grid-template-columns: minmax(0, 1fr); }
+  .report-filter-actions { flex-direction: column; align-items: stretch; }
+  .report-filter-actions .action-button { width: 100%; }
+  .inventory-status-filter-group label { white-space: normal; }
+  .shipment-document-cell { min-width: 170px; }
   html { scroll-padding-top: 130px; }
   .sidebar { padding: 9px 10px; }
   .brand h1 { font-size: 16px; }
@@ -733,6 +744,124 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
 @media (min-width: 1201px) {
   .input-panels { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ---------- اصلاحات دسترس‌پذیری و کنترل‌های مراحل ۵ تا ۷ ---------- */
+/* فیلتر و فیلدهای افزوده‌شده؛ عرض والد حفظ می‌شود تا برچسب فارسی عمودی نشود. */
+.inventory-status-filter-group {
+  display: grid;
+  grid-template-columns: auto minmax(150px, 1fr);
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+}
+.inventory-status-filter-group label {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.inventory-status-filter,
+.inventory-category-form-group input,
+.inventory-category-input,
+.inventory-minimum-stock-input {
+  width: 100%;
+  min-width: 100px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid #b9c9e0;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--text);
+  direction: rtl;
+}
+.inventory-category-form-group { margin-top: 2px; }
+.inventory-category-form-group .field-hint { color: var(--muted); font-size: 12px; }
+.inventory-category-cell,
+.inventory-minimum-stock-cell { min-width: 130px; }
+.inventory-category-input,
+.inventory-minimum-stock-input { min-width: 108px; text-align: center; }
+.inventory-table { min-width: 1120px; }
+.inventory-table th, .inventory-table td { vertical-align: middle; }
+.inventory-low-stock-cell { color: #713f12; font-weight: 800; }
+.inventory-low-stock-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  margin-inline-start: 4px;
+  padding: 2px 7px;
+  border: 1px solid #facc15;
+  border-radius: 999px;
+  background: var(--yellow-wash);
+  color: #713f12;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.inventory-category-input:focus-visible,
+.inventory-minimum-stock-input:focus-visible,
+.inventory-status-filter:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+/* گزارش تفصیلی از تاریخچه ارسال، با فیلترهایی که در موبایل هم تک‌ستونه می‌شوند. */
+.reports-consumption-panel { width: 100%; min-width: 0; margin: 0 0 18px; }
+.reports-consumption-panel > p { line-height: 1.9; overflow-wrap: anywhere; }
+.report-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.report-filter-field { min-width: 0; margin: 0; }
+.report-filter-field input,
+.report-filter-field select { width: 100%; min-width: 0; }
+.report-filter-summary { margin: 0; }
+.report-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.report-table-wrap { max-height: 520px; }
+.consumption-report-table { min-width: 980px; }
+.consumption-report-table td { white-space: nowrap; }
+.consumption-report-table td:nth-child(7) {
+  min-width: 180px;
+  max-width: 360px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.consumption-report-table td:nth-child(1) { min-width: 145px; }
+.consumption-report-table td:nth-child(4),
+.consumption-report-table td:nth-child(5) { white-space: normal; overflow-wrap: anywhere; }
+.shipment-document-cell { min-width: 185px; }
+.shipment-document-cell details { margin-top: 6px; white-space: normal; text-align: right; }
+.shipment-document-cell summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 3px 8px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: var(--blue-faint);
+  color: var(--blue-strong);
+  font-size: 11px;
+  cursor: pointer;
+}
+.shipment-document-cell details[open] summary { margin-bottom: 6px; background: var(--blue-wash); }
+.shipment-document-cell details ul {
+  display: grid;
+  gap: 5px;
+  min-width: 220px;
+  margin: 4px 0;
+  padding: 8px 24px 8px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  white-space: normal;
+}
+.shipment-document-cell details li { overflow-wrap: anywhere; font-size: 12px; font-weight: 400; line-height: 1.8; }
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
