@@ -1,4 +1,5 @@
-/* === style.css === */
+/* شیوه‌نامه اصلی سامانه؛ قواعد پایه در ابتدا و لایه هماهنگ‌سازی نهایی در انتهای فایل قرار دارد. */
+/* توکن‌های پایه رنگ و ابعاد؛ اجزای دیگر تا حد امکان از این متغیرها استفاده می‌کنند. */
 :root {
       color-scheme: light;
       --page: #d6e0ef;
@@ -35,6 +36,7 @@
       direction: rtl;
     }
 
+    /* هدر ثابت صفحه و اجزای ناوبری اصلی. */
     .sidebar {
       position: fixed;
       top: 0;
@@ -190,6 +192,7 @@
       background: #36a879;
     }
 
+    /* ظرف سکشن‌ها؛ فقط بخشی که is-active دارد نمایش داده می‌شود. */
     .sections {
       display: grid;
       gap: 18px;
@@ -243,6 +246,7 @@
       font-size: 14px;
     }
 
+    /* پنل‌های روش‌های ورود کالا. */
     .input-panels {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -333,6 +337,7 @@
     }
 
 
+    /* دکمه پایه؛ نوع ثانویه، حذف، غیرفعال و فوکوس در قواعد جدا تعریف شده‌اند. */
     .action-button {
       display: inline-flex;
       align-items: center;
@@ -362,6 +367,7 @@
       font-size: 13px;
     }
 
+    /* ظاهر مشترک پنجره‌های بررسی تکرار و خطاهای ورود. */
     .duplicate-dialog {
       width: min(760px, calc(100% - 28px));
       max-height: min(82vh, 760px);
@@ -443,6 +449,7 @@
 
     .duplicate-close:hover { background: #edf3ff; }
 
+    /* قاب پیش‌نمایش و گزارش؛ جدول عریض اسکرول افقی مستقل دارد. */
     .preview-panel {
       margin-top: 16px;
       padding: 14px;
@@ -540,6 +547,7 @@
 
     .action-button.secondary:hover { background: #edf3ff; }
 
+    /* شمارش کالاها و ابزارهای بالای جدول موجودی. */
     .inventory-toolbar {
       display: flex;
       align-items: center;
@@ -603,6 +611,7 @@
     }
 
 
+    /* پنجره تأیید ارسال و فیلدهای تعداد، محل و شماره‌ها. */
     .shipment-dialog { width:min(900px,calc(100% - 24px)); max-height:min(90vh,900px); padding:0; border:1px solid var(--border); border-radius:16px; color:var(--text); background:#f8fbff; box-shadow:0 24px 80px rgba(20,30,48,.3); }
     .shipment-dialog::backdrop { background:rgba(15,25,42,.66); backdrop-filter:blur(2px); }
     .shipment-header,.shipment-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; background:#e5edf8; border-bottom:1px solid var(--border); }
@@ -620,6 +629,7 @@
     .shipment-footer { justify-content:flex-end; border-top:1px solid var(--border); border-bottom:0; }
     .shipment-close { border-color:#cbd5e4; background:#fff; color:var(--text); }
     .shipment-feedback { color:#a52222; font-size:13px; margin:10px 0 0; }
+    /* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width:650px). */
     @media(max-width:650px) {
       .shipment-line,.shipment-meta { grid-template-columns:1fr; }
       .shipment-header,.shipment-footer { flex-wrap:wrap; }
@@ -657,6 +667,7 @@
     .import-invalid-row { background: #fff0f0; color: #8f1d1d; }
     .import-invalid-row td:last-child { min-width: 220px; white-space: normal; }
 
+    /* قاب اسکرول جدول موجودی برای حفظ عرض ستون‌ها در نمایشگر باریک. */
     .inventory-table-wrap {
       width: 100%;
       overflow-x: auto;
@@ -785,6 +796,7 @@
 
     .empty-state[hidden] { display: none; }
 
+    /* بازچینی هدر و منو در نمایشگرهای میانی. شرط فعال‌سازی: (max-width: 900px). */
     @media (max-width: 900px) {
       .sidebar {
         display: block;
@@ -816,16 +828,19 @@
       .main { padding-top: 130px; }
     }
 
+    /* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width: 760px). */
     @media (max-width: 760px) {
       .main { padding-right: 16px; padding-left: 16px; }
       .section-card { min-height: 150px; }
       .input-panels { grid-template-columns: 1fr; }
     }
 
+    /* بهینه‌سازی فرم‌ها و کارت‌ها برای موبایل. شرط فعال‌سازی: (max-width: 520px). */
     @media (max-width: 520px) {
       .inventory-toolbar { align-items: flex-start; }
     }
 
+    /* بهینه‌سازی برای گوشی‌های بسیار باریک. شرط فعال‌سازی: (max-width: 420px). */
     @media (max-width: 420px) {
       html { scroll-padding-top: 112px; }
       .sidebar { padding-right: 10px; padding-left: 10px; }
@@ -840,12 +855,13 @@
       .status { margin-top: 12px; }
     }
 
+    /* کاهش حرکت‌های تزئینی برای کاربرانی که حرکت کمتر را در تنظیمات سیستم ترجیح می‌دهند. شرط فعال‌سازی: (prefers-reduced-motion: reduce). */
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       *, *::before, *::after { transition-duration: 0.01ms !important; }
     }
   
-    /* Center text throughout boxes and form controls across the site. */
+    /* هم‌ترازسازی متن کنترل‌ها و کادرهایی که طبق طراحی باید وسط‌چین باشند. */
     .input-panel,
     .preview-panel,
     .field-group,
@@ -865,6 +881,7 @@
     }
 
 
+    /* شبکه کارت‌های تنظیمات؛ واکنش‌گرایی در عرض کم تعداد ستون‌ها را کاهش می‌دهد. */
     .settings-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -881,6 +898,7 @@
     .settings-grid > .settings-box:nth-child(4) {
       grid-column: span 1;
     }
+    /* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width: 700px). */
     @media (max-width: 700px) {
       .settings-grid { grid-template-columns: minmax(0, 1fr); }
       .settings-grid > .settings-box { grid-column: 1 / -1; }
@@ -932,6 +950,7 @@
     .sortable-table-empty { text-align:center; color:var(--muted); padding:16px !important; }
 
 
+    /* قفل شروع برنامه تا زمانی که نخستین فایل بکاپ با موفقیت ذخیره شود. */
     .backup-setup-gate {
       position: fixed;
       inset: 0;
@@ -959,7 +978,7 @@
     .backup-setup-card .backup-gate-status { color: var(--text); font-weight: 700; }
     .backup-setup-card .backup-gate-feedback { color: #a52222; }
 
-    /* Responsive layout improvements: October 2026 */
+    /* اصلاحات واکنش‌گرایی برای نمایشگر رایانه، تبلت و موبایل. */
     html {
       max-width: 100%;
       scroll-padding-top: 150px;
@@ -1027,6 +1046,7 @@
       overflow-wrap: anywhere;
     }
 
+    /* هماهنگ‌سازی ستون‌ها و کارت‌ها با اندازه نمایشگر. شرط فعال‌سازی: (max-width: 1200px). */
     @media (max-width: 1200px) {
       .sidebar {
         display: grid;
@@ -1107,6 +1127,7 @@
       }
     }
 
+    /* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width: 760px). */
     @media (max-width: 760px) {
       html {
         scroll-padding-top: 138px;
@@ -1214,6 +1235,7 @@
       }
     }
 
+    /* بهینه‌سازی فرم‌ها و کارت‌ها برای موبایل. شرط فعال‌سازی: (max-width: 480px). */
     @media (max-width: 480px) {
       html {
         scroll-padding-top: 124px;
@@ -1297,6 +1319,7 @@
       }
     }
 
+    /* بهینه‌سازی برای گوشی‌های بسیار باریک. شرط فعال‌سازی: (max-width: 350px). */
     @media (max-width: 350px) {
       .main {
         padding-right: 7px;
@@ -1316,6 +1339,7 @@
       }
     }
 
+    /* چیدمان نمایشگر عریض؛ از فضای افقی بیشتر برای محتوا استفاده می‌شود. شرط فعال‌سازی: (min-width: 1201px). */
     @media (min-width: 1201px) {
       .sidebar {
         flex-wrap: nowrap;
@@ -1335,6 +1359,7 @@
       }
     }
 
+    /* کاهش حرکت‌های تزئینی برای کاربرانی که حرکت کمتر را در تنظیمات سیستم ترجیح می‌دهند. شرط فعال‌سازی: (prefers-reduced-motion: reduce). */
     @media (prefers-reduced-motion: reduce) {
       html {
         scroll-behavior: auto;
@@ -1348,7 +1373,7 @@
     }
 
 
-    /* Compact controls, improved reports pagination, users and location management. */
+    /* فشرده‌سازی کنترل‌ها و بهبود صفحه‌بندی گزارش‌ها و مدیریت محل‌های ارسال. */
     .inventory-search-panel {
       display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center;
       gap: 6px 10px; margin: 10px 0 14px; padding: 7px 10px; border-radius: 9px;
@@ -1399,7 +1424,7 @@
       min-height:36px; height:36px; padding:6px 10px; line-height:1.4; font-size:13px;
     }
     .shipment-items-table input { min-height:36px; height:36px; padding:5px 7px; line-height:1.4; font-size:13px; }
-    /* Apply one consistent single-line input height across the inventory and management forms. */
+    /* یکسان‌سازی ارتفاع ورودی‌های تک‌خطی در موجودی و فرم‌های مدیریتی. */
     input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
     select {
       min-height:36px;
@@ -1413,6 +1438,7 @@
     .settings-log-table th,.settings-log-table td { white-space:normal; vertical-align:top; overflow-wrap:anywhere; }
     #backup-log-results .bulk-preview-scroll { max-height:380px; }
 
+    /* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width:700px). */
     @media (max-width:700px) {
       .inventory-search-panel { grid-template-columns:1fr; gap:5px; }
       .inventory-search-panel > label { white-space:normal; }
@@ -1423,7 +1449,7 @@
       .backup-folder-actions,.location-create-form { grid-template-columns:1fr; }
       .location-record { align-items:flex-start; }
     }
-/* === بازطراحی نمایشی: تم گرم قرمز/نارنجی و کنترل‌های یکپارچه === */
+/* لایه بازطراحی پیشین؛ قواعد نهایی انتهای فایل ظاهر اجزا را با پالت چهاررنگ هماهنگ می‌کنند. */
 :root {
   color-scheme: light; --page:#fff4ef; --main-bg:#fffaf7; --surface:#fff;
   --panel-bg:#fffdfa; --sidebar:#321b22; --sidebar-muted:#f7c7b8;
@@ -1497,6 +1523,7 @@ label { text-align:right; }
 .backup-setup-card .action-button { background:linear-gradient(135deg,#df4b35,#b85b14); }
 .backup-setup-card .backup-gate-status { padding:8px 12px; border-radius:10px; background:#fff0e6; }
 .dashboard-section { border-top:4px solid var(--accent-orange); }
+/* اجزای داشبورد: معرفی، کارت‌های آماری، میان‌برها و هشدار موجودی. */
 .dashboard-hero { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:22px; padding:24px; border:1px solid #f3c8b3; border-radius:18px; background:linear-gradient(120deg,#fff7f1 0%,#fff 55%,#ffe8d7 100%); }
 .dashboard-hero-copy { min-width:0; }
 .dashboard-hero h2 { margin:3px 0 6px; font-size:clamp(21px,2.5vw,30px); line-height:1.45; }
@@ -1534,13 +1561,17 @@ label { text-align:right; }
 .dashboard-note { margin:13px 0 0 !important; font-size:12px !important; }
 .dashboard-tags { display:flex; flex-wrap:wrap; gap:8px; margin-top:15px; }
 .dashboard-tags span { padding:5px 9px; border:1px solid #eed5ca; border-radius:999px; background:#fff; color:#775a5d; font-size:10px; }
+/* هماهنگ‌سازی ستون‌ها و کارت‌ها با اندازه نمایشگر. شرط فعال‌سازی: (max-width:1080px). */
 @media (max-width:1080px) { .dashboard-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+/* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width:760px). */
 @media (max-width:760px) { .page-topline { align-items:flex-start; flex-direction:column; padding:18px; } .dashboard-hero { align-items:stretch; flex-direction:column; padding:19px; } .dashboard-primary-link { align-self:flex-start; } .dashboard-panels { grid-template-columns:minmax(0,1fr); } .dashboard-quick-links { grid-template-columns:minmax(0,1fr); } }
+/* بهینه‌سازی فرم‌ها و کارت‌ها برای موبایل. شرط فعال‌سازی: (max-width:480px). */
 @media (max-width:480px) { .dashboard-stats { grid-template-columns:minmax(0,1fr); } .dashboard-stat { padding:15px; } .page-title-block p { font-size:12px; } .design-preview-status { align-self:flex-start; } .dashboard-section { padding:15px; } .dashboard-panel { padding:15px; } .dashboard-hero h2 { font-size:22px; } }
+/* کاهش حرکت‌های تزئینی برای کاربرانی که حرکت کمتر را در تنظیمات سیستم ترجیح می‌دهند. شرط فعال‌سازی: (prefers-reduced-motion:reduce). */
 @media (prefers-reduced-motion:reduce) { .nav-link:hover,.action-button:hover:not(:disabled),.dashboard-primary-link:hover,.dashboard-quick-link:hover { transform:none; } }
 
 
-/* === اصلاحات بازبینی اسکرین‌شات‌های موبایل === */
+/* اصلاحات موبایل: هدر، منو، انتخاب فایل و قاب اسکرول جدول‌ها. */
 :root {
   --page: #fff9f6;
   --main-bg: #fff9f6;
@@ -1606,6 +1637,7 @@ button:disabled, .action-button:disabled {
   opacity: .58;
   filter: saturate(.55);
 }
+/* بازچینی هدر و منو در نمایشگرهای میانی. شرط فعال‌سازی: (max-width: 1000px). */
 @media (max-width: 1000px) {
   html { scroll-padding-top: 150px; }
   .sidebar {
@@ -1638,6 +1670,7 @@ button:disabled, .action-button:disabled {
   .nav-link { min-height: 40px; padding: 8px 11px; gap: 7px; font-size: 12px; }
   .main { padding-top: 146px; }
 }
+/* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width: 760px). */
 @media (max-width: 760px) {
   html { scroll-padding-top: 142px; }
   .sidebar { gap: 8px; padding: 9px 12px 10px; }
@@ -1659,6 +1692,7 @@ button:disabled, .action-button:disabled {
   .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-quick-links { grid-template-columns: minmax(0, 1fr); }
 }
+/* بهینه‌سازی فرم‌ها و کارت‌ها برای موبایل. شرط فعال‌سازی: (max-width: 480px). */
 @media (max-width: 480px) {
   .main { padding-right: 10px; padding-left: 10px; }
   .page-topline { padding: 16px; }
@@ -1677,6 +1711,7 @@ button:disabled, .action-button:disabled {
   input[type="file"] { font-size: 12px; }
   input[type="file"]::file-selector-button { margin: 0 0 6px; }
 }
+/* بهینه‌سازی برای گوشی‌های بسیار باریک. شرط فعال‌سازی: (max-width: 350px). */
 @media (max-width: 350px) {
   .main { padding-right: 7px; padding-left: 7px; }
   .nav-link { padding: 7px 9px; font-size: 11px; }
@@ -1686,7 +1721,7 @@ button:disabled, .action-button:disabled {
 }
 
 
-/* === رفع شکست عمودی کلمات فارسی در عرض کم === */
+/* قواعد متن فارسی در عرض کم؛ شکست در مرز کلمه بدون فشرده‌شدن حروف. */
 html, body { max-width: 100%; }
 body { overflow-wrap: normal; word-break: normal; }
 .main, .sections, .section-card, .page-topline, .input-panels,
@@ -1732,6 +1767,7 @@ input[type="search"], input[type="date"], select, textarea {
   word-break: normal;
   overflow-wrap: normal;
 }
+/* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width: 760px). */
 @media (max-width: 760px) {
   .input-panels, .settings-grid, .reports-grid,
   .dashboard-panels { grid-template-columns: minmax(0, 1fr) !important; }
@@ -1743,7 +1779,7 @@ input[type="search"], input[type="date"], select, textarea {
   }
 }
 
-/* === سامانه طراحی یکپارچه با چهار رنگ اصلی === */
+/* لایه نهایی سامانه طراحی؛ توکن‌های رنگی و قواعد مشترک این بخش بر قواعد قدیمی‌تر اولویت دارند. */
 :root {
   color-scheme: light;
   --color-blue: #2563eb;
@@ -2134,6 +2170,7 @@ textarea {
   overflow-wrap: normal;
 }
 
+/* چیدمان موبایل و تبلت کوچک؛ پنل‌ها تک‌ستونه می‌شوند. شرط فعال‌سازی: (max-width: 760px). */
 @media (max-width: 760px) {
   .input-panels,
   .settings-grid,
