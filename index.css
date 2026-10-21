@@ -977,6 +977,22 @@
     .backup-setup-card .action-button { width: 100%; max-width: 360px; margin-top: 10px; }
     .backup-setup-card .backup-gate-status { color: var(--text); font-weight: 700; }
     .backup-setup-card .backup-gate-feedback { color: #a52222; }
+    /* مسیر جایگزین شروع و هشدار شفاف درباره نبود بکاپ خودکار. */
+    .backup-setup-card #backup-gate-continue-without-backup {
+      margin-top: 8px;
+      border-color: var(--border);
+    }
+    .backup-setup-card .backup-gate-note {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-right: 4px solid var(--warning, #f59e0b);
+      border-radius: 8px;
+      background: #fff8e7;
+      color: #704b00;
+      text-align: right;
+      line-height: 1.8;
+      font-size: 13px;
+    }
 
     /* اصلاحات واکنش‌گرایی برای نمایشگر رایانه، تبلت و موبایل. */
     html {
