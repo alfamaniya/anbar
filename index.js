@@ -2583,3 +2583,21 @@
     renderEntryHistory();
     renderShipmentHistory();
     renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+
+/* کنترل پنجره شناور یادداشت‌های انتشار با عنصر dialog بومی مرورگر. */
+const releaseNotesDialog = document.getElementById('release-notes-dialog');
+const openReleaseNotesButton = document.getElementById('open-release-notes');
+const closeReleaseNotesButton = document.getElementById('close-release-notes');
+if (releaseNotesDialog && openReleaseNotesButton && closeReleaseNotesButton) {
+  openReleaseNotesButton.addEventListener('click', () => {
+    if (typeof releaseNotesDialog.showModal === 'function') releaseNotesDialog.showModal();
+    else releaseNotesDialog.setAttribute('open', '');
+  });
+  closeReleaseNotesButton.addEventListener('click', () => {
+    if (typeof releaseNotesDialog.close === 'function') releaseNotesDialog.close();
+    else releaseNotesDialog.removeAttribute('open');
+  });
+  releaseNotesDialog.addEventListener('click', event => {
+    if (event.target === releaseNotesDialog && typeof releaseNotesDialog.close === 'function') releaseNotesDialog.close();
+  });
+}
