@@ -33,7 +33,7 @@
     };
     // کلیدهای اصلی داده و وضعیت صفحه‌بندی گزارش‌ها.
     const STORAGE_KEY = 'anbar.inventory.v1';
-    // لاگ سایت حذف شده است؛ فراخوانی‌های قدیمی recordActivity به‌صورت بی‌اثر باقی می‌مانند.
+    const ACTIVITY_KEY = 'anbar.activity-log.v1'; // برای سازگاری با فایل‌های بکاپ قدیمی نگه داشته شده است.
     const ENTRY_HISTORY_KEY = 'anbar.entry-history.v1';
     const ENTRY_PAGE_SIZE = 10;
     let entryHistoryPage = 0;
@@ -2451,6 +2451,7 @@
         });
       });
 
+      const currentActivity = loadActivityLog();
       const incomingActivity = (payload.activityLog || []).filter(record => {
         const signature = JSON.stringify(record);
         const exists = currentActivity.some(item => JSON.stringify(item) === signature);
@@ -2462,7 +2463,7 @@
         inventory: currentInventory.concat(incomingInventory),
         entryHistory: currentEntries.concat(incomingEntries).slice(0, 1000),
         shipments: currentShipments.concat(incomingShipments),
-        activityLog: currentActivity.concat(incomingActivity).slice(0, 1000),
+        activityLog: [],
         shipmentLocations: mergedLocations,
         counts: {
           inventory: incomingInventory.length,
@@ -2485,7 +2486,7 @@
         const payload = JSON.parse(await file.text());
         if (!payload || !Array.isArray(payload.inventory) ||
             (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) ||
-            !Array.isArray(payload.shipments) || !Array.isArray(payload.activityLog) ||
+            !Array.isArray(payload.shipments) || (payload.activityLog !== undefined && !Array.isArray(payload.activityLog)) ||
             (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations))) {
           throw new Error('invalid backup structure');
         }
@@ -2508,7 +2509,7 @@
             Number.isFinite(Number(line.quantity)) && Number(line.quantity) > 0
           )
         );
-        const validActivity = payload.activityLog.every(item =>
+        const validActivity = (payload.activityLog || []).every(item =>
           item && typeof item === 'object' && !Array.isArray(item)
         );
         if (!validInventory || !validEntries || !validShipments || !validActivity) {
@@ -2558,7 +2559,7 @@
         [ENTRY_HISTORY_KEY, analysis.entryHistory],
         [SHIPMENT_KEY, analysis.shipments],
         [LOCATION_KEY, analysis.shipmentLocations],
-        [ACTIVITY_KEY, analysis.activityLog],
+        [ACTIVITY_KEY, []],
       ];
       const previousValues = restoreRecords.map(([key]) => [key, localStorage.getItem(key)]);
 
@@ -2587,9 +2588,7 @@
     });
 
     // رویداد «کلیک» برای دکمه به‌روزرسانی گزارش فعالیت؛ اجرای رفتار متناسب با این کنترل و رویداد.
-    document.getElementById('refresh-backup-log').addEventListener('click', () => {
 
-    });
     renderEntryHistory();
     renderShipmentHistory();
 
