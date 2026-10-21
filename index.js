@@ -982,7 +982,7 @@
     document.getElementById('reset-shared-preview').addEventListener('click', () => {
       if (!window.confirm('پیش‌نمایش و ورودی‌های موقت تخلیه شوند؟ اطلاعات ثبت‌شده قبلی حذف نمی‌شوند.')) return;
       pendingExcelRows = []; pendingClipboardRows = [];
-      itemFormInputs.code.value = ''; itemFormInputs.description.value = ''; itemFormInputs.stock.value = '';
+      itemFormInputs.code.value = ''; itemFormInputs.description.value = ''; itemFormInputs.stock.value = ''; manualCategoryInput.value = '';
       if (typeof pastedDataInput !== 'undefined' && pastedDataInput) pastedDataInput.value = '';
       const fileInput = document.querySelector('input[type="file"][accept*=".csv"], input[type="file"][accept*=".xlsx"]');
       if (fileInput) fileInput.value = '';
@@ -2732,6 +2732,11 @@
         renderSinglePreview();
         singleFeedback.textContent = '';
       });
+    });
+    // تغییر گروه دستی هم باید پیش‌نمایش مشترک و پیش‌نمایش تکی را بدون انتظار برای تغییر فیلد دیگری تازه کند.
+    manualCategoryInput.addEventListener('input', () => {
+      renderSinglePreview();
+      singleFeedback.textContent = '';
     });
 
     // رویداد «کلیک» برای دکمه بررسی/ثبت پیش‌نمایش؛ اجرای رفتار متناسب با این کنترل و رویداد.
