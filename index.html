@@ -18,8 +18,8 @@
         <p>سامانه مدیریت اقلام</p>
       </div>
       <div class="release-meta" aria-label="اطلاعات نسخه">
-        <span class="release-version">نسخه <strong>1.0.0</strong></span>
-        <time datetime="2026-10-21T12:33:00+03:30">آخرین اصلاح: ۱۴۰۵/۰۷/۲۹، ۱۲:۳۳</time>
+        <span class="release-version">نسخه <strong>1.1.0</strong></span>
+        <time datetime="2026-10-21T22:00:00+02:00">آخرین اصلاح: ۱۴۰۵/۰۷/۲۹، ۲۲:۰۰</time>
         <button class="release-notes-button" id="open-release-notes" type="button" aria-haspopup="dialog" aria-controls="release-notes-dialog">یادداشت‌های انتشار</button>
       </div>
 
@@ -36,23 +36,14 @@
       </nav>
     </header>
     <dialog class="release-notes-dialog" id="release-notes-dialog" aria-labelledby="release-notes-title">
-      <div class="release-notes-header"><div><span class="page-eyebrow">CHANGELOG</span><h2 id="release-notes-title">آخرین اصلاحات سامانه</h2><p>نسخه 1.0.0 · ۱۴۰۵/۰۷/۲۹</p></div><button class="release-notes-close" id="close-release-notes" type="button" aria-label="بستن پنجره">×</button></div>
-      <div class="release-notes-content"><h3>نسخه 1.0.0 — انتشار پایه</h3><ul><li>یکپارچه‌سازی ظاهر و چیدمان واکنش‌گرای صفحات اصلی.</li><li>بهبود خوانایی جدول‌ها و جلوگیری از شکستن عمودی کلمات فارسی.</li><li>تنظیم باکس‌های مدیریت محل‌های ارسال، بکاپ JSON و لاگ سایت.</li><li>افزودن مسیر اجرای سامانه بدون بکاپ خودکار برای مرورگرهای ناسازگار.</li></ul><p class="release-notes-footnote">قالب نسخه‌بندی MAJOR.MINOR.PATCH است. در هر انتشار، شماره نسخه، زمان انتشار و این فهرست باید هم‌زمان به‌روزرسانی شوند.</p></div>
+      <div class="release-notes-header"><div><span class="page-eyebrow">CHANGELOG</span><h2 id="release-notes-title">آخرین اصلاحات سامانه</h2><p>نسخه 1.1.0 · ۱۴۰۵/۰۷/۲۹</p></div><button class="release-notes-close" id="close-release-notes" type="button" aria-label="بستن پنجره">×</button></div>
+      <div class="release-notes-content"><h3>نسخه 1.1.0 — مدیریت موجودی و گزارش‌گیری</h3><ul><li>افزودن حداقل موجودی، هشدار کمبود و فیلتر وضعیت موجودی با حفظ سازگاری داده‌های قبلی.</li><li>افزودن شناسه‌های سند و ردیف برای رهگیری ورود و ارسال و نمایش جزئیات اقلام هر سند ارسال.</li><li>افزودن گروه اختیاری کالا و گزارش مصرف با فیلتر تاریخ، محل و گروه، به‌همراه خروجی CSV سازگار با Excel.</li><li>بهبود واکنش‌گرایی فیلترها و گزارش، خوانایی فارسی و فوکوس صفحه‌کلید.</li><li>به‌روزرسانی راهنمای اجرا، سازگاری بکاپ‌های قدیمی و نتایج آزمون‌های ایستا.</li></ul><p class="release-notes-footnote">قالب نسخه‌بندی MAJOR.MINOR.PATCH است. آزمون مرورگر واقعی و بررسی داده‌های دستگاه مقصد هنوز لازم است؛ این نسخه نتیجه آزمون تعاملی را ادعا نمی‌کند.</p></div>
     </dialog>
 
-    <!-- محتوای اصلی برنامه: سربرگ، داشبورد و بخش‌های عملیاتی. -->
+    <!-- محتوای اصلی برنامه پس از ناوبری؛ اطلاعات نسخه در هدر اصلی قرار دارد. -->
     <main class="main">
       <!-- سربرگ معرفی سامانه و وضعیت نمایشی فعلی رابط. -->
-      <div class="page-topline">
-        <div class="page-title-block">
-          <span class="page-eyebrow">سامانه مدیریت اقلام</span>
-          <h2>کنترل مصرف اقلام</h2>
-          <p>ورود کالا، کنترل موجودی، ثبت ارسال و بررسی گزارش‌ها در یک محیط یکپارچه.</p>
-        </div>
-        <div class="design-preview-status"><span class="status-dot" aria-hidden="true"></span><span>پیش‌نمایش بازطراحی</span></div>
-      </div>
-
-      <div class="sections">
+            <div class="sections">
         <!-- داشبورد؛ مقادیر آماری پس از اجرا از داده واقعی ذخیره‌شده خوانده می‌شوند. -->
         <section class="section-card dashboard-section is-active" id="section-dashboard" aria-labelledby="dashboard-title">
           <div class="dashboard-hero">
