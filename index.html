@@ -17,6 +17,11 @@
         <h1>کنترل مصرف</h1>
         <p>سامانه مدیریت اقلام</p>
       </div>
+      <div class="release-meta" aria-label="اطلاعات نسخه">
+        <span class="release-version">نسخه <strong>1.0.0</strong></span>
+        <time datetime="2026-10-21T12:33:00+03:30">آخرین اصلاح: ۱۴۰۵/۰۷/۲۹، ۱۲:۳۳</time>
+        <button class="release-notes-button" id="open-release-notes" type="button" aria-haspopup="dialog" aria-controls="release-notes-dialog">یادداشت‌های انتشار</button>
+      </div>
 
       <!-- فهرست ناوبری؛ مقدار href هر پیوند باید با ID سکشن مربوط هماهنگ بماند. -->
       <nav aria-label="ناوبری بخش‌ها">
@@ -30,6 +35,10 @@
         </ul>
       </nav>
     </header>
+    <dialog class="release-notes-dialog" id="release-notes-dialog" aria-labelledby="release-notes-title">
+      <div class="release-notes-header"><div><span class="page-eyebrow">CHANGELOG</span><h2 id="release-notes-title">آخرین اصلاحات سامانه</h2><p>نسخه 1.0.0 · ۱۴۰۵/۰۷/۲۹</p></div><button class="release-notes-close" id="close-release-notes" type="button" aria-label="بستن پنجره">×</button></div>
+      <div class="release-notes-content"><h3>نسخه 1.0.0 — انتشار پایه</h3><ul><li>یکپارچه‌سازی ظاهر و چیدمان واکنش‌گرای صفحات اصلی.</li><li>بهبود خوانایی جدول‌ها و جلوگیری از شکستن عمودی کلمات فارسی.</li><li>تنظیم باکس‌های مدیریت محل‌های ارسال، بکاپ JSON و لاگ سایت.</li><li>افزودن مسیر اجرای سامانه بدون بکاپ خودکار برای مرورگرهای ناسازگار.</li></ul><p class="release-notes-footnote">قالب نسخه‌بندی MAJOR.MINOR.PATCH است. در هر انتشار، شماره نسخه، زمان انتشار و این فهرست باید هم‌زمان به‌روزرسانی شوند.</p></div>
+    </dialog>
 
     <!-- محتوای اصلی برنامه: سربرگ، داشبورد و بخش‌های عملیاتی. -->
     <main class="main">
