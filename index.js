@@ -131,9 +131,10 @@
         const itemDetails = items.map(item =>
           String(item.code || 'بدون کد') + ' (' + String(item.description || 'بدون شرح') + '): ' + toEnglishDigits(item.stock)
         ).join('؛ ');
-        recordActivity('ثبت ورود کالا', 'شماره ورود: ' + record.entryNumber +
-          '؛ تعداد اقلام: ' + items.length + '؛ تعداد کل: ' + toEnglishDigits(record.pieceCount) +
-          '؛ جزئیات اقلام: ' + itemDetails);
+        recordActivity('ثبت ورود کالا', {
+          'شماره ورود': record.entryNumber, 'تاریخ و ساعت': record.date + ' ' + record.time,
+          'تعداد اقلام': items.length, 'تعداد کل قطعه': record.pieceCount, 'اقلام (کد، شرح، تعداد)': itemDetails
+        });
       }
     }
 
@@ -424,7 +425,7 @@
         String(parts.month).padStart(2, '0') + String(parts.day).padStart(2, '0');
       const clockPart = String(parts.hour).padStart(2, '0') +
         String(parts.minute).padStart(2, '0') + String(parts.second).padStart(2, '0');
-      return prefix + '-AUTO-' + datePart + '-' + clockPart + '-' + String(epoch).slice(-4);
+      return (prefix ? prefix + '-' : '') + 'AUTO-' + datePart + '-' + clockPart + '-' + String(epoch).slice(-4);
     }
     /**
      * هدف: ساخت ورودی جدول ارسال با برچسب، مقدار و نوع مشخص.
@@ -521,8 +522,8 @@
       const generatedAt = solarDateTime(now);
       const epoch = now.getTime();
       const existingShipments = loadShipments();
-      const voucher = shipmentVoucherInput.value.trim() || makeShipmentNumber('حواله', now, epoch);
-      const exitNumber = shipmentExitInput.value.trim() || makeShipmentNumber('خروج', now, epoch + 1);
+      const voucher = shipmentVoucherInput.value.trim() || makeShipmentNumber('V', now, epoch);
+      const exitNumber = shipmentExitInput.value.trim() || makeShipmentNumber('X', now, epoch + 1);
 
       if (existingShipments.some(record => record.voucherNumber === voucher)) {
         shipmentFeedback.textContent = 'این شماره حواله قبلاً ثبت شده است. شماره دیگری وارد کنید.';
@@ -607,10 +608,12 @@
         recordActivity(isNewLocation ? 'ثبت خودکار محل ارسال' : 'افزودن زیرمجموعه محل ارسال',
           'محل: «' + location + '»؛ زیرمجموعه: «' + (sublocation || 'ندارد') + '»؛ محل در جریان ارسال ذخیره شد.');
       }
-      recordActivity('ثبت ارسال کالا',
-        'محل: «' + location + '»؛ زیرمجموعه: «' + (sublocation || 'ندارد') +
-        '»؛ شماره حواله: ' + voucher + '؛ شماره خروج: ' + exitNumber +
-        '؛ تعداد ردیف: ' + quantities.length + '؛ جزئیات کالاها: ' + itemDetails);
+      recordActivity('ثبت ارسال کالا', {
+        'شماره حواله': voucher, 'شماره خروج': exitNumber,
+        'تاریخ و ساعت': generatedAt.date + ' ' + generatedAt.time,
+        'محل ارسال': location, 'زیرمجموعه': sublocation || 'ندارد',
+        'تعداد ردیف کالا': quantities.length, 'اقلام (کد، شرح، تعداد)': itemDetails
+      });
 
       renderShipmentLocationOptions();
       renderLocationManager();
@@ -693,7 +696,16 @@
         const actionCell = document.createElement('td');
         actionCell.textContent = log.action || '—';
         const detailsCell = document.createElement('td');
-        detailsCell.textContent = log.details || '—';
+        if (log.details && typeof log.details === 'object' && !Array.isArray(log.details)) {
+          const detailList = document.createElement('dl');
+          detailList.className = 'activity-detail-fields';
+          Object.entries(log.details).forEach(([label, value]) => {
+            const term = document.createElement('dt'); term.textContent = label;
+            const description = document.createElement('dd'); description.textContent = String(value ?? '—');
+            detailList.append(term, description);
+          });
+          detailsCell.append(detailList);
+        } else detailsCell.textContent = log.details || '—';
         row.append(dateCell, actorCell, actionCell, detailsCell);
         tbody.append(row);
       });
@@ -708,6 +720,16 @@
     const singlePreview = document.getElementById('single-preview');
     const importPreviewButton = document.getElementById('confirm-all-imports');
     const confirmExcelImportButton = document.getElementById('confirm-all-imports');
+    document.getElementById('reset-shared-preview').addEventListener('click', () => {
+      if (!window.confirm('پیش‌نمایش و ورودی‌های موقت تخلیه شوند؟ اطلاعات ثبت‌شده قبلی حذف نمی‌شوند.')) return;
+      pendingExcelRows = []; pendingClipboardRows = [];
+      itemFormInputs.code.value = ''; itemFormInputs.description.value = ''; itemFormInputs.stock.value = '';
+      if (typeof pastedDataInput !== 'undefined' && pastedDataInput) pastedDataInput.value = '';
+      const fileInput = document.querySelector('input[type="file"][accept*=".csv"], input[type="file"][accept*=".xlsx"]');
+      if (fileInput) fileInput.value = '';
+      renderSharedInputPreview();
+      document.getElementById('input-feedback').textContent = 'پیش‌نمایش و ورودی‌های موقت تخلیه شدند؛ داده‌های ثبت‌شده حفظ شدند.';
+    });
     const pastedDataInput = document.getElementById('pasted-data');
     const excelFeedback = document.getElementById('excel-feedback');
     const singleFeedback = document.getElementById('single-feedback');
@@ -1708,6 +1730,31 @@
         sublocations.textContent = 'زیرمجموعه‌ها: ' + (location.sublocations.join('، ') || 'ندارد');
         details.append(title, sublocations);
 
+        const editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.className = 'action-button secondary location-edit-button';
+        editButton.textContent = 'ویرایش';
+        editButton.setAttribute('aria-label', 'ویرایش محل ' + location.name);
+        editButton.addEventListener('click', () => {
+          const nextName = window.prompt('نام محل ارسال:', location.name);
+          if (nextName === null) return;
+          const cleanName = nextName.trim();
+          if (!cleanName) { window.alert('نام محل نمی‌تواند خالی باشد.'); return; }
+          const nextSubsText = window.prompt('زیرمجموعه‌ها را با ویرگول جدا کنید:', location.sublocations.join('، '));
+          if (nextSubsText === null) return;
+          const nextSubs = [...new Set(nextSubsText.split(/[,،]/).map(value => value.trim()).filter(Boolean))];
+          const currentLocations = loadShipmentLocations();
+          if (currentLocations.some(item => normLocation(item.name) !== normLocation(location.name) && normLocation(item.name) === normLocation(cleanName))) {
+            window.alert('محل دیگری با این نام وجود دارد.'); return;
+          }
+          const updated = currentLocations.map(item => normLocation(item.name) === normLocation(location.name) ? { name: cleanName, sublocations: nextSubs } : item);
+          if (!saveShipmentLocations(updated)) { document.getElementById('location-manager-feedback').textContent = 'ویرایش ذخیره نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.'; return; }
+          recordActivity('ویرایش محل ارسال', { 'نام قبلی': location.name, 'نام جدید': cleanName, 'زیرمجموعه‌ها': nextSubs.join('، ') || 'ندارد' });
+          document.getElementById('location-manager-feedback').textContent = 'اطلاعات محل ارسال به‌روزرسانی شد.';
+          renderLocationManager(); renderShipmentLocationOptions();
+          renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+        });
+
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
         removeButton.className = 'action-button secondary location-delete-button';
@@ -1724,16 +1771,17 @@
               'حذف محل انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.';
             return;
           }
-          recordActivity('حذف محل ارسال',
-            'محل: «' + location.name + '»؛ زیرمجموعه‌ها: ' +
-            (location.sublocations.join('، ') || 'ندارد') + '؛ سوابق ارسال قبلی حفظ شدند.');
+          recordActivity('حذف محل ارسال', {
+            'محل حذف‌شده': location.name, 'زیرمجموعه‌ها': location.sublocations.join('، ') || 'ندارد',
+            'سوابق ارسال قبلی': 'حفظ شدند'
+          });
           document.getElementById('location-manager-feedback').textContent = 'محل انتخاب‌شده حذف شد.';
           renderLocationManager();
           renderShipmentLocationOptions();
           renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
         });
 
-        row.append(details, removeButton);
+        row.append(details, editButton, removeButton);
         root.append(row);
       });
     }
@@ -1762,8 +1810,9 @@
         return;
       }
 
-      recordActivity('ثبت محل ارسال',
-        'محل: «' + name + '»؛ زیرمجموعه‌ها: ' + (sublocations.join('، ') || 'ندارد') + '؛ منبع ثبت: مدیریت محل‌ها.');
+      recordActivity('ثبت محل ارسال', {
+        'نام محل': name, 'زیرمجموعه‌ها': sublocations.join('، ') || 'ندارد', 'منبع ثبت': 'مدیریت محل‌ها'
+      });
       event.target.reset();
       feedback.textContent = 'محل ارسال ذخیره شد و در ارسال‌های بعدی قابل انتخاب است.';
       renderLocationManager();
