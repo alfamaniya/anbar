@@ -29,11 +29,33 @@
     // فیلتر هشدار موجودی؛ مقدار حداقل هر کالا در همان رکورد نگهداری می‌شود.
     let inventoryStatusFilter = 'all';
     let inventoryStatusFilterSelect = null;
+    let currentConsumptionReportRows = [];
     const itemFormInputs = {
       code: document.getElementById('supply-code'),
       description: document.getElementById('item-description'),
       stock: document.getElementById('item-stock')
     };
+    // گروه کالا اختیاری است؛ رکوردهای قدیمی بدون گروه باقی می‌مانند و گروه حدسی تولید نمی‌شود.
+    const manualCategoryGroup = document.createElement('div');
+    manualCategoryGroup.className = 'field-group inventory-category-form-group';
+    const manualCategoryLabel = document.createElement('label');
+    manualCategoryLabel.htmlFor = 'item-category';
+    manualCategoryLabel.textContent = 'گروه کالا (اختیاری)';
+    const manualCategoryInput = document.createElement('input');
+    manualCategoryInput.id = 'item-category';
+    manualCategoryInput.name = 'item-category';
+    manualCategoryInput.type = 'text';
+    manualCategoryInput.maxLength = 80;
+    manualCategoryInput.autocomplete = 'off';
+    manualCategoryInput.placeholder = 'مثلاً اداری، بهداشتی یا فنی';
+    manualCategoryInput.setAttribute('aria-describedby', 'item-category-hint');
+    const manualCategoryHint = document.createElement('span');
+    manualCategoryHint.id = 'item-category-hint';
+    manualCategoryHint.className = 'field-hint';
+    manualCategoryHint.textContent = 'گروه فقط در صورت ثبت واقعی در اطلاعات کالا وارد گزارش مصرف می‌شود.';
+    manualCategoryGroup.append(manualCategoryLabel, manualCategoryInput, manualCategoryHint);
+    const manualDescriptionGroup = itemFormInputs.description?.closest('.field-group');
+    if (manualDescriptionGroup) manualDescriptionGroup.insertAdjacentElement('afterend', manualCategoryGroup);
     // کلیدهای اصلی داده و وضعیت صفحه‌بندی گزارش‌ها.
     const STORAGE_KEY = 'anbar.inventory.v1';
     const ACTIVITY_KEY = 'anbar.activity-log.v1'; // برای سازگاری با فایل‌های بکاپ قدیمی نگه داشته شده است.
@@ -153,6 +175,7 @@
           itemId: item.id || ('item-' + dataQualityKey(item.code)),
           code: item.code,
           description: item.description,
+          category: typeof item.category === 'string' ? item.category : '',
           quantity: Number(item.stock)
         }))
       };
@@ -294,6 +317,230 @@
     }
 
     /**
+     * هدف: ایجاد پنل گزارش مصرف از ردیف‌های واقعی تاریخچه ارسال.
+     * فیلترها بر اساس تاریخ سند، محل ارسال و گروه ثبت‌شده هر قلم هستند.
+     */
+    function ensureConsumptionReportPanel() {
+      const existing = document.getElementById('consumption-report-panel');
+      if (existing) return existing;
+      const overview = document.querySelector('.reports-overview');
+      if (!overview) return null;
+      const panel = document.createElement('article');
+      panel.id = 'consumption-report-panel';
+      panel.className = 'settings-box reports-consumption-panel';
+      const heading = document.createElement('h4');
+      heading.textContent = 'گزارش تفصیلی مصرف';
+      const description = document.createElement('p');
+      description.textContent = 'گزارش از سوابق واقعی ارسال ساخته می‌شود. تاریخ فیلتر میلادی است؛ سوابق قدیمی بدون گروه با عنوان «بدون گروه ثبت‌شده» نمایش داده می‌شوند.';
+      const filters = document.createElement('div');
+      filters.className = 'report-filter-grid';
+      const makeField = (labelText, id, type) => {
+        const group = document.createElement('div');
+        group.className = 'field-group report-filter-field';
+        const label = document.createElement('label');
+        label.htmlFor = id;
+        label.textContent = labelText;
+        const input = document.createElement(type === 'select' ? 'select' : 'input');
+        input.id = id;
+        if (type !== 'select') input.type = type;
+        group.append(label, input);
+        filters.append(group);
+        return input;
+      };
+      makeField('از تاریخ (میلادی)', 'consumption-report-start-date', 'date');
+      makeField('تا تاریخ (میلادی)', 'consumption-report-end-date', 'date');
+      makeField('محل ارسال', 'consumption-report-location', 'select');
+      makeField('گروه کالا', 'consumption-report-category', 'select');
+      const summary = document.createElement('div');
+      summary.className = 'reports-overview report-filter-summary';
+      [['consumption-report-line-count', 'ردیف‌های مصرف'], ['consumption-report-total-quantity', 'مجموع تعداد مصرف'], ['consumption-report-document-count', 'تعداد اسناد']].forEach(([id, labelText]) => {
+        const metric = document.createElement('article');
+        metric.className = 'report-metric';
+        const label = document.createElement('span');
+        label.textContent = labelText;
+        const value = document.createElement('strong');
+        value.id = id;
+        value.textContent = '۰';
+        metric.append(label, value);
+        summary.append(metric);
+      });
+      const actions = document.createElement('div');
+      actions.className = 'report-filter-actions';
+      const exportButton = document.createElement('button');
+      exportButton.id = 'export-consumption-report';
+      exportButton.type = 'button';
+      exportButton.className = 'action-button';
+      exportButton.textContent = 'خروجی CSV برای Excel';
+      exportButton.addEventListener('click', exportConsumptionReport);
+      const resetButton = document.createElement('button');
+      resetButton.type = 'button';
+      resetButton.className = 'action-button secondary';
+      resetButton.textContent = 'پاک‌کردن فیلترها';
+      resetButton.addEventListener('click', () => {
+        document.getElementById('consumption-report-start-date').value = '';
+        document.getElementById('consumption-report-end-date').value = '';
+        document.getElementById('consumption-report-location').value = 'all';
+        document.getElementById('consumption-report-category').value = 'all';
+        renderConsumptionReport();
+      });
+      actions.append(exportButton, resetButton);
+      const tableWrap = document.createElement('div');
+      tableWrap.className = 'entry-history-table-wrap report-table-wrap';
+      const tableParts = createDataTable(['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'], 'consumption-report-table');
+      tableParts.table.setAttribute('aria-label', 'گزارش تفصیلی مصرف بر اساس تاریخ، محل و گروه');
+      tableParts.tbody.id = 'consumption-report-body';
+      tableWrap.append(tableParts.table);
+      const feedback = document.createElement('p');
+      feedback.id = 'consumption-report-feedback';
+      feedback.className = 'feedback';
+      feedback.setAttribute('role', 'status');
+      feedback.setAttribute('aria-live', 'polite');
+      panel.append(heading, description, filters, summary, actions, tableWrap, feedback);
+      overview.insertAdjacentElement('afterend', panel);
+      [
+        document.getElementById('consumption-report-start-date'),
+        document.getElementById('consumption-report-end-date'),
+        document.getElementById('consumption-report-location'),
+        document.getElementById('consumption-report-category')
+      ].forEach(control => control.addEventListener('change', renderConsumptionReport));
+      return panel;
+    }
+
+    /** هدف: تبدیل اسناد ارسال به ردیف‌های گزارش؛ داده ساختگی یا گروه حدسی به گزارش اضافه نمی‌شود. */
+    function getConsumptionReportData() {
+      const rows = [];
+      let invalidLines = 0;
+      let missingTimestamps = 0;
+      loadShipments().forEach(shipment => {
+        if (!shipment || typeof shipment !== 'object' || !Array.isArray(shipment.items)) return;
+        shipment.items.forEach(line => {
+          if (!line || typeof line !== 'object') { invalidLines += 1; return; }
+          const quantity = normalizeStock(line.quantity);
+          if (!Number.isFinite(quantity) || quantity <= 0 || typeof line.code !== 'string' || !line.code.trim()) {
+            invalidLines += 1;
+            return;
+          }
+          const timestamp = typeof shipment.timestamp === 'string' && Number.isFinite(Date.parse(shipment.timestamp))
+            ? shipment.timestamp : '';
+          if (!timestamp) missingTimestamps += 1;
+          const parsed = timestamp ? new Date(timestamp) : null;
+          const localDate = parsed
+            ? parsed.getFullYear() + '-' + String(parsed.getMonth() + 1).padStart(2, '0') + '-' + String(parsed.getDate()).padStart(2, '0')
+            : '';
+          rows.push({
+            timestamp,
+            localDate,
+            dateLabel: String(shipment.date || '—') + (shipment.time ? ' ' + String(shipment.time) : ''),
+            documentId: String(shipment.id || (shipment.voucherNumber || '') + '|' + (shipment.exitNumber || '') + '|' + timestamp),
+            voucherNumber: String(shipment.voucherNumber || '—'),
+            exitNumber: String(shipment.exitNumber || '—'),
+            locationName: String(shipment.location || ''),
+            location: String(shipment.location || '—') + (shipment.sublocation ? ' / ' + String(shipment.sublocation) : ''),
+            category: typeof line.category === 'string' ? line.category.trim() : '',
+            code: line.code,
+            description: typeof line.description === 'string' ? line.description : '',
+            quantity
+          });
+        });
+      });
+      rows.sort((a, b) => (Date.parse(b.timestamp) || 0) - (Date.parse(a.timestamp) || 0));
+      return { rows, invalidLines, missingTimestamps };
+    }
+
+    /** هدف: به‌روزرسانی جمع‌ها و جدول گزارش بر اساس فیلترهای انتخاب‌شده. */
+    function renderConsumptionReport() {
+      if (!ensureConsumptionReportPanel()) return;
+      const data = getConsumptionReportData();
+      const locationSelect = document.getElementById('consumption-report-location');
+      const categorySelect = document.getElementById('consumption-report-category');
+      const setOptions = (select, values, allText) => {
+        const previous = select.value;
+        select.replaceChildren();
+        const all = document.createElement('option');
+        all.value = 'all';
+        all.textContent = allText;
+        select.append(all);
+        values.forEach(value => {
+          const option = document.createElement('option');
+          option.value = value.value;
+          option.textContent = value.label;
+          select.append(option);
+        });
+        select.value = [...select.options].some(option => option.value === previous) ? previous : 'all';
+      };
+      const locations = [...new Set(data.rows.map(row => row.locationName).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fa'));
+      setOptions(locationSelect, locations.map(value => ({ value, label: value })), 'همه محل‌ها');
+      const categories = [...new Set(data.rows.map(row => row.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fa'));
+      setOptions(categorySelect, [
+        ...categories.map(value => ({ value, label: value })),
+        { value: '__uncategorized__', label: 'بدون گروه ثبت‌شده' }
+      ], 'همه گروه‌ها');
+      const start = document.getElementById('consumption-report-start-date').value;
+      const end = document.getElementById('consumption-report-end-date').value;
+      const locationFilter = locationSelect.value;
+      const categoryFilter = categorySelect.value;
+      const invalidRange = Boolean(start && end && start > end);
+      const rows = invalidRange ? [] : data.rows.filter(row => {
+        if (start && (!row.localDate || row.localDate < start)) return false;
+        if (end && (!row.localDate || row.localDate > end)) return false;
+        if (locationFilter !== 'all' && row.locationName !== locationFilter) return false;
+        if (categoryFilter === '__uncategorized__' && row.category) return false;
+        if (categoryFilter !== 'all' && categoryFilter !== '__uncategorized__' && row.category !== categoryFilter) return false;
+        return true;
+      });
+      currentConsumptionReportRows = rows;
+      document.getElementById('consumption-report-line-count').textContent = toEnglishDigits(rows.length);
+      document.getElementById('consumption-report-total-quantity').textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.quantity, 0));
+      document.getElementById('consumption-report-document-count').textContent = toEnglishDigits(new Set(rows.map(row => row.documentId)).size);
+      const body = document.getElementById('consumption-report-body');
+      body.replaceChildren();
+      if (!rows.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 8;
+        td.className = 'preview-empty';
+        td.textContent = invalidRange ? 'تاریخ شروع باید قبل از تاریخ پایان باشد.' : 'برای فیلترهای انتخاب‌شده سابقه مصرفی پیدا نشد.';
+        tr.append(td);
+        body.append(tr);
+      } else {
+        rows.forEach(reportRow => {
+          const tr = document.createElement('tr');
+          [reportRow.dateLabel, reportRow.voucherNumber, reportRow.exitNumber, reportRow.location,
+            reportRow.category || 'بدون گروه ثبت‌شده', reportRow.code, reportRow.description, toEnglishDigits(reportRow.quantity)]
+            .forEach(value => { const td = document.createElement('td'); td.textContent = String(value); tr.append(td); });
+          body.append(tr);
+        });
+      }
+      const feedback = document.getElementById('consumption-report-feedback');
+      feedback.textContent = 'بر اساس ' + toEnglishDigits(rows.length) + ' ردیف واقعی تاریخچه ارسال محاسبه شد.';
+      if (invalidRange) feedback.textContent = 'بازه زمانی نامعتبر است؛ تاریخ شروع را اصلاح کنید.';
+      if (data.invalidLines) feedback.textContent += ' ' + toEnglishDigits(data.invalidLines) + ' ردیف نامعتبر از جمع کنار گذاشته شد؛ گزارش کیفیت داده را بررسی کنید.';
+      if ((start || end) && data.missingTimestamps) feedback.textContent += ' ' + toEnglishDigits(data.missingTimestamps) + ' ردیف فاقد زمان ماشینی است و در فیلتر تاریخ منظور نمی‌شود.';
+      const exportButton = document.getElementById('export-consumption-report');
+      if (exportButton) exportButton.disabled = rows.length === 0;
+    }
+
+    /** هدف: خروجی CSV با BOM برای سازگاری بهتر با Excel و حفظ متن فارسی. */
+    function exportConsumptionReport() {
+      if (!currentConsumptionReportRows.length) return;
+      const headers = ['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'];
+      const csvValue = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+      const csv = '\uFEFF' + [headers, ...currentConsumptionReportRows.map(row => [row.dateLabel, row.voucherNumber,
+        row.exitNumber, row.location, row.category || 'بدون گروه ثبت‌شده', row.code, row.description, row.quantity])]
+        .map(row => row.map(csvValue).join(',')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'گزارش-مصرف-' + new Date().toISOString().slice(0, 10) + '.csv';
+      link.hidden = true;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /**
      * هدف: خواندن تاریخچه ارسال و کنترل آرایه بودن داده اصلی.
      * ورودی: پارامتر ندارد.
      * خروجی: آرایه ارسال‌ها؛ هنگام خطا آرایه خالی.
@@ -416,6 +663,7 @@
       previousButton.disabled = shipmentHistoryPage === 0;
       nextButton.disabled = shipmentHistoryPage >= pageCount - 1;
       updateReportsOverview();
+      renderConsumptionReport();
       document.querySelectorAll('[data-shipment-sort]').forEach(button => {
         const active = button.dataset.shipmentSort === key;
         const marker = button.querySelector('span');
@@ -649,6 +897,7 @@
           itemId: item.id || ('item-' + dataQualityKey(item.code)),
           code: item.code,
           description: item.description,
+          category: typeof item.category === 'string' ? item.category : '',
           quantity
         }))
       };
@@ -837,6 +1086,7 @@
         if (typeof item.description !== 'string' || !item.description.trim()) {
           findings.push('موجودی، رکورد ' + row + ' شرح کالا خالی دارد.');
         }
+        if (item.category !== undefined && typeof item.category !== 'string') findings.push('موجودی، رکورد ' + row + ' گروه کالا نامعتبر دارد.');
         const stock = Number(item.stock);
         if ((typeof item.stock !== 'number' && typeof item.stock !== 'string') ||
             (typeof item.stock === 'string' && !item.stock.trim()) ||
@@ -853,7 +1103,7 @@
             (!Number.isFinite(minimumStock) || minimumStock < 0)) {
           findings.push('موجودی، رکورد ' + row + ' حداقل موجودی نامعتبر دارد.');
         }
-        if (Object.keys(item).some(key => !['id', 'code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp'].includes(key))) {
+        if (Object.keys(item).some(key => !['id', 'code', 'description', 'category', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp'].includes(key))) {
           findings.push('موجودی، رکورد ' + row + ' فیلد اضافی دارد که نسخه جاری هنگام ذخیره حفظ نمی‌کند.');
         }
         if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
@@ -1030,6 +1280,7 @@
               id: typeof item.id === 'string' && item.id.trim() ? item.id : 'item-' + dataQualityKey(item.code),
               code: item.code,
               description: item.description,
+              category: typeof item.category === 'string' ? item.category : '',
               stock,
               // رکوردهای قدیمی حداقل موجودی ندارند؛ مقدار صفر یعنی آستانه اختصاصی هنوز تنظیم نشده است.
               minimumStock: item.minimumStock === undefined || item.minimumStock === '' || item.minimumStock === null
@@ -1064,13 +1315,14 @@
      * خروجی: true در ذخیره موفق و false در شکست.
      */
     function saveInventory() {
-      const inventoryFields = new Set(['id', 'code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp']);
+      const inventoryFields = new Set(['id', 'code', 'description', 'category', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp']);
       const preservesInventoryRecord = item => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
         const stockTypeValid = typeof item.stock === 'number' ||
           (typeof item.stock === 'string' && item.stock.trim() !== '');
         if (item.id !== undefined && (typeof item.id !== 'string' || !item.id.trim())) return false;
         if (typeof item.code !== 'string' || typeof item.description !== 'string' ||
+            (item.category !== undefined && typeof item.category !== 'string') ||
             !stockTypeValid || !Number.isFinite(Number(item.stock)) || Number(item.stock) < 0 ||
             Object.keys(item).some(key => !inventoryFields.has(key))) return false;
         if (item.minimumStock !== undefined && item.minimumStock !== '' && item.minimumStock !== null &&
@@ -1303,7 +1555,8 @@
       const aliases = {
         code: ['کدتدارکاتی','کدکالا','کد','کدمحصول','itemcode','productcode','code'],
         description: ['شرحکالا','نامکالا','شرح','عنوانکالا','ناممحصول','itemname','description','productname','نام'],
-        stock: ['موجودی','تعدادموجودی','تعداد','مقدار','quantity','stock','inventory']
+        stock: ['موجودی','تعدادموجودی','تعداد','مقدار','quantity','stock','inventory'],
+        category: ['گروهکالا','دستهکالا','گروه','دسته','category','group','productcategory']
       };
       const values = row.map(normalizeHeader);
       const map = {};
@@ -1334,8 +1587,9 @@
         const mapped = headerMap ? [
           headerMap.code >= 0 ? row[headerMap.code] : row[0],
           headerMap.description >= 0 ? row[headerMap.description] : row[1],
-          headerMap.stock >= 0 ? row[headerMap.stock] : row[2]
-        ] : row.slice(0,3);
+          headerMap.stock >= 0 ? row[headerMap.stock] : row[2],
+          headerMap.category >= 0 ? row[headerMap.category] : ''
+        ] : row.slice(0,4);
         mapped._sourceRow = index + 1;
         return mapped;
       }).filter(Boolean);
@@ -1372,7 +1626,8 @@
       const stock = normalizeStock(stockText);
       if (!/^(?:\d{8}|\d{10})$/.test(code) || !description || !/^\d+(?:\.\d+)?$/.test(stockText) ||
           !Number.isFinite(stock) || stock < 0) return null;
-      return { code, description, stock };
+      const category = normalizeArabicLetters(String(row[3] ?? '')).trim().slice(0, 80);
+      return { code, description, stock, category };
     }
 
     /**
@@ -1480,7 +1735,7 @@
       const combined = [];
       pendingExcelRows.forEach(row => combined.push({ row, source: 'Excel/CSV' }));
       pendingClipboardRows.forEach(row => combined.push({ row, source: 'کلیپ‌بورد' }));
-      const manualRow = [itemFormInputs.code.value.trim(), itemFormInputs.description.value.trim(), itemFormInputs.stock.value.trim()];
+      const manualRow = [itemFormInputs.code.value.trim(), itemFormInputs.description.value.trim(), itemFormInputs.stock.value.trim(), manualCategoryInput.value.trim()];
       if (manualRow.some(value => value !== '')) combined.push({ row: manualRow, source: 'ورود دستی' });
       return combined;
     }
@@ -1514,12 +1769,12 @@
       }
       const wrapper = document.createElement('div');
       wrapper.className = 'preview-table-wrap bulk-preview-scroll';
-      const { table, tbody } = createDataTable(['منبع ورودی', 'کد تدارکاتی', 'شرح کالا', 'موجودی', 'وضعیت']);
+      const { table, tbody } = createDataTable(['منبع ورودی', 'کد تدارکاتی', 'شرح کالا', 'موجودی', 'گروه کالا', 'وضعیت']);
       combined.forEach(({row, source}) => {
         const error = getRowError(row);
         const tr = document.createElement('tr');
         if (error) tr.className = 'import-invalid-row';
-        [source, toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), error || 'معتبر'].forEach(value => {
+        [source, toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), normalizeArabicLetters(row[3] ?? '') || '—', error || 'معتبر'].forEach(value => {
           const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
         });
         tbody.append(tr);
@@ -1551,12 +1806,12 @@
         return;
       }
       const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap bulk-preview-scroll';
-      const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی', 'وضعیت']);
+      const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی', 'گروه کالا', 'وضعیت']);
       previewRows.forEach(row => {
         const error = getRowError(row);
         const tr = document.createElement('tr');
         if (error) tr.className = 'import-invalid-row';
-        [toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), error || 'معتبر'].forEach(value => {
+        [toEnglishDigits(row[0] ?? ''), normalizeArabicLetters(row[1] ?? ''), toEnglishDigits(row[2] ?? ''), normalizeArabicLetters(row[3] ?? '') || '—', error || 'معتبر'].forEach(value => {
           const td = document.createElement('td'); td.textContent = String(value); tr.append(td);
         });
         tbody.append(tr);
@@ -1572,7 +1827,7 @@
      * خروجی: DOM پیش‌نمایش ورود دستی به‌روزرسانی می‌شود.
      */
     function renderSinglePreview() {
-      const row = [itemFormInputs.code.value.trim(), itemFormInputs.description.value.trim(), itemFormInputs.stock.value.trim()];
+      const row = [itemFormInputs.code.value.trim(), itemFormInputs.description.value.trim(), itemFormInputs.stock.value.trim(), manualCategoryInput.value.trim()];
       const item = normalizeRow(row);
       singlePreview.replaceChildren();
       const heading = document.createElement('h5'); heading.textContent = 'پیش‌نمایش کالای تکی'; singlePreview.append(heading);
@@ -1584,9 +1839,9 @@
         return;
       }
       const wrapper = document.createElement('div'); wrapper.className = 'preview-table-wrap';
-      const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی']);
+      const { table, tbody } = createDataTable(['کد تدارکاتی', 'شرح کالا', 'موجودی', 'گروه کالا']);
       const tr = document.createElement('tr');
-      [row[0], row[1], item ? item.stock : row[2]].forEach(value => {
+      [row[0], row[1], item ? item.stock : row[2], row[3] || '—'].forEach(value => {
         const td = document.createElement('td'); td.textContent = value === '' ? '—' : String(value); tr.append(td);
       });
       tbody.append(tr); wrapper.append(table); singlePreview.append(wrapper);
@@ -1799,6 +2054,7 @@
         if (existing) {
           existing.description = item.description;
           existing.stock = item.stock;
+          if (item.category) existing.category = item.category;
           // به‌روزرسانی مقدار انبار، آستانه‌ای را که کاربر قبلاً برای این کد تعیین کرده پاک نمی‌کند.
           if (!Number.isFinite(Number(existing.minimumStock)) || Number(existing.minimumStock) < 0) existing.minimumStock = 0;
           const pendingQuantity = existing.sendQuantity === '' || existing.sendQuantity === null || existing.sendQuantity === undefined
@@ -1810,7 +2066,7 @@
           existing.entryTimestamp = entryTimestamp;
           updated += 1;
         } else {
-          inventoryItems.push({ ...item, id: 'item-' + dataQualityKey(item.code), minimumStock: 0, sendQuantity: '', entryTimestamp });
+          inventoryItems.push({ ...item, id: 'item-' + dataQualityKey(item.code), category: item.category || '', minimumStock: 0, sendQuantity: '', entryTimestamp });
           added += 1;
         }
       });
@@ -2191,6 +2447,26 @@
       }
 
       const headerRow = inventoryGrid.closest('table')?.querySelector('thead tr');
+      if (headerRow && !headerRow.querySelector('[data-inventory-sort="category"]')) {
+        const heading = document.createElement('th');
+        heading.scope = 'col';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'inventory-sort-button';
+        button.dataset.inventorySort = 'category';
+        button.innerHTML = 'گروه کالا <span class="inventory-sort-marker" aria-hidden="true">↕</span>';
+        button.addEventListener('click', () => {
+          inventorySort = inventorySort.key === 'category'
+            ? { key: 'category', direction: inventorySort.direction === 'asc' ? 'desc' : 'asc' }
+            : { key: 'category', direction: 'asc' };
+          renderInventory();
+        });
+        heading.append(button);
+        const descriptionHeading = headerRow.querySelector('[data-inventory-sort="description"]')?.closest('th');
+        if (descriptionHeading && descriptionHeading.nextSibling) headerRow.insertBefore(heading, descriptionHeading.nextSibling);
+        else headerRow.append(heading);
+      }
+
       if (headerRow && !headerRow.querySelector('[data-inventory-sort="minimumStock"]')) {
         const heading = document.createElement('th');
         heading.scope = 'col';
@@ -2249,7 +2525,7 @@
         if (inventoryStatusFilter === 'zero' && Number(item.stock) !== 0) return false;
         if (!searchTerm) return true;
         const searchable = toEnglishDigits([
-          item.code, item.description, item.stock, item.minimumStock, item.sendQuantity,
+          item.code, item.description, item.category, item.stock, item.minimumStock, item.sendQuantity,
           item.entryTimestamp ? solarDateTime(new Date(item.entryTimestamp)).date : ''
         ].join(' ')).toLocaleLowerCase('fa');
         return searchable.includes(searchTerm);
@@ -2293,6 +2569,29 @@
         descriptionCell.className = 'inventory-description-cell';
         descriptionCell.textContent = item.description;
         descriptionCell.title = item.description;
+
+        const categoryCell = document.createElement('td');
+        categoryCell.className = 'inventory-category-cell';
+        const categoryInput = document.createElement('input');
+        categoryInput.type = 'text';
+        categoryInput.maxLength = 80;
+        categoryInput.className = 'inventory-category-input';
+        categoryInput.value = typeof item.category === 'string' ? item.category : '';
+        categoryInput.setAttribute('aria-label', 'گروه کالا برای کد ' + item.code);
+        categoryInput.addEventListener('change', () => {
+          const previousCategory = typeof item.category === 'string' ? item.category : '';
+          item.category = normalizeArabicLetters(categoryInput.value).trim().slice(0, 80);
+          if (!saveInventory()) {
+            item.category = previousCategory;
+            categoryInput.value = previousCategory;
+            return;
+          }
+          inventoryFeedback.textContent = item.category
+            ? 'گروه کالای ' + item.code + ' ذخیره شد؛ در گزارش ارسال‌های بعدی ثبت می‌شود.'
+            : 'گروه کالای ' + item.code + ' پاک شد.';
+          renderInventory();
+        });
+        categoryCell.append(categoryInput);
 
         const stockCell = document.createElement('td');
         stockCell.className = 'inventory-quantity-cell';
@@ -2388,7 +2687,7 @@
           entryDateCell.dataset.sortValue = '';
         }
 
-        row.append(selectionCell, codeCell, descriptionCell, stockCell, minimumStockCell, sendCell, entryDateCell);
+        row.append(selectionCell, codeCell, descriptionCell, categoryCell, stockCell, minimumStockCell, sendCell, entryDateCell);
         inventoryGrid.append(row);
       });
 
@@ -3000,6 +3299,7 @@
         if (!item || typeof item !== 'object' || Array.isArray(item)) return 'رکورد باید شیء باشد.';
         if (typeof item.code !== 'string' || !item.code.trim()) return 'کد کالا خالی یا نامعتبر است.';
         if (item.id !== undefined && (typeof item.id !== 'string' || !item.id.trim())) return 'شناسه کالا نامعتبر است.';
+        if (item.category !== undefined && typeof item.category !== 'string') return 'گروه کالا نامعتبر است.';
         if (typeof item.description !== 'string' || !item.description.trim()) return 'شرح کالا خالی یا نامعتبر است.';
         if (!validNumber(item.stock, true)) return 'موجودی باید عددی متناهی و صفر یا مثبت باشد.';
         if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
