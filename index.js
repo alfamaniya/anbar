@@ -2757,14 +2757,14 @@
         .replace(/٫/g, '.')
         .trim();
       const validNumber = (value, allowZero) => {
-        // عددهای واقعی JSON ممکن است به صورت نمایی stringify شوند؛ خود عدد را مستقیم کنترل کن.
+        // داده ذخیره‌شده با قالب خام JSON کنترل می‌شود؛ جداکننده هزارگان نباید هنگام بازیابی تفسیر متفاوتی پیدا کند.
         if (typeof value === 'number') {
           return Number.isFinite(value) && (allowZero ? value >= 0 : value > 0);
         }
         if (typeof value !== 'string') return false;
-        const text = numericText(value);
-        const number = normalizeStock(text);
-        return /^\d+(?:\.\d+)?$/.test(text) &&
+        const text = toEnglishDigits(value).trim();
+        const number = Number(text);
+        return /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(text) &&
           Number.isFinite(number) && (allowZero ? number >= 0 : number > 0);
       };
       const records = (value, label, validator) => {
@@ -2779,8 +2779,13 @@
         if (typeof item.code !== 'string' || !item.code.trim()) return 'کد کالا خالی یا نامعتبر است.';
         if (typeof item.description !== 'string' || !item.description.trim()) return 'شرح کالا خالی یا نامعتبر است.';
         if (!validNumber(item.stock, true)) return 'موجودی باید عددی متناهی و صفر یا مثبت باشد.';
-        if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null &&
-            !validNumber(item.sendQuantity, false)) return 'مقدار آماده‌ارسال نامعتبر است.';
+        if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
+          const pendingQuantity = typeof item.sendQuantity === 'number'
+            ? item.sendQuantity : Number(toEnglishDigits(String(item.sendQuantity)).trim());
+          if (!validNumber(item.sendQuantity, true) || pendingQuantity > Number(item.stock)) {
+            return 'مقدار آماده‌ارسال نامعتبر است.';
+          }
+        }
         if (item.entryTimestamp && (typeof item.entryTimestamp !== 'string' || !Number.isFinite(Date.parse(item.entryTimestamp)))) {
           return 'زمان ورود کالا نامعتبر است.';
         }
