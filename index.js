@@ -85,6 +85,13 @@
      * خروجی: true در موفقیت یا false در شکست.
      */
     function saveEntryHistory(records) {
+      const preservesEntryRecord = record =>
+        Boolean(record && typeof record === 'object' && !Array.isArray(record)) &&
+        (record.timestamp === undefined || record.timestamp === '' ||
+          (typeof record.timestamp === 'string' && Number.isFinite(Date.parse(record.timestamp))));
+      if (!canSafelyRewriteStoredArray(ENTRY_HISTORY_KEY, 'تاریخچه ورود', inventoryFeedback, preservesEntryRecord)) {
+        return false;
+      }
       try {
         localStorage.setItem(ENTRY_HISTORY_KEY, JSON.stringify(records.slice(0, 1000)));
         return true;
@@ -276,6 +283,7 @@
      * خروجی: true یا false بر اساس نتیجه ذخیره.
      */
     function saveShipments(records) {
+      if (!canSafelyRewriteStoredArray(SHIPMENT_KEY, 'تاریخچه ارسال', shipmentFeedback)) return false;
       try { localStorage.setItem(SHIPMENT_KEY, JSON.stringify(records)); return true; }
       catch (error) { shipmentFeedback.textContent = 'ذخیره تاریخچه ارسال انجام نشد؛ فضای ذخیره‌سازی مرورگر را بررسی کنید.'; return false; }
     }
@@ -691,6 +699,201 @@
     let pendingExcelRows = [];
 
     /**
+     * هدف: خواندن آرایه ذخیره‌شده بدون حذف یا نرمال‌سازی داده خام.
+     * خروجی: وضعیت وجود کلید، مقدار خام تجزیه‌شده و خطای ساختار/خواندن.
+     */
+    function readStoredArrayState(key, label) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw === null) return { exists: false, raw: null, records: [], error: '' };
+        let records;
+        try { records = JSON.parse(raw); }
+        catch (error) {
+          return { exists: true, raw, records: null, error: label + ': متن ذخیره‌شده JSON معتبر نیست.' };
+        }
+        if (!Array.isArray(records)) {
+          return { exists: true, raw, records: null, error: label + ': مقدار ذخیره‌شده آرایه نیست.' };
+        }
+        return { exists: true, raw, records, error: '' };
+      } catch (error) {
+        return { exists: true, raw: null, records: null, error: label + ': خواندن حافظه محلی ممکن نشد.' };
+      }
+    }
+
+    /**
+     * هدف: جلوگیری از بازنویسی کلیدهایی که خواندن عادی آن‌ها بخشی از داده را حذف یا تغییر می‌دهد.
+     */
+    function canSafelyRewriteStoredArray(key, label, feedbackTarget, preservesRecord = () => true) {
+      const state = readStoredArrayState(key, label);
+      let reason = state.error;
+      if (!reason && state.exists) {
+        const unsafeIndex = state.records.findIndex(record => !preservesRecord(record));
+        if (unsafeIndex >= 0) {
+          reason = label + '، رکورد ' + (unsafeIndex + 1) +
+            ' هنگام بازخوانی معمول از دست می‌رود یا تغییر می‌کند.';
+        }
+      }
+      if (!reason) return true;
+      if (feedbackTarget) {
+        feedbackTarget.textContent = reason +
+          ' برای جلوگیری از حذف ناخواسته، ذخیره متوقف شد. ابتدا از داده خام نسخه جداگانه تهیه و رکورد ناسازگار را بررسی کنید؛ هیچ رکوردی خودکار حذف نشده است.';
+      }
+      return false;
+    }
+
+    /** نرمال‌سازی کلید متنی برای کشف تکرار بدون تغییر مقدار ذخیره‌شده. */
+    function dataQualityKey(value) {
+      return normalizeArabicLetters(toEnglishDigits(String(value ?? '')))
+        .trim().replace(/\s+/g, ' ').toLocaleLowerCase('fa');
+    }
+
+    /**
+     * هدف: ممیزی غیرمخرب داده‌های واقعاً ذخیره‌شده و اعلام رکوردهای مشکوک در داشبورد.
+     * این گزارش فقط می‌خواند؛ هیچ رکوردی را حذف، اصلاح یا ذخیره نمی‌کند.
+     */
+    function inspectStoredDataQuality() {
+      const findings = [];
+      const read = (key, label) => {
+        const state = readStoredArrayState(key, label);
+        if (state.error) findings.push(state.error);
+        return state.error ? [] : state.records;
+      };
+      const inventory = read(STORAGE_KEY, 'موجودی');
+      const entries = read(ENTRY_HISTORY_KEY, 'تاریخچه ورود');
+      const shipments = read(SHIPMENT_KEY, 'تاریخچه ارسال');
+      const locations = read(LOCATION_KEY, 'محل‌های ارسال');
+
+      const inventoryCodes = new Set();
+      inventory.forEach((item, index) => {
+        const row = index + 1;
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          findings.push('موجودی، رکورد ' + row + ' شیء معتبر نیست.');
+          return;
+        }
+        const code = typeof item.code === 'string' ? dataQualityKey(item.code) : '';
+        if (!code) findings.push('موجودی، رکورد ' + row + ' کد خالی یا نامعتبر دارد.');
+        else {
+          if (!/^(?:\d{8}|\d{10})$/.test(toEnglishDigits(code))) {
+            findings.push('موجودی، کد «' + String(item.code).slice(0, 40) + '» الگوی ۸ یا ۱۰ رقمی ندارد.');
+          }
+          if (inventoryCodes.has(code)) findings.push('کد کالای تکراری در موجودی: «' + String(item.code).slice(0, 40) + '».');
+          inventoryCodes.add(code);
+        }
+        if (typeof item.description !== 'string' || !item.description.trim()) {
+          findings.push('موجودی، رکورد ' + row + ' شرح کالا خالی دارد.');
+        }
+        const stock = typeof item.stock === 'number' ? item.stock : normalizeStock(item.stock);
+        if (!Number.isFinite(stock) || stock < 0) findings.push('موجودی، رکورد ' + row + ' مقدار موجودی نامعتبر دارد.');
+        if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
+          const quantity = typeof item.sendQuantity === 'number' ? item.sendQuantity : normalizeStock(item.sendQuantity);
+          if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(stock) || quantity > stock) {
+            findings.push('موجودی، رکورد ' + row + ' مقدار آماده‌ارسال خارج از محدوده دارد.');
+          }
+        }
+      });
+
+      const entryNumbers = new Set();
+      entries.forEach((entry, index) => {
+        if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+          findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' شیء معتبر نیست.');
+          return;
+        }
+        const number = typeof entry.entryNumber === 'string' ? dataQualityKey(entry.entryNumber) : '';
+        if (!number) findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' شماره ورود ندارد.');
+        else if (entryNumbers.has(number)) findings.push('شماره ورود تکراری: «' + String(entry.entryNumber).slice(0, 60) + '».');
+        if (number) entryNumbers.add(number);
+        if (entry.timestamp && (typeof entry.timestamp !== 'string' || !Number.isFinite(Date.parse(entry.timestamp)))) {
+          findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' زمان نامعتبر دارد.');
+        }
+        ['itemCount', 'pieceCount'].forEach(field => {
+          if (entry[field] !== undefined &&
+              (typeof entry[field] !== 'number' || !Number.isFinite(entry[field]) || entry[field] < 0)) {
+            findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' مقدار «' + field + '» نامعتبر دارد.');
+          }
+        });
+      });
+
+      const voucherNumbers = new Set();
+      const exitNumbers = new Set();
+      shipments.forEach((shipment, index) => {
+        if (!shipment || typeof shipment !== 'object' || Array.isArray(shipment)) {
+          findings.push('تاریخچه ارسال، رکورد ' + (index + 1) + ' شیء معتبر نیست.');
+          return;
+        }
+        [['voucherNumber', voucherNumbers, 'شماره حواله'], ['exitNumber', exitNumbers, 'شماره خروج']].forEach(([field, set, label]) => {
+          const value = typeof shipment[field] === 'string' ? dataQualityKey(shipment[field]) : '';
+          if (value && set.has(value)) findings.push(label + ' تکراری: «' + String(shipment[field]).slice(0, 60) + '».');
+          if (value) set.add(value);
+        });
+        if (!Array.isArray(shipment.items)) {
+          findings.push('تاریخچه ارسال، رکورد ' + (index + 1) + ' فهرست اقلام معتبر ندارد.');
+          return;
+        }
+        shipment.items.forEach((line, lineIndex) => {
+          if (!line || typeof line !== 'object' || Array.isArray(line) ||
+              typeof line.code !== 'string' || !line.code.trim()) {
+            findings.push('ارسال ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' کد کالای معتبر ندارد.');
+            return;
+          }
+          const quantity = typeof line.quantity === 'number' ? line.quantity : normalizeStock(line.quantity);
+          if (!Number.isFinite(quantity) || quantity <= 0) {
+            findings.push('ارسال ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' تعداد نامعتبر دارد.');
+          }
+        });
+      });
+
+      const locationNames = new Set();
+      locations.forEach((location, index) => {
+        if (!location || typeof location !== 'object' || Array.isArray(location) ||
+            typeof location.name !== 'string' || !location.name.trim()) {
+          findings.push('محل ارسال، رکورد ' + (index + 1) + ' نام معتبر ندارد.');
+          return;
+        }
+        const name = dataQualityKey(location.name);
+        if (locationNames.has(name)) findings.push('نام محل ارسال تکراری: «' + location.name.slice(0, 60) + '».');
+        locationNames.add(name);
+        if (location.sublocations !== undefined &&
+            (!Array.isArray(location.sublocations) ||
+             !location.sublocations.every(value => typeof value === 'string' && value.trim()))) {
+          findings.push('محل «' + location.name.slice(0, 40) + '» زیرمجموعه نامعتبر دارد.');
+        } else if (Array.isArray(location.sublocations)) {
+          const subs = new Set();
+          location.sublocations.forEach(sub => {
+            const key = dataQualityKey(sub);
+            if (subs.has(key)) findings.push('زیرمجموعه تکراری برای محل «' + location.name.slice(0, 40) + '».');
+            subs.add(key);
+          });
+        }
+      });
+      return findings;
+    }
+
+    /** هدف: نمایش نتیجه ممیزی غیرمخرب داده‌های ذخیره‌شده در بخش داشبورد. */
+    function renderDataQualityReport() {
+      const anchor = document.querySelector('.dashboard-note');
+      if (!anchor) return;
+      let report = document.getElementById('dashboard-data-quality-report');
+      if (!report) {
+        report = document.createElement('p');
+        report.id = 'dashboard-data-quality-report';
+        report.className = 'dashboard-note';
+        report.setAttribute('role', 'status');
+        report.setAttribute('aria-live', 'polite');
+        anchor.insertAdjacentElement('afterend', report);
+      }
+      const findings = inspectStoredDataQuality();
+      if (findings.length) {
+        report.className = 'dashboard-note feedback';
+        report.textContent = 'هشدار کیفیت داده: ' + findings.length + ' مورد مشکوک شناسایی شد؛ هیچ داده‌ای خودکار حذف یا اصلاح نشده است. ' +
+          findings.slice(0, 3).join(' ');
+        if (findings.length > 3) report.textContent += ' و ' + (findings.length - 3) + ' مورد دیگر؛ برای جزئیات بیشتر نسخه پشتیبان خام تهیه و سوابق را بررسی کنید.';
+      } else {
+        report.className = 'dashboard-note';
+        report.textContent = 'کنترل کیفیت داده‌های ذخیره‌شده: ناسازگاری ساختاری، مقدار نامعتبر یا شناسه تکراری قابل تشخیص پیدا نشد.';
+      }
+    }
+
+    /**
      * هدف: خواندن موجودی و پالایش کد، شرح، موجودی، مقدار آماده‌ارسال و زمان ورود.
      * ورودی: پارامتر ندارد.
      * خروجی: آرایه کالاهای نرمال‌شده؛ در خطا آرایه خالی.
@@ -748,6 +951,22 @@
      * خروجی: true در ذخیره موفق و false در شکست.
      */
     function saveInventory() {
+      const inventoryFields = new Set(['code', 'description', 'stock', 'sendQuantity', 'entryTimestamp']);
+      const preservesInventoryRecord = item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item) ||
+            typeof item.code !== 'string' || typeof item.description !== 'string' ||
+            !Number.isFinite(Number(item.stock)) || Number(item.stock) < 0 ||
+            Object.keys(item).some(key => !inventoryFields.has(key))) return false;
+        const quantity = item.sendQuantity === '' || item.sendQuantity === null || item.sendQuantity === undefined
+          ? NaN : Number(item.sendQuantity);
+        if (item.sendQuantity !== '' && item.sendQuantity !== null && item.sendQuantity !== undefined &&
+            (!Number.isFinite(quantity) || quantity <= 0 || quantity > Number(item.stock))) return false;
+        return !item.entryTimestamp ||
+          (typeof item.entryTimestamp === 'string' && Number.isFinite(Date.parse(item.entryTimestamp)));
+      };
+      if (!canSafelyRewriteStoredArray(STORAGE_KEY, 'موجودی', inventoryFeedback, preservesInventoryRecord)) {
+        return false;
+      }
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(inventoryItems));
         recordActivity('ذخیره / تغییر موجودی', 'تعداد اقلام فعلی: ' + toEnglishDigits(inventoryItems.length));
@@ -833,6 +1052,7 @@
         ['dashboard-item-count', 'dashboard-stock-total', 'dashboard-entry-count',
           'dashboard-shipment-count', 'dashboard-zero-stock-count'].forEach(id => setMetric(id, 0));
       }
+      renderDataQualityReport();
     }
 
     /**
@@ -850,8 +1070,12 @@
         });
       });
       updateDashboardSummary();
+      renderDataQualityReport();
       // رویداد «تغییر ذخیره‌سازی در زبانه دیگر» برای عنصر رابط کاربری؛ همگام‌سازی شاخص‌ها با تغییر داده در زبانه دیگر.
-      window.addEventListener('storage', updateDashboardSummary);
+      window.addEventListener('storage', () => {
+        updateDashboardSummary();
+        renderDataQualityReport();
+      });
       if (typeof MutationObserver === 'function') {
         ['inventory-grid', 'entry-history-body', 'shipment-history-body'].forEach(id => {
           const target = document.getElementById(id);
@@ -1615,6 +1839,16 @@
      * خروجی: true در موفقیت یا false در شکست.
      */
     function saveShipmentLocations(locations) {
+      const preservesLocationRecord = location =>
+        Boolean(location && typeof location === 'object' && !Array.isArray(location) &&
+          typeof location.name === 'string' && location.name.trim()) &&
+        (location.sublocations === undefined ||
+          (Array.isArray(location.sublocations) &&
+           location.sublocations.every(value => typeof value === 'string' && value.trim()))) &&
+        Object.keys(location).every(key => key === 'name' || key === 'sublocations');
+      if (!canSafelyRewriteStoredArray(LOCATION_KEY, 'محل‌های ارسال', shipmentFeedback, preservesLocationRecord)) {
+        return false;
+      }
       try {
         localStorage.setItem(LOCATION_KEY, JSON.stringify(locations));
         return true;
@@ -1897,9 +2131,15 @@
             inventoryFeedback.textContent = 'تعداد برای ارسال باید عددی بزرگ‌تر یا مساوی صفر باشد.';
             return;
           }
+          const previousQuantity = item.sendQuantity;
           item.sendQuantity = numericValue;
-          saveInventory();
+          if (!saveInventory()) {
+            item.sendQuantity = previousQuantity;
+            sendInput.value = previousQuantity === '' ? '' : String(previousQuantity);
+            return;
+          }
           inventoryFeedback.textContent = '';
+          renderDataQualityReport();
           if (inventorySort.key === 'sendQuantity') renderInventory();
         });
         sendCell.append(sendInput);
@@ -2176,20 +2416,20 @@
      * ورودی: پارامتر ندارد.
      * خروجی: شیء دارای exportedAt و آرایه‌های داده.
      */
+    function readStoredSectionForBackup(key, fallback) {
+      const raw = localStorage.getItem(key);
+      return raw === null ? fallback : JSON.parse(raw);
+    }
+
     function buildBackupPayload() {
+      // داده خام برای بکاپ خوانده می‌شود تا رکوردی که loader پالایش می‌کند بی‌صدا از نسخه پشتیبان حذف نشود.
       return {
         schemaVersion: 1,
         exportedAt: new Date().toISOString(),
-        inventory: inventoryItems.map(item => ({ ...item })),
-        entryHistory: loadEntryHistory().map(record => ({ ...record })),
-        shipments: loadShipments().map(record => ({
-          ...record,
-          items: Array.isArray(record.items) ? record.items.map(item => ({ ...item })) : record.items
-        })),
-        shipmentLocations: loadShipmentLocations().map(location => ({
-          ...location,
-          sublocations: [...location.sublocations]
-        }))
+        inventory: readStoredSectionForBackup(STORAGE_KEY, inventoryItems.map(item => ({ ...item }))),
+        entryHistory: readStoredSectionForBackup(ENTRY_HISTORY_KEY, []),
+        shipments: readStoredSectionForBackup(SHIPMENT_KEY, []),
+        shipmentLocations: readStoredSectionForBackup(LOCATION_KEY, [])
       };
     }
     /**
