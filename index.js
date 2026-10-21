@@ -520,11 +520,24 @@
       if (exportButton) exportButton.disabled = rows.length === 0;
     }
 
+    /**
+     * هدف: نقل‌قول‌گذاری سلول CSV و جلوگیری از تفسیر متن واردشده به‌عنوان فرمول صفحه‌گسترده.
+     * ورودی: مقدار یک سلول CSV.
+     * خروجی: سلول نقل‌قول‌گذاری‌شده؛ پیشوندهای خطرناک با آپاستروف خنثی می‌شوند.
+     */
+    function escapeCsvCell(value) {
+      let text = String(value ?? '');
+      // Excel ممکن است متن آغازشده با =، +، - یا @ را فرمول بداند؛ trimStart فاصله و نویسه‌های سفید ابتدایی را هم پوشش می‌دهد.
+      const firstSignificant = text.trimStart().charAt(0);
+      if (['=', '+', '-', '@'].includes(firstSignificant)) text = "'" + text;
+      return '"' + text.replace(/"/g, '""') + '"';
+    }
+
     /** هدف: خروجی CSV با BOM برای سازگاری بهتر با Excel و حفظ متن فارسی. */
     function exportConsumptionReport() {
       if (!currentConsumptionReportRows.length) return;
       const headers = ['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'];
-      const csvValue = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+      const csvValue = escapeCsvCell;
       const csv = '\uFEFF' + [headers, ...currentConsumptionReportRows.map(row => [row.dateLabel, row.voucherNumber,
         row.exitNumber, row.location, row.category || 'بدون گروه ثبت‌شده', row.code, row.description, row.quantity])]
         .map(row => row.map(csvValue).join(',')).join('\r\n');
