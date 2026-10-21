@@ -2516,7 +2516,11 @@
         .replace(/٫/g, '.')
         .trim();
       const validNumber = (value, allowZero) => {
-        if (typeof value !== 'number' && typeof value !== 'string') return false;
+        // عددهای واقعی JSON ممکن است به صورت نمایی stringify شوند؛ خود عدد را مستقیم کنترل کن.
+        if (typeof value === 'number') {
+          return Number.isFinite(value) && (allowZero ? value >= 0 : value > 0);
+        }
+        if (typeof value !== 'string') return false;
         const text = numericText(value);
         const number = normalizeStock(text);
         return /^\d+(?:\.\d+)?$/.test(text) &&
