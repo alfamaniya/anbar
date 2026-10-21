@@ -33,7 +33,7 @@
     };
     // کلیدهای اصلی داده و وضعیت صفحه‌بندی گزارش‌ها.
     const STORAGE_KEY = 'anbar.inventory.v1';
-    const ACTIVITY_KEY = 'anbar.activity-log.v1';
+    // لاگ سایت حذف شده است؛ فراخوانی‌های قدیمی recordActivity به‌صورت بی‌اثر باقی می‌مانند.
     const ENTRY_HISTORY_KEY = 'anbar.entry-history.v1';
     const ENTRY_PAGE_SIZE = 10;
     let entryHistoryPage = 0;
@@ -622,7 +622,7 @@
       renderShipmentHistory();
       closeShipmentDialog();
       inventoryFeedback.textContent = 'ارسال با موفقیت ثبت شد. شماره حواله: ' + voucher + '؛ شماره خروج: ' + exitNumber;
-      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+
     }
 
     /**
@@ -630,27 +630,8 @@
      * ورودی: action: عنوان عملیات؛ details: شرح رخداد.
      * خروجی: بدون مقدار بازگشتی؛ خطای ثبت لاگ مانع عملیات اصلی نمی‌شود.
      */
-    function recordActivity(action, details) {
-      try {
-        const now = new Date();
-        const logs = loadActivityLog();
-        const fullDetails = String(details || 'جزئیاتی ثبت نشده است.');
-        const safeDetails = fullDetails.length > 3000
-          ? fullDetails.slice(0, 3000) + '… (ادامه جزئیات برای جلوگیری از حجیم شدن لاگ کوتاه شد)'
-          : fullDetails;
-        logs.unshift({
-          action: String(action || 'تغییر نامشخص'),
-          details: safeDetails,
-          actor: 'کاربر',
-          timestamp: now.toISOString(),
-          solarDate: new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
-            year: 'numeric', month: '2-digit', day: '2-digit'
-          }).format(now)
-        });
-        localStorage.setItem(ACTIVITY_KEY, JSON.stringify(logs.slice(0, 1000)));
-      } catch (error) {
-        /* ثبت لاگ نباید مانع ادامه عملیات اصلی شود. */
-      }
+    function recordActivity() {
+      // لاگ سایت بنا به درخواست حذف شده؛ این تابع موقتاً برای سازگاری فراخوانی‌های موجود بی‌اثر است.
     }
 
     /**
@@ -658,62 +639,7 @@
      * ورودی: target: ظرف نمایشی؛ logs: رخدادها؛ emptyText: پیام حالت خالی.
      * خروجی: DOM گزارش فعالیت به‌روزرسانی می‌شود.
      */
-    function renderActivityResults(target, logs, emptyText) {
-      target.replaceChildren();
-      if (!logs.length) {
-        const empty = document.createElement('p');
-        empty.className = 'preview-empty';
-        empty.textContent = emptyText;
-        target.append(empty);
-        return;
-      }
 
-      const wrapper = document.createElement('div');
-      wrapper.className = 'preview-table-wrap bulk-preview-scroll';
-      const { table, tbody } = createDataTable(['تاریخ و ساعت', 'کاربر', 'عملیات', 'جزئیات'], 'settings-log-table');
-
-      logs.slice(0, 1000).forEach(log => {
-        const row = document.createElement('tr');
-        const dateCell = document.createElement('td');
-        const timestamp = log.timestamp ? new Date(log.timestamp) : null;
-        if (timestamp && Number.isFinite(timestamp.getTime())) {
-          const dateTime = solarDateTime(timestamp);
-          const date = document.createElement('span');
-          date.className = 'date-part';
-          date.textContent = dateTime.date;
-          const time = document.createElement('span');
-          time.className = 'time-part';
-          time.textContent = dateTime.time;
-          dateCell.className = 'date-time-cell';
-          dateCell.append(date, time);
-          dateCell.dataset.sortValue = log.timestamp;
-        } else {
-          dateCell.textContent = log.solarDate || '—';
-        }
-
-        const actorCell = document.createElement('td');
-        actorCell.textContent = log.actor || '—';
-        const actionCell = document.createElement('td');
-        actionCell.textContent = log.action || '—';
-        const detailsCell = document.createElement('td');
-        if (log.details && typeof log.details === 'object' && !Array.isArray(log.details)) {
-          const detailList = document.createElement('dl');
-          detailList.className = 'activity-detail-fields';
-          Object.entries(log.details).forEach(([label, value]) => {
-            const term = document.createElement('dt'); term.textContent = label;
-            const description = document.createElement('dd'); description.textContent = String(value ?? '—');
-            detailList.append(term, description);
-          });
-          detailsCell.append(detailList);
-        } else detailsCell.textContent = log.details || '—';
-        row.append(dateCell, actorCell, actionCell, detailsCell);
-        tbody.append(row);
-      });
-
-      wrapper.append(table);
-      target.append(wrapper);
-      enableTableSorting(table, { defaultColumn: 0, defaultDirection: 'desc' });
-    }
 
     const bulkPreview = document.getElementById('bulk-preview');
     const excelPreview = document.getElementById('excel-preview');
@@ -1752,7 +1678,7 @@
           recordActivity('ویرایش محل ارسال', { 'نام قبلی': location.name, 'نام جدید': cleanName, 'زیرمجموعه‌ها': nextSubs.join('، ') || 'ندارد' });
           document.getElementById('location-manager-feedback').textContent = 'اطلاعات محل ارسال به‌روزرسانی شد.';
           renderLocationManager(); renderShipmentLocationOptions();
-          renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+
         });
 
         const removeButton = document.createElement('button');
@@ -1778,7 +1704,7 @@
           document.getElementById('location-manager-feedback').textContent = 'محل انتخاب‌شده حذف شد.';
           renderLocationManager();
           renderShipmentLocationOptions();
-          renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+
         });
 
         row.append(details, editButton, removeButton);
@@ -1817,7 +1743,7 @@
       feedback.textContent = 'محل ارسال ذخیره شد و در ارسال‌های بعدی قابل انتخاب است.';
       renderLocationManager();
       renderShipmentLocationOptions();
-      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+
     });
 
     renderLocationManager();
@@ -2223,7 +2149,7 @@
         entryHistory: loadEntryHistory(),
         shipments: loadShipments(),
         shipmentLocations: loadShipmentLocations(),
-        activityLog: loadActivityLog(),
+
       };
     }
     /**
@@ -2524,11 +2450,11 @@
           }
         });
       });
-      const currentActivity = loadActivityLog();
+
       const incomingActivity = (payload.activityLog || []).filter(record => {
         const signature = JSON.stringify(record);
         const exists = currentActivity.some(item => JSON.stringify(item) === signature);
-        if (exists) conflicts.push('رخداد تکراری در لاگ فعالیت: ' + String(record && (record.action || record.title) || 'بدون عنوان'));
+
         return !exists;
       });
       return {
@@ -2662,11 +2588,10 @@
 
     // رویداد «کلیک» برای دکمه به‌روزرسانی گزارش فعالیت؛ اجرای رفتار متناسب با این کنترل و رویداد.
     document.getElementById('refresh-backup-log').addEventListener('click', () => {
-      renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
+
     });
     renderEntryHistory();
     renderShipmentHistory();
-    renderActivityResults(document.getElementById('backup-log-results'), loadActivityLog(), 'هنوز رخدادی ثبت نشده است.');
 
 /* کنترل پنجره شناور یادداشت‌های انتشار با عنصر dialog بومی مرورگر. */
 const releaseNotesDialog = document.getElementById('release-notes-dialog');
