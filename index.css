@@ -870,3 +870,8 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   .action-button:hover:not(:disabled), .dashboard-primary-link:hover { transform: none; }
 }
+#send-location-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
