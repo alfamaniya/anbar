@@ -1053,9 +1053,7 @@
     }
 
     .empty-state, .field-hint, .feedback, .preview-message,
-    .search-live-text, .settings-log-row {
-      overflow-wrap: anywhere;
-    }
+    .search-live-text, 
 
     /* هماهنگ‌سازی ستون‌ها و کارت‌ها با اندازه نمایشگر. شرط فعال‌سازی: (max-width: 1200px). */
     @media (max-width: 1200px) {
@@ -2279,4 +2277,4 @@ textarea {
 #location-manager-list .location-record{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px}
 #location-manager-list .location-edit-button,#location-manager-list .location-delete-button{min-height:34px;padding:5px 9px;white-space:nowrap}
 #reset-shared-preview{margin-inline-end:auto}
-@media(max-width:600px){#location-manager-list .location-record{grid-template-columns:minmax(0,1fr) auto}.location-record-details{grid-column:1/-1}.activity-detail-fields{grid-template-columns:1fr;min-width:220px}.activity-detail-fields dd{margin-bottom:6px}}
+@media(max-width:600px){#location-manager-list .location-record{grid-template-columns:minmax(0,1fr) auto}.location-record-details{grid-column:1/-1}}
