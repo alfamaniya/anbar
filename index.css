@@ -2206,3 +2206,26 @@ textarea {
     line-height: 1.8;
   }
 }
+
+
+/* اصلاح خوانایی جدول لاگ: سرستون‌ها یکپارچه می‌مانند و فقط متن جزئیات اجازه شکست در رشته‌های طولانی را دارد. */
+.settings-log-table {
+  width: 100%;
+  min-width: 900px;
+  table-layout: auto;
+}
+.settings-log-table th {
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  min-width: 100px;
+}
+.settings-log-table td {
+  word-break: normal;
+  overflow-wrap: break-word;
+  vertical-align: top;
+}
+.settings-log-table td:last-child {
+  min-width: 300px;
+  overflow-wrap: anywhere;
+}
