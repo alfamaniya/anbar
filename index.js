@@ -2178,12 +2178,18 @@
      */
     function buildBackupPayload() {
       return {
+        schemaVersion: 1,
         exportedAt: new Date().toISOString(),
-        inventory: inventoryItems,
-        entryHistory: loadEntryHistory(),
-        shipments: loadShipments(),
-        shipmentLocations: loadShipmentLocations(),
-
+        inventory: inventoryItems.map(item => ({ ...item })),
+        entryHistory: loadEntryHistory().map(record => ({ ...record })),
+        shipments: loadShipments().map(record => ({
+          ...record,
+          items: Array.isArray(record.items) ? record.items.map(item => ({ ...item })) : record.items
+        })),
+        shipmentLocations: loadShipmentLocations().map(location => ({
+          ...location,
+          sublocations: [...location.sublocations]
+        }))
       };
     }
     /**
@@ -2199,6 +2205,7 @@
       }
       backupWriteInProgress = true;
       let succeeded = false;
+      let writable = null;
       try {
         let permission = await directoryHandle.queryPermission({ mode: 'readwrite' });
         if (permission !== 'granted' && allowPermissionPrompt) {
@@ -2210,17 +2217,28 @@
           backupGateStatus.textContent = 'دسترسی نوشتن در پوشه برقرار نیست؛ پوشه را دوباره انتخاب کنید.';
           return false;
         }
+        const payload = buildBackupPayload();
+        const validationErrors = validateBackupPayload(payload);
+        if (validationErrors.length) {
+          throw new Error('ساختار داده فعلی برای تولید بکاپ معتبر نیست: ' + validationErrors.slice(0, 4).join('؛ '));
+        }
+        const serializedBackup = JSON.stringify(payload, null, 2);
         const fileHandle = await directoryHandle.getFileHandle(getSolarBackupFileName(), { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(new Blob([JSON.stringify(buildBackupPayload(), null, 2)], { type: 'application/json;charset=utf-8' }));
+        writable = await fileHandle.createWritable();
+        await writable.write(new Blob([serializedBackup], { type: 'application/json;charset=utf-8' }));
         await writable.close();
+        writable = null;
         succeeded = true;
         backupFolderStatus.textContent = 'بکاپ خودکار فعال است؛ فایل ' + getSolarBackupFileName() + ' در پوشه انتخاب‌شده به‌روزرسانی شد.';
         backupFeedback.textContent = 'آخرین بکاپ با موفقیت ذخیره شد.';
         backupGateStatus.textContent = 'فایل بکاپ با موفقیت ذخیره شد.';
         return true;
       } catch (error) {
-        backupFeedback.textContent = 'ذخیره خودکار انجام نشد. دسترسی پوشه را بررسی کنید و دوباره محل ذخیره را انتخاب کنید.';
+        if (writable && typeof writable.abort === 'function') {
+          try { await writable.abort(); } catch (abortError) { /* شکست abort نباید خطای اصلی را بپوشاند. */ }
+        }
+        const detail = error && error.message ? ' ' + error.message : '';
+        backupFeedback.textContent = 'ذخیره خودکار انجام نشد. دسترسی پوشه و اعتبار داده‌ها را بررسی کنید.' + detail;
         backupGateFeedback.textContent = 'فایل بکاپ ساخته یا به‌روزرسانی نشد. سایت تا ذخیره موفق بکاپ قفل می‌ماند.';
         return false;
       } finally {
@@ -2467,13 +2485,138 @@
     };
 
     /**
+     * هدف: اعتبارسنجی ساختار بکاپ و داده‌های هر بخش پیش از نوشتن یا بازگردانی.
+     * ورودی: payload: شیء JSON بارگذاری‌شده یا داده‌های جاری برای بکاپ.
+     * خروجی: آرایه پیام‌های خطا؛ آرایه خالی یعنی ساختار و رکوردها قابل قبول‌اند.
+     * نسخه schemaVersion اختیاری است تا بکاپ‌های قدیمی همچنان قابل بازیابی بمانند.
+     */
+    function validateBackupPayload(payload) {
+      const errors = [];
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return ['ریشه فایل باید یک شیء JSON باشد.'];
+      }
+      if (payload.schemaVersion !== undefined && payload.schemaVersion !== 1) {
+        errors.push('نسخه ساختار بکاپ پشتیبانی نمی‌شود.');
+      }
+      if (payload.exportedAt !== undefined &&
+          (typeof payload.exportedAt !== 'string' || !Number.isFinite(Date.parse(payload.exportedAt)))) {
+        errors.push('زمان ساخت بکاپ معتبر نیست.');
+      }
+
+      const requiredArraysValid = Array.isArray(payload.inventory) && Array.isArray(payload.shipments);
+      if (!Array.isArray(payload.inventory)) errors.push('فهرست موجودی وجود ندارد یا آرایه نیست.');
+      if (!Array.isArray(payload.shipments)) errors.push('تاریخچه ارسال وجود ندارد یا آرایه نیست.');
+      if (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) errors.push('تاریخچه ورود باید آرایه باشد.');
+      if (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations)) errors.push('فهرست محل‌ها باید آرایه باشد.');
+      if (payload.activityLog !== undefined && !Array.isArray(payload.activityLog)) errors.push('ساختار لاگ قدیمی باید آرایه باشد.');
+      if (!requiredArraysValid) return errors;
+
+      const numericText = value => toEnglishDigits(String(value ?? ''))
+        .replace(/[٬,]/g, '')
+        .replace(/٫/g, '.')
+        .trim();
+      const validNumber = (value, allowZero) => {
+        if (typeof value !== 'number' && typeof value !== 'string') return false;
+        const text = numericText(value);
+        const number = normalizeStock(text);
+        return /^\d+(?:\.\d+)?$/.test(text) &&
+          Number.isFinite(number) && (allowZero ? number >= 0 : number > 0);
+      };
+      const records = (value, label, validator) => {
+        value.forEach((record, index) => {
+          const message = validator(record);
+          if (message) errors.push(label + '، ردیف ' + (index + 1) + ': ' + message);
+        });
+      };
+
+      records(payload.inventory, 'موجودی', item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return 'رکورد باید شیء باشد.';
+        if (typeof item.code !== 'string' || !item.code.trim()) return 'کد کالا خالی یا نامعتبر است.';
+        if (typeof item.description !== 'string' || !item.description.trim()) return 'شرح کالا خالی یا نامعتبر است.';
+        if (!validNumber(item.stock, true)) return 'موجودی باید عددی متناهی و صفر یا مثبت باشد.';
+        if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null &&
+            !validNumber(item.sendQuantity, false)) return 'مقدار آماده‌ارسال نامعتبر است.';
+        if (item.entryTimestamp && (typeof item.entryTimestamp !== 'string' || !Number.isFinite(Date.parse(item.entryTimestamp)))) {
+          return 'زمان ورود کالا نامعتبر است.';
+        }
+        return '';
+      });
+
+      records(payload.entryHistory || [], 'تاریخچه ورود', item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return 'رکورد باید شیء باشد.';
+        if (typeof item.entryNumber !== 'string' || !item.entryNumber.trim()) return 'شماره ورود خالی یا نامعتبر است.';
+        if (item.timestamp && (typeof item.timestamp !== 'string' || !Number.isFinite(Date.parse(item.timestamp)))) {
+          return 'زمان ثبت ورود نامعتبر است.';
+        }
+        for (const field of ['itemCount', 'pieceCount']) {
+          if (item[field] !== undefined &&
+              (typeof item[field] !== 'number' || !Number.isFinite(item[field]) || item[field] < 0)) {
+            return 'شمار ' + field + ' نامعتبر است.';
+          }
+        }
+        return '';
+      });
+
+      records(payload.shipments, 'تاریخچه ارسال', item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return 'رکورد باید شیء باشد.';
+        if (!Array.isArray(item.items) || item.items.length === 0) return 'ارسال باید دست‌کم یک ردیف کالا داشته باشد.';
+        for (const field of ['voucherNumber', 'exitNumber', 'location', 'sublocation', 'date', 'time']) {
+          if (item[field] !== undefined &&
+              (typeof item[field] !== 'string' || (['voucherNumber', 'exitNumber', 'location'].includes(field) && !item[field].trim()))) {
+            return 'فیلد ' + field + ' نامعتبر است.';
+          }
+        }
+        if (item.timestamp && (typeof item.timestamp !== 'string' || !Number.isFinite(Date.parse(item.timestamp)))) {
+          return 'زمان ثبت ارسال نامعتبر است.';
+        }
+        for (let index = 0; index < item.items.length; index += 1) {
+          const line = item.items[index];
+          if (!line || typeof line !== 'object' || Array.isArray(line) ||
+              typeof line.code !== 'string' || !line.code.trim() ||
+              !validNumber(line.quantity, false)) {
+            return 'ردیف کالای شماره ' + (index + 1) + ' دارای کد یا تعداد نامعتبر است.';
+          }
+          if (line.description !== undefined && typeof line.description !== 'string') {
+            return 'شرح ردیف کالای شماره ' + (index + 1) + ' نامعتبر است.';
+          }
+        }
+        return '';
+      });
+
+      records(payload.shipmentLocations || [], 'محل ارسال', location => {
+        if (!location || typeof location !== 'object' || Array.isArray(location) ||
+            typeof location.name !== 'string' || !location.name.trim()) {
+          return 'نام محل خالی یا نامعتبر است.';
+        }
+        if (location.sublocations !== undefined &&
+            (!Array.isArray(location.sublocations) ||
+             !location.sublocations.every(value => typeof value === 'string' && value.trim()))) {
+          return 'فهرست زیرمجموعه‌ها نامعتبر است.';
+        }
+        return '';
+      });
+
+      records(payload.activityLog || [], 'لاگ قدیمی', item =>
+        !item || typeof item !== 'object' || Array.isArray(item) ? 'رکورد باید شیء باشد.' : ''
+      );
+
+      return errors;
+    }
+
+    /**
      * هدف: تشخیص رکوردهای تکراری و ساخت داده ادغام‌شده بدون حذف داده‌های فعلی.
      * ورودی: payload: بکاپ پس از کنترل ساختار.
      * خروجی: شیء شامل آرایه‌های ادغام‌شده، شمارش‌ها و مغایرت‌ها.
      */
     function analyzeRestorePayload(payload) {
       const conflicts = [];
-      const currentInventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      let currentInventory;
+      try {
+        currentInventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if (!Array.isArray(currentInventory)) throw new Error('invalid inventory type');
+      } catch (error) {
+        throw new Error('CURRENT_INVENTORY_INVALID');
+      }
       const currentEntries = loadEntryHistory();
       const currentShipments = loadShipments();
       const incomingInventory = mergeUniqueRecords(currentInventory, payload.inventory, ['code'], conflicts, 'کالای تکراری');
@@ -2534,36 +2677,12 @@
       if (!file) return;
       try {
         const payload = JSON.parse(await file.text());
-        if (!payload || !Array.isArray(payload.inventory) ||
-            (payload.entryHistory !== undefined && !Array.isArray(payload.entryHistory)) ||
-            !Array.isArray(payload.shipments) || (payload.activityLog !== undefined && !Array.isArray(payload.activityLog)) ||
-            (payload.shipmentLocations !== undefined && !Array.isArray(payload.shipmentLocations))) {
-          throw new Error('invalid backup structure');
-        }
-
-        const validInventory = payload.inventory.every(item =>
-          item && typeof item.code === 'string' && typeof item.description === 'string' &&
-          Number.isFinite(Number(item.stock)) && Number(item.stock) >= 0
-        );
-        const validEntries = (payload.entryHistory || []).every(item =>
-          item && typeof item === 'object' && !Array.isArray(item) && typeof item.entryNumber === 'string'
-        );
-        const validShipments = payload.shipments.every(item =>
-          item && typeof item === 'object' && !Array.isArray(item) &&
-          Array.isArray(item.items) &&
-          (item.voucherNumber === undefined || typeof item.voucherNumber === 'string') &&
-          (item.exitNumber === undefined || typeof item.exitNumber === 'string') &&
-          (item.location === undefined || typeof item.location === 'string') &&
-          item.items.every(line =>
-            line && typeof line === 'object' && typeof line.code === 'string' &&
-            Number.isFinite(Number(line.quantity)) && Number(line.quantity) > 0
-          )
-        );
-        const validActivity = (payload.activityLog || []).every(item =>
-          item && typeof item === 'object' && !Array.isArray(item)
-        );
-        if (!validInventory || !validEntries || !validShipments || !validActivity) {
-          throw new Error('invalid backup records');
+        const validationErrors = validateBackupPayload(payload);
+        if (validationErrors.length) {
+          restoreFeedback.textContent = 'فایل بکاپ پذیرفته نشد: ' +
+            validationErrors.slice(0, 5).join('؛ ') +
+            (validationErrors.length > 5 ? '؛ و ' + (validationErrors.length - 5) + ' خطای دیگر' : '');
+          return;
         }
 
         const analysis = analyzeRestorePayload(payload);
@@ -2581,15 +2700,34 @@
         ];
         restoreFeedback.textContent = summary.join('\n');
       } catch (error) {
-        restoreFeedback.textContent = 'فایل انتخاب‌شده معتبر نیست یا با ساختار بکاپ این برنامه سازگار نیست.';
+        restoreBackupButton.disabled = true;
+        pendingRestorePayload = null;
+        restoreFeedback.textContent = error && error.message === 'CURRENT_INVENTORY_INVALID'
+          ? 'موجودی فعلی قابل خواندن نیست؛ پیش از بازگردانی، از داده‌ها نسخه جداگانه بگیرید و ساختار ذخیره محلی را بررسی کنید.'
+          : 'فایل انتخاب‌شده معتبر نیست یا با ساختار بکاپ این برنامه سازگار نیست.';
       }
     });
 
     // رویداد «کلیک» برای دکمه تأیید بازگردانی بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
     restoreBackupButton.addEventListener('click', () => {
       if (!pendingRestorePayload) return;
-      // تحلیل را در لحظه تأیید دوباره انجام می‌دهیم تا تغییرات پس از انتخاب فایل هم لحاظ شود.
-      const analysis = analyzeRestorePayload(pendingRestorePayload.payload);
+      // فایل را دوباره اعتبارسنجی و تحلیل می‌کنیم تا وضعیت ذخیره‌سازی تا لحظه تأیید لحاظ شود.
+      const validationErrors = validateBackupPayload(pendingRestorePayload.payload);
+      if (validationErrors.length) {
+        restoreBackupButton.disabled = true;
+        pendingRestorePayload = null;
+        restoreFeedback.textContent = 'بازگردانی متوقف شد: ' + validationErrors.slice(0, 5).join('؛ ');
+        return;
+      }
+      let analysis;
+      try {
+        analysis = analyzeRestorePayload(pendingRestorePayload.payload);
+      } catch (error) {
+        restoreFeedback.textContent = error && error.message === 'CURRENT_INVENTORY_INVALID'
+          ? 'موجودی فعلی قابل خواندن نیست؛ بازگردانی انجام نشد و هیچ داده‌ای تغییر نکرد.'
+          : 'تحلیل بکاپ ناموفق بود؛ بازگردانی انجام نشد و هیچ داده‌ای تغییر نکرد.';
+        return;
+      }
       const mismatchLines = analysis.conflicts.length
         ? analysis.conflicts.slice(0, 80).map((item, index) => (index + 1) + '. ' + item)
         : ['هیچ مورد تکراری یا مغایرتی پیدا نشد.'];
@@ -2615,7 +2753,8 @@
 
       try {
         restoreRecords.forEach(([key, value]) => {
-          localStorage.setItem(key, JSON.stringify(value));
+          // ذخیره خام کلید اصلی را دور می‌زنیم تا هنگام بازگردانی نیمه‌کاره بکاپ خودکار زمان‌بندی نشود.
+          originalLocalStorageSetItem.call(localStorage, key, JSON.stringify(value));
         });
         recordActivity(
           'بازگردانی بکاپ',
@@ -2625,15 +2764,12 @@
         window.location.reload();
       } catch (error) {
         // localStorage تراکنش چندکلیدی ندارد؛ در صورت شکست، مقادیر قبلی را تا حد امکان برمی‌گردانیم.
-        previousValues.forEach(([key, value]) => {
-          try {
-            if (value === null) localStorage.removeItem(key);
-            else originalLocalStorageSetItem.call(localStorage, key, value);
-          } catch (rollbackError) {
-            // پیام نهایی به کاربر اعلام می‌کند که بازیابی کامل تضمین نشده است.
-          }
-        });
-        restoreFeedback.textContent = 'بازگردانی کامل نشد؛ ذخیره‌سازی به مشکل خورد و اطلاعات قبلی تا حد امکان بازگردانده شد. فضای مرورگر را بررسی کنید.';
+        const rollbackSucceeded = previousValues
+          .map(([key, value]) => restoreLocalStorageValue(key, value))
+          .every(Boolean);
+        restoreFeedback.textContent = rollbackSucceeded
+          ? 'بازگردانی ناموفق بود؛ تغییرات لغو و مقادیر قبلی بازیابی شدند. فضای ذخیره‌سازی مرورگر را بررسی کنید.'
+          : 'بازگردانی ناموفق بود و بازیابی همه مقادیر قبلی کامل نشد؛ موجودی، تاریخچه‌ها و فایل بکاپ را فوراً بررسی کنید.';
       }
     });
 
