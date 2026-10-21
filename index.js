@@ -204,6 +204,7 @@
         ' — ' + toEnglishDigits(records.length) + ' ورود';
       previousButton.disabled = entryHistoryPage === 0;
       nextButton.disabled = entryHistoryPage >= pageCount - 1;
+      updateReportsOverview();
       document.querySelectorAll('[data-entry-sort]').forEach(button => {
         const active = button.dataset.entrySort === key;
         const marker = button.querySelector('span');
@@ -237,6 +238,27 @@
         renderEntryHistory();
       }
     });
+
+    /**
+     * هدف: به‌روزرسانی کارت‌های خلاصه افزوده‌شده در بخش گزارش‌ها.
+     * ورودی: ندارد؛ داده‌ها از تاریخچه‌های موجود خوانده می‌شوند.
+     * خروجی: تعداد ورود/ارسال و زمان آخرین ارسال نمایش داده می‌شود؛ داده اصلی تغییر نمی‌کند.
+     */
+    function updateReportsOverview() {
+      const shipmentCount = document.getElementById('reports-total-shipments');
+      const entryCount = document.getElementById('reports-total-entries');
+      const latestShipment = document.getElementById('reports-latest-shipment');
+      if (!shipmentCount || !entryCount || !latestShipment) return;
+      const shipments = loadShipments();
+      const entries = loadEntryHistory();
+      shipmentCount.textContent = toEnglishDigits(shipments.length);
+      entryCount.textContent = toEnglishDigits(entries.length);
+      const latest = shipments.reduce((best, item) => {
+        const candidate = String(item.timestamp || item.date || '');
+        return candidate > best ? candidate : best;
+      }, '');
+      latestShipment.textContent = latest || '—';
+    }
 
     /**
      * هدف: خواندن تاریخچه ارسال و کنترل آرایه بودن داده اصلی.
@@ -338,6 +360,7 @@
       pageLabel.textContent = 'صفحه ' + toEnglishDigits(shipmentHistoryPage + 1) + ' از ' + toEnglishDigits(pageCount) + ' — ' + toEnglishDigits(records.length) + ' ارسال';
       previousButton.disabled = shipmentHistoryPage === 0;
       nextButton.disabled = shipmentHistoryPage >= pageCount - 1;
+      updateReportsOverview();
       document.querySelectorAll('[data-shipment-sort]').forEach(button => {
         const active = button.dataset.shipmentSort === key;
         const marker = button.querySelector('span');
@@ -389,7 +412,19 @@
      * خروجی: رشته شماره تولیدشده.
      */
     function makeShipmentNumber(prefix, date, epoch) {
-      return prefix+'-'+solarDateTime(date).label.replace(/[^۰-۹٠-٩0-9]/g,'-')+'-'+String(epoch);
+      // قالب خودکار: AUTO-YYYYMMDD-HHmmss؛ تاریخ شمسی و ساعت ۲۴ساعته، با پسوند زمانی برای جلوگیری از تکرار.
+      const parts = new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      }).formatToParts(date).reduce((result, part) => {
+        if (part.type !== 'literal') result[part.type] = part.value;
+        return result;
+      }, {});
+      const datePart = String(parts.year).padStart(4, '0') +
+        String(parts.month).padStart(2, '0') + String(parts.day).padStart(2, '0');
+      const clockPart = String(parts.hour).padStart(2, '0') +
+        String(parts.minute).padStart(2, '0') + String(parts.second).padStart(2, '0');
+      return prefix + '-AUTO-' + datePart + '-' + clockPart + '-' + String(epoch).slice(-4);
     }
     /**
      * هدف: ساخت ورودی جدول ارسال با برچسب، مقدار و نوع مشخص.
