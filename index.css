@@ -2229,3 +2229,32 @@ textarea {
   min-width: 300px;
   overflow-wrap: anywhere;
 }
+
+
+/* چیدمان نهایی تنظیمات: مدیریت محل‌ها و بکاپ در دو نیم‌عرض؛ لاگ سایت در تمام عرض. */
+.settings-grid > .settings-box:nth-child(1),
+.settings-grid > .settings-box:nth-child(2) {
+  grid-column: span 1;
+}
+.settings-grid > .settings-box:nth-child(3) {
+  grid-column: span 1;
+}
+.settings-grid > .settings-box:nth-child(4) {
+  grid-column: 1 / -1;
+}
+.settings-grid > .settings-box:nth-child(4) #backup-log-results {
+  width: 100%;
+  min-width: 0;
+}
+.settings-grid > .settings-box:nth-child(4) .settings-log-table {
+  width: 100%;
+  min-width: 900px;
+}
+@media (max-width: 700px) {
+  .settings-grid > .settings-box:nth-child(1),
+  .settings-grid > .settings-box:nth-child(2),
+  .settings-grid > .settings-box:nth-child(3),
+  .settings-grid > .settings-box:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+}
