@@ -119,6 +119,18 @@
     }
 
     /**
+     * هدف: ساخت شناسه پایدار و کم‌احتمال‌تکرار برای سندها و ردیف‌های گردش کالا.
+     * ورودی: prefix نوع شناسه و timestamp زمان مبنا.
+     * خروجی: رشته شناسه؛ در مرورگرهای پشتیبان از UUID و در غیر این صورت مقدار تصادفی محلی استفاده می‌شود.
+     */
+    function makeUniqueRecordId(prefix, timestamp = Date.now()) {
+      const randomPart = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2, 14) + Math.random().toString(36).slice(2, 8);
+      return String(prefix) + '-' + String(timestamp) + '-' + randomPart;
+    }
+
+    /**
      * هدف: ثبت سابقه تجمیعی برای ورود موفق کالاها و درج جزئیات آن در لاگ فعالیت.
      * ورودی: items: کالاهای ثبت‌شده در این نوبت.
      * خروجی: بدون مقدار بازگشتی؛ برای فهرست خالی عملیات نمی‌کند.
@@ -128,12 +140,21 @@
       const now = new Date();
       const dateTime = solarDateTime(now);
       const record = {
+        id: makeUniqueRecordId('entry', now.getTime()),
         entryNumber: makeEntryNumber(now),
         timestamp: now.toISOString(),
         date: dateTime.date,
         time: dateTime.time,
         itemCount: items.length,
-        pieceCount: items.reduce((total, item) => total + item.stock, 0)
+        pieceCount: items.reduce((total, item) => total + item.stock, 0),
+        // تصویر جزئیات قلم‌ها نگهداری می‌شود تا تاریخچه ورود فقط به شمار کلی محدود نباشد.
+        items: items.map((item, index) => ({
+          id: makeUniqueRecordId('entry-line', now.getTime() + index),
+          itemId: item.id || ('item-' + dataQualityKey(item.code)),
+          code: item.code,
+          description: item.description,
+          quantity: Number(item.stock)
+        }))
       };
       const records = loadEntryHistory();
       records.unshift(record);
@@ -349,7 +370,28 @@
           ];
           values.forEach((value, index) => {
             const cell = document.createElement('td');
-            if (index === 2 && value && typeof value === 'object') {
+            if (index === 0) {
+              cell.className = 'entry-history-number shipment-document-cell';
+              const numberText = document.createElement('span');
+              numberText.textContent = String(value);
+              cell.append(numberText);
+              if (record.id) cell.title = 'شناسه سند: ' + record.id;
+              const details = document.createElement('details');
+              const summary = document.createElement('summary');
+              summary.textContent = 'جزئیات اقلام (' + toEnglishDigits(Array.isArray(record.items) ? record.items.length : 0) + ')';
+              const list = document.createElement('ul');
+              (Array.isArray(record.items) ? record.items : []).forEach(line => {
+                const detail = document.createElement('li');
+                detail.textContent = 'کد: ' + String(line.code || '—') +
+                  '؛ شرح: ' + String(line.description || '—') +
+                  '؛ تعداد: ' + toEnglishDigits(line.quantity ?? '—') +
+                  '؛ شناسه قلم: ' + String(line.itemId || 'قدیمی/ثبت‌نشده') +
+                  '؛ شناسه ردیف: ' + String(line.id || 'قدیمی/ثبت‌نشده');
+                list.append(detail);
+              });
+              details.append(summary, list);
+              cell.append(details);
+            } else if (index === 2 && value && typeof value === 'object') {
               cell.className = 'date-time-cell';
               const dateText = document.createElement('span');
               dateText.className = 'date-part';
@@ -591,8 +633,9 @@
         return;
       }
 
+      const shipmentId = makeUniqueRecordId('shipment', epoch);
       const shipment = {
-        id: 'shipment-' + epoch,
+        id: shipmentId,
         date: generatedAt.date,
         time: generatedAt.time,
         timestamp: now.toISOString(),
@@ -600,7 +643,10 @@
         sublocation,
         voucherNumber: voucher,
         exitNumber,
-        items: quantities.map(({ item, quantity }) => ({
+        items: quantities.map(({ item, quantity }, index) => ({
+          id: makeUniqueRecordId('shipment-line', epoch + index),
+          shipmentId,
+          itemId: item.id || ('item-' + dataQualityKey(item.code)),
           code: item.code,
           description: item.description,
           quantity
@@ -768,12 +814,17 @@
       const locations = read(LOCATION_KEY, 'محل‌های ارسال');
 
       const inventoryCodes = new Set();
+      const inventoryIds = new Set();
       inventory.forEach((item, index) => {
         const row = index + 1;
         if (!item || typeof item !== 'object' || Array.isArray(item)) {
           findings.push('موجودی، رکورد ' + row + ' شیء معتبر نیست.');
           return;
         }
+        const id = typeof item.id === 'string' ? dataQualityKey(item.id) : '';
+        if (item.id !== undefined && !id) findings.push('موجودی، رکورد ' + row + ' شناسه کالا نامعتبر دارد.');
+        else if (id && inventoryIds.has(id)) findings.push('شناسه کالای تکراری در موجودی: «' + String(item.id).slice(0, 60) + '».');
+        if (id) inventoryIds.add(id);
         const code = typeof item.code === 'string' ? dataQualityKey(item.code) : '';
         if (!code) findings.push('موجودی، رکورد ' + row + ' کد خالی یا نامعتبر دارد.');
         else {
@@ -802,7 +853,7 @@
             (!Number.isFinite(minimumStock) || minimumStock < 0)) {
           findings.push('موجودی، رکورد ' + row + ' حداقل موجودی نامعتبر دارد.');
         }
-        if (Object.keys(item).some(key => !['code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp'].includes(key))) {
+        if (Object.keys(item).some(key => !['id', 'code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp'].includes(key))) {
           findings.push('موجودی، رکورد ' + row + ' فیلد اضافی دارد که نسخه جاری هنگام ذخیره حفظ نمی‌کند.');
         }
         if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
@@ -814,11 +865,31 @@
       });
 
       const entryNumbers = new Set();
+      const entryIds = new Set();
+      const entryLineIds = new Set();
       entries.forEach((entry, index) => {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
           findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' شیء معتبر نیست.');
           return;
         }
+        const entryId = typeof entry.id === 'string' ? dataQualityKey(entry.id) : '';
+        if (entry.id !== undefined && !entryId) findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' شناسه سند نامعتبر دارد.');
+        else if (entryId && entryIds.has(entryId)) findings.push('شناسه سند ورود تکراری است: «' + String(entry.id).slice(0, 60) + '».');
+        if (entryId) entryIds.add(entryId);
+        if (entry.items !== undefined && !Array.isArray(entry.items)) findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' فهرست اقلام معتبر ندارد.');
+        if (Array.isArray(entry.items)) entry.items.forEach((line, lineIndex) => {
+          if (!line || typeof line !== 'object' || Array.isArray(line) || typeof line.code !== 'string' || !line.code.trim()) {
+            findings.push('ورود ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' کد کالا ندارد.');
+            return;
+          }
+          const lineId = typeof line.id === 'string' ? dataQualityKey(line.id) : '';
+          if (line.id !== undefined && !lineId) findings.push('ورود ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' شناسه ردیف نامعتبر دارد.');
+          else if (lineId && entryLineIds.has(lineId)) findings.push('شناسه ردیف ورود تکراری است: «' + String(line.id).slice(0, 60) + '».');
+          if (lineId) entryLineIds.add(lineId);
+          if (line.itemId !== undefined && (typeof line.itemId !== 'string' || !line.itemId.trim())) findings.push('ورود ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' شناسه قلم نامعتبر دارد.');
+          const quantity = Number(line.quantity);
+          if (line.quantity !== undefined && (!Number.isFinite(quantity) || quantity < 0)) findings.push('ورود ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' تعداد نامعتبر دارد.');
+        });
         const number = typeof entry.entryNumber === 'string' ? dataQualityKey(entry.entryNumber) : '';
         if (!number) findings.push('تاریخچه ورود، رکورد ' + (index + 1) + ' شماره ورود ندارد.');
         else if (entryNumbers.has(number)) findings.push('شماره ورود تکراری: «' + String(entry.entryNumber).slice(0, 60) + '».');
@@ -837,11 +908,17 @@
 
       const voucherNumbers = new Set();
       const exitNumbers = new Set();
+      const shipmentIds = new Set();
+      const shipmentLineIds = new Set();
       shipments.forEach((shipment, index) => {
         if (!shipment || typeof shipment !== 'object' || Array.isArray(shipment)) {
           findings.push('تاریخچه ارسال، رکورد ' + (index + 1) + ' شیء معتبر نیست.');
           return;
         }
+        const shipmentId = typeof shipment.id === 'string' ? dataQualityKey(shipment.id) : '';
+        if (shipment.id !== undefined && !shipmentId) findings.push('تاریخچه ارسال، رکورد ' + (index + 1) + ' شناسه سند نامعتبر دارد.');
+        else if (shipmentId && shipmentIds.has(shipmentId)) findings.push('شناسه سند ارسال تکراری است: «' + String(shipment.id).slice(0, 60) + '».');
+        if (shipmentId) shipmentIds.add(shipmentId);
         [['voucherNumber', voucherNumbers, 'شماره حواله'], ['exitNumber', exitNumbers, 'شماره خروج']].forEach(([field, set, label]) => {
           const value = typeof shipment[field] === 'string' ? dataQualityKey(shipment[field]) : '';
           if (value && set.has(value)) findings.push(label + ' تکراری: «' + String(shipment[field]).slice(0, 60) + '».');
@@ -857,6 +934,11 @@
             findings.push('ارسال ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' کد کالای معتبر ندارد.');
             return;
           }
+          const lineId = typeof line.id === 'string' ? dataQualityKey(line.id) : '';
+          if (line.id !== undefined && !lineId) findings.push('ارسال ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' شناسه ردیف نامعتبر دارد.');
+          else if (lineId && shipmentLineIds.has(lineId)) findings.push('شناسه ردیف ارسال تکراری است: «' + String(line.id).slice(0, 60) + '».');
+          if (lineId) shipmentLineIds.add(lineId);
+          if (line.itemId !== undefined && (typeof line.itemId !== 'string' || !line.itemId.trim())) findings.push('ارسال ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' شناسه قلم نامعتبر دارد.');
           const quantity = typeof line.quantity === 'number' ? line.quantity : normalizeStock(line.quantity);
           if (!Number.isFinite(quantity) || quantity <= 0) {
             findings.push('ارسال ' + (index + 1) + '، ردیف ' + (lineIndex + 1) + ' تعداد نامعتبر دارد.');
@@ -944,6 +1026,8 @@
               ? NaN
               : Number(item.sendQuantity);
             return {
+              // برای داده‌های قدیمی، شناسه قابل تکرار از کد کالا ساخته می‌شود تا بارگذاری به ذخیره فوری وابسته نباشد.
+              id: typeof item.id === 'string' && item.id.trim() ? item.id : 'item-' + dataQualityKey(item.code),
               code: item.code,
               description: item.description,
               stock,
@@ -980,11 +1064,12 @@
      * خروجی: true در ذخیره موفق و false در شکست.
      */
     function saveInventory() {
-      const inventoryFields = new Set(['code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp']);
+      const inventoryFields = new Set(['id', 'code', 'description', 'stock', 'minimumStock', 'sendQuantity', 'entryTimestamp']);
       const preservesInventoryRecord = item => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return false;
         const stockTypeValid = typeof item.stock === 'number' ||
           (typeof item.stock === 'string' && item.stock.trim() !== '');
+        if (item.id !== undefined && (typeof item.id !== 'string' || !item.id.trim())) return false;
         if (typeof item.code !== 'string' || typeof item.description !== 'string' ||
             !stockTypeValid || !Number.isFinite(Number(item.stock)) || Number(item.stock) < 0 ||
             Object.keys(item).some(key => !inventoryFields.has(key))) return false;
@@ -2935,6 +3020,14 @@
       records(payload.entryHistory || [], 'تاریخچه ورود', item => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return 'رکورد باید شیء باشد.';
         if (typeof item.entryNumber !== 'string' || !item.entryNumber.trim()) return 'شماره ورود خالی یا نامعتبر است.';
+        if (item.id !== undefined && (typeof item.id !== 'string' || !item.id.trim())) return 'شناسه سند ورود نامعتبر است.';
+        if (item.items !== undefined && !Array.isArray(item.items)) return 'فهرست اقلام ورود نامعتبر است.';
+        if (Array.isArray(item.items) && item.items.some(line => !line || typeof line !== 'object' || Array.isArray(line) ||
+          typeof line.code !== 'string' || !line.code.trim() || (line.id !== undefined && (typeof line.id !== 'string' || !line.id.trim())) ||
+          (line.itemId !== undefined && (typeof line.itemId !== 'string' || !line.itemId.trim())) ||
+          (line.quantity !== undefined && (typeof line.quantity !== 'number' || !Number.isFinite(line.quantity) || line.quantity < 0)))) {
+          return 'جزئیات یکی از اقلام ورود نامعتبر است.';
+        }
         if (item.timestamp && (typeof item.timestamp !== 'string' || !Number.isFinite(Date.parse(item.timestamp)))) {
           return 'زمان ثبت ورود نامعتبر است.';
         }
@@ -2950,6 +3043,7 @@
       records(payload.shipments, 'تاریخچه ارسال', item => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return 'رکورد باید شیء باشد.';
         if (!Array.isArray(item.items) || item.items.length === 0) return 'ارسال باید دست‌کم یک ردیف کالا داشته باشد.';
+        if (item.id !== undefined && (typeof item.id !== 'string' || !item.id.trim())) return 'شناسه سند ارسال نامعتبر است.';
         for (const field of ['voucherNumber', 'exitNumber', 'location', 'sublocation', 'date', 'time']) {
           if (item[field] !== undefined &&
               (typeof item[field] !== 'string' || (['voucherNumber', 'exitNumber', 'location'].includes(field) && !item[field].trim()))) {
@@ -2969,6 +3063,8 @@
           if (line.description !== undefined && typeof line.description !== 'string') {
             return 'شرح ردیف کالای شماره ' + (index + 1) + ' نامعتبر است.';
           }
+          if (line.id !== undefined && (typeof line.id !== 'string' || !line.id.trim())) return 'شناسه ردیف کالای شماره ' + (index + 1) + ' نامعتبر است.';
+          if (line.itemId !== undefined && (typeof line.itemId !== 'string' || !line.itemId.trim())) return 'شناسه قلم ردیف ' + (index + 1) + ' نامعتبر است.';
         }
         return '';
       });
