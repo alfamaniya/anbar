@@ -1810,7 +1810,7 @@
           existing.entryTimestamp = entryTimestamp;
           updated += 1;
         } else {
-          inventoryItems.push({ ...item, minimumStock: 0, sendQuantity: '', entryTimestamp });
+          inventoryItems.push({ ...item, id: 'item-' + dataQualityKey(item.code), minimumStock: 0, sendQuantity: '', entryTimestamp });
           added += 1;
         }
       });
@@ -2999,6 +2999,7 @@
       records(payload.inventory, 'موجودی', item => {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return 'رکورد باید شیء باشد.';
         if (typeof item.code !== 'string' || !item.code.trim()) return 'کد کالا خالی یا نامعتبر است.';
+        if (item.id !== undefined && (typeof item.id !== 'string' || !item.id.trim())) return 'شناسه کالا نامعتبر است.';
         if (typeof item.description !== 'string' || !item.description.trim()) return 'شرح کالا خالی یا نامعتبر است.';
         if (!validNumber(item.stock, true)) return 'موجودی باید عددی متناهی و صفر یا مثبت باشد.';
         if (item.sendQuantity !== undefined && item.sendQuantity !== '' && item.sendQuantity !== null) {
