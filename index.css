@@ -2258,3 +2258,19 @@ textarea {
     grid-column: 1 / -1;
   }
 }
+
+/* فراداده نسخه و پنجره یادداشت‌های انتشار در هدر. */
+.release-meta{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px 10px;flex:0 1 auto;max-width:340px;color:#e7edf7;font-size:11px;text-align:left}
+.release-version{white-space:nowrap}.release-version strong{color:#fff;font-size:12px;direction:ltr;unicode-bidi:isolate}
+.release-meta time{color:var(--sidebar-muted)}
+.release-notes-button{border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.09);color:#fff;font:inherit;cursor:pointer;white-space:nowrap}
+.release-notes-button:hover,.release-notes-button:focus-visible{background:rgba(255,255,255,.18);outline:2px solid #f5c86a;outline-offset:2px}
+.release-notes-dialog{width:min(560px,calc(100% - 28px));max-width:560px;max-height:min(80vh,720px);padding:0;border:1px solid #cbd6e6;border-radius:18px;background:#fff;color:var(--text);box-shadow:0 24px 80px rgba(15,25,42,.3)}
+.release-notes-dialog::backdrop{background:rgba(15,25,42,.58);backdrop-filter:blur(3px)}
+.release-notes-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 22px;background:#e8f0fb;border-bottom:1px solid #cbd6e6}
+.release-notes-header h2{margin:4px 0;font-size:20px}.release-notes-header p{margin:0;color:var(--muted);font-size:12px}
+.release-notes-close{flex:0 0 auto;width:36px;height:36px;border:0;border-radius:9px;background:#fff;color:#a72c2d;font-size:25px;cursor:pointer}
+.release-notes-content{padding:20px 24px 24px;text-align:right}.release-notes-content h3{margin:0 0 10px}.release-notes-content li{margin:0 0 8px}
+.release-notes-footnote{margin:18px 0 0;padding:12px;border-right:3px solid #e6a23c;border-radius:6px;background:#fff7e6;font-size:12px}
+@media(max-width:900px){.sidebar{flex-wrap:wrap;gap:8px 14px}.release-meta{max-width:none;justify-content:flex-start;text-align:right}}
+@media(max-width:700px){.release-meta{width:100%;gap:5px 8px}.release-notes-dialog{max-height:85vh}.release-notes-header,.release-notes-content{padding:16px}}
