@@ -2281,3 +2281,10 @@ textarea {
 .reports-grid .entry-history-table-wrap { width:100%; max-width:100%; overflow-x:auto; }
 .reports-grid .entry-history-table { min-width:760px; width:100%; }
 .reports-grid .shipment-history-table { min-width:1000px; }
+
+/* کارت‌های خلاصه افزوده‌شده به گزارش‌ها؛ مستقل از جدول‌های گزارش موجود. */
+.reports-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 18px}
+.report-metric{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px 18px;border:1px solid var(--border,#d7e1ef);border-radius:14px;background:var(--surface,#fff);box-shadow:0 3px 12px rgba(28,54,92,.05)}
+.report-metric span{color:var(--muted,#64748b);font-size:13px}
+.report-metric strong{font-size:22px;color:var(--primary,#214a91);overflow-wrap:anywhere}
+@media(max-width:700px){.reports-overview{grid-template-columns:1fr}.report-metric{padding:12px 14px}}
