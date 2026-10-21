@@ -2260,7 +2260,7 @@ textarea {
 }
 
 /* فراداده نسخه و پنجره یادداشت‌های انتشار در هدر. */
-.release-meta{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px 10px;flex:0 1 auto;max-width:340px;color:#e7edf7;font-size:11px;text-align:left}
+.release-meta{order:3;margin-inline-start:auto;display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:6px 10px;flex:0 1 auto;max-width:340px;color:#e7edf7;font-size:11px;text-align:left}
 .release-version{white-space:nowrap}.release-version strong{color:#fff;font-size:12px;direction:ltr;unicode-bidi:isolate}
 .release-meta time{color:var(--sidebar-muted)}
 .release-notes-button{border:1px solid rgba(255,255,255,.28);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.09);color:#fff;font:inherit;cursor:pointer;white-space:nowrap}
@@ -2272,5 +2272,12 @@ textarea {
 .release-notes-close{flex:0 0 auto;width:36px;height:36px;border:0;border-radius:9px;background:#fff;color:#a72c2d;font-size:25px;cursor:pointer}
 .release-notes-content{padding:20px 24px 24px;text-align:right}.release-notes-content h3{margin:0 0 10px}.release-notes-content li{margin:0 0 8px}
 .release-notes-footnote{margin:18px 0 0;padding:12px;border-right:3px solid #e6a23c;border-radius:6px;background:#fff7e6;font-size:12px}
-@media(max-width:900px){.sidebar{flex-wrap:wrap;gap:8px 14px}.release-meta{max-width:none;justify-content:flex-start;text-align:right}}
+@media(max-width:900px){.sidebar{flex-wrap:wrap;gap:8px 14px}.release-meta{order:3;margin-inline-start:0;max-width:none;justify-content:flex-start;text-align:right}.sidebar nav{order:2}}
 @media(max-width:700px){.release-meta{width:100%;gap:5px 8px}.release-notes-dialog{max-height:85vh}.release-notes-header,.release-notes-content{padding:16px}}
+
+/* گزارش‌ها: تاریخچه ارسال در بالا و تاریخچه ورود در پایین؛ هر بخش تمام عرض را می‌گیرد. */
+.reports-grid { grid-template-columns: minmax(0, 1fr) !important; }
+.reports-grid > .settings-box { grid-column: 1 / -1; width:100%; min-width:0; }
+.reports-grid .entry-history-table-wrap { width:100%; max-width:100%; overflow-x:auto; }
+.reports-grid .entry-history-table { min-width:760px; width:100%; }
+.reports-grid .shipment-history-table { min-width:1000px; }
