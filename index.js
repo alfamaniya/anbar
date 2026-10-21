@@ -2752,10 +2752,6 @@
       if (payload.activityLog !== undefined && !Array.isArray(payload.activityLog)) errors.push('ساختار لاگ قدیمی باید آرایه باشد.');
       if (!requiredArraysValid) return errors;
 
-      const numericText = value => toEnglishDigits(String(value ?? ''))
-        .replace(/[٬,]/g, '')
-        .replace(/٫/g, '.')
-        .trim();
       const validNumber = (value, allowZero) => {
         // داده ذخیره‌شده با قالب خام JSON کنترل می‌شود؛ جداکننده هزارگان نباید هنگام بازیابی تفسیر متفاوتی پیدا کند.
         if (typeof value === 'number') {
