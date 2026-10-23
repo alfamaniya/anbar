@@ -902,18 +902,12 @@
         control.className = 'solar-date-control';
         input.parentNode.insertBefore(control, input);
         control.append(input);
-        const toggle = document.createElement('button');
-        toggle.type = 'button';
-        toggle.className = 'solar-date-toggle';
-        toggle.textContent = 'تقویم';
-        toggle.setAttribute('aria-label', 'بازکردن تقویم خورشیدی');
-        toggle.setAttribute('aria-expanded', 'false');
         const panel = document.createElement('div');
         panel.className = 'solar-date-panel';
         panel.hidden = true;
         panel.setAttribute('role', 'dialog');
         panel.setAttribute('aria-label', 'انتخاب تاریخ خورشیدی');
-        control.append(toggle, panel);
+        control.append(panel);
 
         const openCalendar = () => {
           const entered = toEnglishDigits((input.value || '').trim());
@@ -922,16 +916,17 @@
           const year = match ? Number(toEnglishDigits(match[1])) : today.year;
           const month = match ? Number(toEnglishDigits(match[2])) : today.month;
           renderSolarCalendar(input, panel, year, month);
-          toggle.setAttribute('aria-expanded', String(!panel.hidden));
+          input.setAttribute('aria-expanded', String(!panel.hidden));
         };
         input.addEventListener('focus', openCalendar);
         input.addEventListener('click', openCalendar);
-        toggle.addEventListener('click', () => {
-          if (panel.hidden) openCalendar();
-          else {
+        input.addEventListener('keydown', event => {
+          if (event.key === 'Escape') {
             panel.hidden = true;
             input.setAttribute('aria-expanded', 'false');
-            toggle.setAttribute('aria-expanded', 'false');
+          } else if (event.key === 'ArrowDown' && panel.hidden) {
+            event.preventDefault();
+            openCalendar();
           }
         });
         input.addEventListener('input', () => {
@@ -958,7 +953,7 @@
           const navigation = event.target.closest('[data-solar-nav]');
           if (navigation) {
             renderSolarCalendar(input, panel, Number(panel.dataset.viewYear), Number(panel.dataset.viewMonth) + Number(navigation.dataset.solarNav));
-            toggle.setAttribute('aria-expanded', String(!panel.hidden));
+            input.setAttribute('aria-expanded', String(!panel.hidden));
             return;
           }
           const dayButton = event.target.closest('[data-solar-day]');
@@ -974,7 +969,7 @@
           input.title = '';
           panel.hidden = true;
           input.setAttribute('aria-expanded', 'false');
-          toggle.setAttribute('aria-expanded', 'false');
+          input.setAttribute('aria-expanded', 'false');
           input.dispatchEvent(new Event('change', { bubbles: true }));
         });
       });
@@ -983,10 +978,8 @@
           const control = input.closest('.solar-date-control');
           if (control && !control.contains(event.target)) {
             const panel = control.querySelector('.solar-date-panel');
-            const toggle = control.querySelector('.solar-date-toggle');
             if (panel) panel.hidden = true;
             input.setAttribute('aria-expanded', 'false');
-            if (toggle) toggle.setAttribute('aria-expanded', 'false');
           }
         });
       });
