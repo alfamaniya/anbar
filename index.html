@@ -250,19 +250,23 @@
             <h3 id="title-5">کاردکس</h3>
           </div>
           <p class="preview-message">گردش بر اساس جزئیات ثبت‌شدهٔ ورود و ارسال است؛ سوابق قدیمیِ بدون جزئیات قلم در این جدول نمایش داده نمی‌شوند.</p>
-          <div class="reports-overview" aria-label="خلاصه کاردکس">
-            <article class="report-metric"><span>ردیف‌های گردش</span><strong id="kardex-row-count">۰</strong></article>
+          <p id="kardex-audit-summary" class="kardex-audit-summary" role="status" aria-live="polite">ممیزی سوابق در حال انجام است.</p>
+          <div class="reports-overview" aria-label="خلاصه نتایج فیلترشده کاردکس">
+            <article class="report-metric"><span>ردیف‌های منطبق با فیلتر</span><strong id="kardex-row-count">۰</strong></article>
             <article class="report-metric"><span>مجموع ورود</span><strong id="kardex-incoming-total">۰</strong></article>
             <article class="report-metric"><span>مجموع خروج</span><strong id="kardex-outgoing-total">۰</strong></article>
           </div>
           <div class="kardex-toolbar">
-            <div class="field-group"><label for="kardex-search">جست‌وجو</label><input id="kardex-search" type="search" autocomplete="off" placeholder="کد، شرح کالا یا شماره سند"></div>
+            <div class="field-group"><label for="kardex-search">جست‌وجو</label><input id="kardex-search" type="search" autocomplete="off" placeholder="کد، شرح کالا، شماره سند یا محل"></div>
             <div class="field-group"><label for="kardex-movement-filter">نوع گردش</label><select id="kardex-movement-filter"><option value="all">همه گردش‌ها</option><option value="entry">ورود</option><option value="shipment">خروج</option></select></div>
+            <div class="field-group"><label for="kardex-date-from">از تاریخ (میلادی)</label><input id="kardex-date-from" type="date"></div>
+            <div class="field-group"><label for="kardex-date-to">تا تاریخ (میلادی)</label><input id="kardex-date-to" type="date"></div>
+            <div class="kardex-date-actions"><button class="action-button secondary" id="kardex-date-reset" type="button">پاک‌کردن تاریخ</button></div>
           </div>
           <div class="entry-history-table-wrap">
             <table class="preview-table kardex-table" aria-label="دفتر گردش اقلام">
-              <thead><tr><th scope="col">تاریخ و ساعت</th><th scope="col">نوع</th><th scope="col">شماره سند</th><th scope="col">کد کالا</th><th scope="col">شرح کالا</th><th scope="col">محل</th><th scope="col">ورود</th><th scope="col">خروج</th></tr></thead>
-              <tbody id="kardex-body"><tr><td colspan="8" class="preview-empty">گردشی برای نمایش وجود ندارد.</td></tr></tbody>
+              <thead><tr><th scope="col">تاریخ و ساعت</th><th scope="col">نوع</th><th scope="col">شماره سند</th><th scope="col">کد کالا</th><th scope="col">شرح کالا</th><th scope="col">محل</th><th scope="col">ورود</th><th scope="col">خروج</th><th scope="col">مانده نسبی</th></tr></thead>
+              <tbody id="kardex-body"><tr><td colspan="9" class="preview-empty">گردشی برای نمایش وجود ندارد.</td></tr></tbody>
             </table>
           </div>
         </section>
