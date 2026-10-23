@@ -280,11 +280,11 @@
     });
 
     // رویداد «کلیک» برای دکمه صفحه قبلی تاریخچه ورود؛ نمایش صفحه قبلی.
-    document.getElementById('entry-history-prev').addEventListener('click', () => {
+    document.getElementById('entry-history-prev')?.addEventListener('click', () => {
       if (entryHistoryPage > 0) { entryHistoryPage -= 1; renderEntryHistory(); }
     });
     // رویداد «کلیک» برای دکمه صفحه بعدی تاریخچه ورود؛ نمایش صفحه بعدی.
-    document.getElementById('entry-history-next').addEventListener('click', () => {
+    document.getElementById('entry-history-next')?.addEventListener('click', () => {
       if ((entryHistoryPage + 1) * ENTRY_PAGE_SIZE < loadEntryHistory().length) {
         entryHistoryPage += 1;
         renderEntryHistory();
@@ -1089,11 +1089,11 @@
       });
     });
     // رویداد «کلیک» برای دکمه صفحه قبلی تاریخچه ارسال؛ نمایش صفحه قبلی.
-    document.getElementById('shipment-history-prev').addEventListener('click', () => {
+    document.getElementById('shipment-history-prev')?.addEventListener('click', () => {
       if (shipmentHistoryPage > 0) { shipmentHistoryPage -= 1; renderShipmentHistory(); }
     });
     // رویداد «کلیک» برای دکمه صفحه بعدی تاریخچه ارسال؛ نمایش صفحه بعدی.
-    document.getElementById('shipment-history-next').addEventListener('click', () => {
+    document.getElementById('shipment-history-next')?.addEventListener('click', () => {
       if ((shipmentHistoryPage + 1) * ENTRY_PAGE_SIZE < loadShipments().length) {
         shipmentHistoryPage += 1;
         renderShipmentHistory();
