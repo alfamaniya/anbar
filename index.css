@@ -530,6 +530,10 @@ input[type="file"]::file-selector-button:hover { background: #bfdbfe; }
 .inventory-quantity-cell { font-variant-numeric: tabular-nums; }
 .inventory-date-cell { min-width: 130px; }
 .send-quantity-input { width: 108px; min-width: 88px; height: 36px; min-height: 36px; text-align: center; }
+.kardex-toolbar { display: grid; grid-template-columns: minmax(0, 2fr) minmax(180px, 1fr); gap: 12px; margin-bottom: 14px; }
+.kardex-toolbar .field-group { min-width: 0; margin: 0; }
+.kardex-table { min-width: 940px; }
+.kardex-table td:nth-child(4), .kardex-table td:nth-child(n + 7) { direction: ltr; font-variant-numeric: tabular-nums; }
 
 .date-time-cell { vertical-align: middle; }
 .date-time-cell .date-part, .date-time-cell .time-part { display: block; line-height: 1.5; white-space: nowrap; }
@@ -695,6 +699,7 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .reports-overview { grid-template-columns: minmax(0, 1fr); }
   .shared-preview-actions { flex-direction: column-reverse; align-items: stretch; }
   .inventory-management-actions { flex-direction: column; align-items: stretch; }
+  .kardex-toolbar { grid-template-columns: minmax(0, 1fr); }
   .inventory-action-buttons .action-button { flex: 1 1 140px; }
   .inventory-toolbar { flex-direction: column; align-items: flex-start; }
   .backup-folder-actions, .location-create-form { grid-template-columns: minmax(0, 1fr); }
