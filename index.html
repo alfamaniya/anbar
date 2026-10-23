@@ -137,7 +137,7 @@
 
           <div class="shared-preview-actions">
             <button class="action-button secondary" id="reset-shared-preview" type="button">ریست پیش‌نمایش</button>
-            <button class="action-button" id="confirm-all-imports" type="button" disabled>تأیید ورود اطلاعات</button>
+            <button class="action-button success" id="confirm-all-imports" type="button" disabled>تأیید ورود اطلاعات</button>
           </div>
           <div class="preview-panel shared-input-preview" id="shared-input-preview" aria-live="polite">
             <h5>پیش‌نمایش مشترک اطلاعات ورودی</h5>
@@ -156,7 +156,7 @@
             <label class="select-all-label" for="select-all-items"><input id="select-all-items" type="checkbox"> انتخاب همه کالاها</label>
             <div class="inventory-action-buttons">
               <button class="action-button delete-selected-button" id="delete-selected-items" type="button" disabled>حذف انتخاب‌شده‌ها (۰)</button>
-              <button class="action-button" id="open-shipment-dialog" type="button">تأیید ارسال</button>
+              <button class="action-button success" id="open-shipment-dialog" type="button">تأیید ارسال</button>
             </div>
           </div>
 
@@ -269,7 +269,7 @@
               <h4>بکاپ خودکار فایل JSON</h4>
               <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
               <div class="backup-folder-actions">
-                <button class="action-button" id="choose-backup-folder" type="button">فعال‌سازی پوشه ذخیره‌شده</button>
+                <button class="action-button success" id="choose-backup-folder" type="button">فعال‌سازی پوشه ذخیره‌شده</button>
                 <button class="action-button secondary" id="change-backup-folder" type="button">انتخاب یا تغییر پوشه بکاپ</button>
               </div>
               <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
@@ -282,7 +282,7 @@
                 <label for="restore-json-file">فایل پشتیبان JSON</label>
                 <input id="restore-json-file" type="file" accept=".json,application/json">
               </div>
-              <button class="action-button" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
+              <button class="action-button success" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
               <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
               <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
             </article>
@@ -302,7 +302,7 @@
     <div class="backup-setup-card">
       <h2 id="backup-gate-title">پیش از شروع، محل ذخیره بکاپ را مشخص کنید</h2>
       <p>تا زمانی که پوشه ذخیره انتخاب نشده و اولین فایل بکاپ با موفقیت ذخیره نشده باشد، تمام بخش‌های سایت قفل می‌مانند و امکان تغییر اطلاعات وجود ندارد.</p>
-      <button class="action-button" id="backup-gate-choose-folder" type="button">انتخاب پوشه و فعال‌سازی سایت</button>
+      <button class="action-button success" id="backup-gate-choose-folder" type="button">انتخاب پوشه و فعال‌سازی سایت</button>
       <!-- مسیر جایگزین برای مرورگرهایی که انتخاب پوشه یا ذخیره مستقیم فایل را پشتیبانی نمی‌کنند. -->
       <button class="action-button secondary" id="backup-gate-continue-without-backup" type="button">ادامه بدون بکاپ خودکار</button>
       <p class="backup-gate-note">در این حالت اطلاعات همچنان در حافظه محلی مرورگر ذخیره می‌شود، اما فایل پشتیبان خودکار ساخته نمی‌شود. پاک‌شدن داده‌های مرورگر یا خرابی دستگاه می‌تواند باعث از دست رفتن اطلاعات شود؛ از بخش بکاپ، فایل JSON را دستی دریافت کنید.</p>
@@ -348,7 +348,7 @@
         <p class="shipment-note">اگر شماره حواله یا شماره خروج وارد نشود، سیستم آن را با تاریخ خورشیدی و ساعت به‌صورت خودکار ایجاد می‌کند.</p>
         <p class="shipment-feedback" id="shipment-feedback" role="alert" aria-live="assertive"></p>
       </div>
-      <div class="shipment-footer"><button class="action-button shipment-close" id="shipment-cancel" type="button">انصراف</button><button class="action-button" id="confirm-shipment" type="submit">تأیید نهایی ارسال</button></div>
+      <div class="shipment-footer"><button class="action-button shipment-close" id="shipment-cancel" type="button">انصراف</button><button class="action-button success" id="confirm-shipment" type="submit">تأیید نهایی ارسال</button></div>
     </form>
   </dialog>
 
