@@ -194,6 +194,7 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible {
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 4px rgba(249, 115, 22, .18); }
 
 .sections { display: grid; gap: 20px; max-width: 1120px; margin: 0 auto; }
+#section-2 { width: min(1600px, calc(100vw - 48px)); max-width: none; justify-self: center; }
 .section-card {
   display: none;
   min-width: 0;
@@ -778,7 +779,7 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   white-space: nowrap;
 }
 .inventory-category-input:focus-visible,
-.inventory-minimum-stock-input:focus-visible,
+.inventory-minimum-stock-input:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
 /* گزارش تفصیلی از تاریخچه ارسال، با فیلترهایی که در موبایل هم تک‌ستونه می‌شوند. */
 .reports-consumption-panel { width: 100%; min-width: 0; margin: 0 0 18px; }
