@@ -25,9 +25,6 @@
     const selectedItemCodes = new Set();
     const inputFeedback = document.getElementById('input-feedback');
     let inventorySort = { key: 'code', direction: 'asc' };
-    // فیلتر هشدار موجودی؛ مقدار حداقل هر کالا در همان رکورد نگهداری می‌شود.
-    let inventoryStatusFilter = 'all';
-    let inventoryStatusFilterSelect = null;
     let currentConsumptionReportRows = [];
     const itemFormInputs = {
       code: document.getElementById('supply-code'),
@@ -1314,13 +1311,6 @@
 
     const inventoryItems = loadInventory();
 
-    // رویداد «کلیک» برای دکمه پاک‌کردن جست‌وجوی موجودی؛ اجرای رفتار متناسب با این کنترل و رویداد.
-    document.getElementById('clear-inventory-search').addEventListener('click', () => {
-      inventorySearchInput.value = '';
-      renderInventory();
-      inventorySearchInput.focus();
-    });
-
     /**
      * هدف: ذخیره موجودی جاری و ثبت خلاصه تغییر در لاگ فعالیت.
      * ورودی: پارامتر ندارد؛ از inventoryItems استفاده می‌شود.
@@ -2430,9 +2420,6 @@
      * خروجی: کنترل‌های فیلتر و حداقل موجودی در صورت نیاز به DOM افزوده می‌شوند.
      */
     function ensureInventoryManagementControls() {
-      const searchPanel = inventorySearchInput.closest('.inventory-search-panel');
-      // کنترل فیلتر وضعیت موجودی حذف شده است؛ جست‌وجو ساده و یک‌ردیفه باقی می‌ماند.
-
       const headerRow = inventoryGrid.closest('table')?.querySelector('thead tr');
       if (headerRow && !headerRow.querySelector('[data-inventory-sort="category"]')) {
         const heading = document.createElement('th');
@@ -2480,7 +2467,6 @@
       const { key, direction } = inventorySort;
       const multiplier = direction === 'desc' ? -1 : 1;
       const searchTerm = toEnglishDigits(inventorySearchInput.value).trim().toLocaleLowerCase('fa');
-      inventorySearchQuery.textContent = inventorySearchInput.value.trim() || '—';
 
       const sortedItems = [...inventoryItems].sort((first, second) => {
         if (key === 'entryDate') {
@@ -2508,8 +2494,6 @@
       });
 
       const filteredItems = sortedItems.filter(item => {
-        if (inventoryStatusFilter === 'low' && !isLowStockItem(item)) return false;
-        if (inventoryStatusFilter === 'zero' && Number(item.stock) !== 0) return false;
         if (!searchTerm) return true;
         const searchable = toEnglishDigits([
           item.code, item.description, item.category, item.stock, item.minimumStock, item.sendQuantity,
@@ -2522,7 +2506,7 @@
       const lowStockCount = inventoryItems.filter(isLowStockItem).length;
       inventoryCount.textContent = 'تعداد کالاها: ' + toEnglishDigits(inventoryItems.length) +
         '؛ هشدار کمبود: ' + toEnglishDigits(lowStockCount) +
-        ((searchTerm || inventoryStatusFilter !== 'all') ? '؛ نتیجه فیلتر: ' + toEnglishDigits(filteredItems.length) : '');
+        (searchTerm ? '؛ نتیجه جست‌وجو: ' + toEnglishDigits(filteredItems.length) : '');
       inventoryEmpty.hidden = filteredItems.length > 0;
       if (inventoryItems.length && !filteredItems.length) {
         inventoryEmpty.textContent = 'کالایی با عبارت جست‌وجوشده پیدا نشد؛ عبارت را تغییر دهید یا پاک کنید.';

@@ -497,14 +497,7 @@ input[type="file"]::file-selector-button:hover { background: #bfdbfe; }
 .preview-empty { color: var(--muted); font-size: 12px; }
 
 /* ---------- ۷) موجودی و ارسال ---------- */
-.inventory-search-panel { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 0; border: 0; border-radius: 0; background: transparent; }
-.inventory-search-panel > label { color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.inventory-search-control { display: flex; flex: 1 1 auto; align-items: center; gap: 8px; min-width: 0; }
-.inventory-search-control input { min-height: 44px !important; }
-.inventory-search-panel > label { flex: 0 0 auto; }
-.inventory-status-filter-group { display: none !important; }
-.search-clear-button { flex: 0 0 38px; width: 38px; height: 38px; padding: 0; border: 1px solid #c3cfe0; border-radius: 9px; background: #fff; color: #475569; font-size: 22px; line-height: 1; cursor: pointer; }
-.search-clear-button:hover { background: var(--red-wash); color: var(--red-strong); }
+.inventory-search-input { display: block; width: 100%; min-height: 44px; margin: 0 0 14px; }
 
 .inventory-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 14px; }
 .inventory-count { margin: 0; color: var(--ink); font-size: 13px; font-weight: 700; }
@@ -679,7 +672,6 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .shipment-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
-  .inventory-status-filter-group { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .report-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .report-filter-actions { align-items: stretch; }
   .report-filter-actions .action-button { flex: 1 1 150px; }
@@ -697,9 +689,6 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .settings-grid > .settings-box:nth-child(n) { grid-column: 1 / -1; grid-row: auto; }
   .reports-overview { grid-template-columns: minmax(0, 1fr); }
   .shared-preview-actions { flex-direction: column-reverse; align-items: stretch; }
-  .inventory-search-panel { align-items: stretch; flex-direction: column; gap: 8px; }
-  .inventory-search-control { width: 100%; }
-  .inventory-search-panel > label { white-space: normal; }
   .inventory-management-actions { flex-direction: column; align-items: stretch; }
   .inventory-action-buttons .action-button { flex: 1 1 140px; }
   .inventory-toolbar { flex-direction: column; align-items: flex-start; }
@@ -718,7 +707,6 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .report-filter-grid { grid-template-columns: minmax(0, 1fr); }
   .report-filter-actions { flex-direction: column; align-items: stretch; }
   .report-filter-actions .action-button { width: 100%; }
-  .inventory-status-filter-group label { white-space: normal; }
   .shipment-document-cell { min-width: 170px; }
   html { scroll-padding-top: 130px; }
   .sidebar { padding: 9px 10px; }
@@ -752,21 +740,6 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
 }
 
 /* ---------- اصلاحات دسترس‌پذیری و کنترل‌های مراحل ۵ تا ۷ ---------- */
-/* فیلتر و فیلدهای افزوده‌شده؛ عرض والد حفظ می‌شود تا برچسب فارسی عمودی نشود. */
-.inventory-status-filter-group {
-  display: grid;
-  grid-template-columns: auto minmax(150px, 1fr);
-  align-items: center;
-  gap: 8px 12px;
-  min-width: 0;
-}
-.inventory-status-filter-group label {
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-.inventory-status-filter,
 .inventory-category-form-group input,
 .inventory-category-input,
 .inventory-minimum-stock-input {
@@ -806,7 +779,6 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
 }
 .inventory-category-input:focus-visible,
 .inventory-minimum-stock-input:focus-visible,
-.inventory-status-filter:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 
 /* گزارش تفصیلی از تاریخچه ارسال، با فیلترهایی که در موبایل هم تک‌ستونه می‌شوند. */
 .reports-consumption-panel { width: 100%; min-width: 0; margin: 0 0 18px; }
