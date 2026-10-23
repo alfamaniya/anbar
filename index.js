@@ -513,7 +513,9 @@
         const td = document.createElement('td');
         td.colSpan = 8;
         td.className = 'preview-empty';
-        td.textContent = invalidRange ? 'تاریخ شروع باید قبل از تاریخ پایان باشد.' : 'برای فیلترهای انتخاب‌شده سابقه مصرفی پیدا نشد.';
+        td.textContent = startInput.getAttribute('aria-invalid') === 'true' || endInput.getAttribute('aria-invalid') === 'true'
+          ? 'قالب تاریخ خورشیدی معتبر نیست؛ تاریخ را به شکل ۱۴۰۵/۰۱/۰۱ وارد کنید.'
+          : invalidRange ? 'تاریخ شروع باید قبل از تاریخ پایان باشد.' : 'برای فیلترهای انتخاب‌شده سابقه مصرفی پیدا نشد.';
         tr.append(td);
         body.append(tr);
       } else {
