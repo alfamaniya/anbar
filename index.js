@@ -327,7 +327,7 @@
       const heading = document.createElement('h4');
       heading.textContent = 'گزارش تفصیلی مصرف';
       const description = document.createElement('p');
-      description.textContent = 'گزارش از سوابق واقعی ارسال ساخته می‌شود. تاریخ فیلتر میلادی است؛ سوابق قدیمی بدون گروه با عنوان «بدون گروه ثبت‌شده» نمایش داده می‌شوند.';
+      description.textContent = 'گزارش از سوابق واقعی ارسال ساخته می‌شود. بازه تاریخ بر اساس تقویم خورشیدی است؛ سوابق قدیمی بدون گروه با عنوان «بدون گروه ثبت‌شده» نمایش داده می‌شوند.';
       const filters = document.createElement('div');
       filters.className = 'report-filter-grid';
       const makeField = (labelText, id, type) => {
@@ -338,13 +338,23 @@
         label.textContent = labelText;
         const input = document.createElement(type === 'select' ? 'select' : 'input');
         input.id = id;
-        if (type !== 'select') input.type = type;
+        if (type === 'date') {
+          input.type = 'text';
+          input.className = 'solar-date-input';
+          input.inputMode = 'numeric';
+          input.autocomplete = 'off';
+          input.placeholder = '۱۴۰۵/۰۱/۰۱';
+          input.setAttribute('aria-haspopup', 'dialog');
+          input.setAttribute('aria-expanded', 'false');
+        } else if (type !== 'select') {
+          input.type = type;
+        }
         group.append(label, input);
         filters.append(group);
         return input;
       };
-      makeField('از تاریخ (میلادی)', 'consumption-report-start-date', 'date');
-      makeField('تا تاریخ (میلادی)', 'consumption-report-end-date', 'date');
+      makeField('از تاریخ (خورشیدی)', 'consumption-report-start-date', 'date');
+      makeField('تا تاریخ (خورشیدی)', 'consumption-report-end-date', 'date');
       makeField('محل ارسال', 'consumption-report-location', 'select');
       makeField('گروه کالا', 'consumption-report-category', 'select');
       const summary = document.createElement('div');
@@ -373,8 +383,13 @@
       resetButton.className = 'action-button secondary';
       resetButton.textContent = 'پاک‌کردن فیلترها';
       resetButton.addEventListener('click', () => {
-        document.getElementById('consumption-report-start-date').value = '';
-        document.getElementById('consumption-report-end-date').value = '';
+        ['consumption-report-start-date', 'consumption-report-end-date'].forEach(id => {
+          const input = document.getElementById(id);
+          input.value = '';
+          delete input.dataset.isoDate;
+          input.removeAttribute('aria-invalid');
+          input.title = '';
+        });
         document.getElementById('consumption-report-location').value = 'all';
         document.getElementById('consumption-report-category').value = 'all';
         renderConsumptionReport();
@@ -393,6 +408,7 @@
       feedback.setAttribute('aria-live', 'polite');
       panel.append(heading, description, filters, summary, actions, tableWrap, feedback);
       overview.insertAdjacentElement('afterend', panel);
+      initializeSolarDateInputs();
       [
         document.getElementById('consumption-report-start-date'),
         document.getElementById('consumption-report-end-date'),
@@ -471,11 +487,13 @@
         ...categories.map(value => ({ value, label: value })),
         { value: '__uncategorized__', label: 'بدون گروه ثبت‌شده' }
       ], 'همه گروه‌ها');
-      const start = document.getElementById('consumption-report-start-date').value;
-      const end = document.getElementById('consumption-report-end-date').value;
+      const startInput = document.getElementById('consumption-report-start-date');
+      const endInput = document.getElementById('consumption-report-end-date');
+      const start = startInput.dataset.isoDate || '';
+      const end = endInput.dataset.isoDate || '';
       const locationFilter = locationSelect.value;
       const categoryFilter = categorySelect.value;
-      const invalidRange = Boolean(start && end && start > end);
+      const invalidRange = startInput.getAttribute('aria-invalid') === 'true' || endInput.getAttribute('aria-invalid') === 'true' || Boolean(start && end && start > end);
       const rows = invalidRange ? [] : data.rows.filter(row => {
         if (start && (!row.localDate || row.localDate < start)) return false;
         if (end && (!row.localDate || row.localDate > end)) return false;
@@ -877,6 +895,7 @@
     function initializeSolarDateInputs() {
       const inputs = Array.from(document.querySelectorAll('.solar-date-input'));
       inputs.forEach(input => {
+        if (input.closest('.solar-date-control')) return;
         const control = document.createElement('div');
         control.className = 'solar-date-control';
         input.parentNode.insertBefore(control, input);
