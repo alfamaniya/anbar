@@ -684,6 +684,81 @@
       });
     }
 
+    /** Build ledger rows only from stored entry/shipment item details. */
+    function getKardexRows() {
+      const rows = [];
+      const addLines = (records, type) => {
+        records.forEach(record => {
+          if (!record || !Array.isArray(record.items)) return;
+          const timestamp = typeof record.timestamp === 'string' && Number.isFinite(Date.parse(record.timestamp))
+            ? Date.parse(record.timestamp) : 0;
+          record.items.forEach(line => {
+            if (!line || typeof line.code !== 'string' || !line.code.trim()) return;
+            const quantity = Number(line.quantity);
+            if (!Number.isFinite(quantity) || quantity <= 0) return;
+            const incoming = type === 'entry';
+            rows.push({
+              timestamp,
+              date: String(record.date || '—') + (record.time ? ' ' + String(record.time) : ''),
+              type,
+              document: String(incoming ? record.entryNumber || '—' : record.voucherNumber || record.exitNumber || '—'),
+              code: line.code,
+              description: typeof line.description === 'string' ? line.description : '',
+              location: incoming ? '—' : String(record.location || '—') + (record.sublocation ? ' / ' + String(record.sublocation) : ''),
+              incoming: incoming ? quantity : 0,
+              outgoing: incoming ? 0 : quantity
+            });
+          });
+        });
+      };
+      addLines(loadEntryHistory(), 'entry');
+      addLines(loadShipments(), 'shipment');
+      return rows.sort((first, second) => second.timestamp - first.timestamp);
+    }
+
+    function renderKardex() {
+      const body = document.getElementById('kardex-body');
+      const search = document.getElementById('kardex-search');
+      const movementFilter = document.getElementById('kardex-movement-filter');
+      if (!body || !search || !movementFilter) return;
+
+      const searchTerm = toEnglishDigits(search.value).trim().toLocaleLowerCase('fa');
+      const rows = getKardexRows().filter(row => {
+        if (movementFilter.value !== 'all' && row.type !== movementFilter.value) return false;
+        return !searchTerm || toEnglishDigits([
+          row.code, row.description, row.document, row.location
+        ].join(' ')).toLocaleLowerCase('fa').includes(searchTerm);
+      });
+      document.getElementById('kardex-row-count').textContent = toEnglishDigits(rows.length);
+      document.getElementById('kardex-incoming-total').textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.incoming, 0));
+      document.getElementById('kardex-outgoing-total').textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.outgoing, 0));
+      body.replaceChildren();
+      if (!rows.length) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 8;
+        cell.className = 'preview-empty';
+        cell.textContent = 'برای این جست‌وجو یا نوع گردش، ردیفی پیدا نشد.';
+        row.append(cell);
+        body.append(row);
+        return;
+      }
+      rows.forEach(item => {
+        const row = document.createElement('tr');
+        [item.date, item.type === 'entry' ? 'ورود' : 'خروج', item.document, item.code,
+          item.description || '—', item.location, item.incoming ? toEnglishDigits(item.incoming) : '—',
+          item.outgoing ? toEnglishDigits(item.outgoing) : '—'].forEach(value => {
+          const cell = document.createElement('td');
+          cell.textContent = String(value);
+          row.append(cell);
+        });
+        body.append(row);
+      });
+    }
+
+    document.getElementById('kardex-search').addEventListener('input', renderKardex);
+    document.getElementById('kardex-movement-filter').addEventListener('change', renderKardex);
+
     document.querySelectorAll('[data-shipment-sort]').forEach(button => {
       // رویداد «کلیک» برای دکمه‌های مرتب‌سازی/صفحه‌بندی تاریخچه ارسال؛ تغییر ترتیب ردیف‌ها و نشانگر مرتب‌سازی.
       button.addEventListener('click', () => {
@@ -3540,6 +3615,7 @@
 
     renderEntryHistory();
     renderShipmentHistory();
+    renderKardex();
 
 /* کنترل پنجره شناور یادداشت‌های انتشار با عنصر dialog بومی مرورگر. */
 const releaseNotesDialog = document.getElementById('release-notes-dialog');
