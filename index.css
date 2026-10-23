@@ -497,13 +497,14 @@ input[type="file"]::file-selector-button:hover { background: #bfdbfe; }
 .preview-empty { color: var(--muted); font-size: 12px; }
 
 /* ---------- ۷) موجودی و ارسال ---------- */
-.inventory-search-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 12px; margin: 0 0 14px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--wash); }
+.inventory-search-panel { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .inventory-search-panel > label { color: var(--text); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.inventory-search-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.inventory-search-control { display: flex; flex: 1 1 auto; align-items: center; gap: 8px; min-width: 0; }
+.inventory-search-control input { min-height: 44px !important; }
+.inventory-search-panel > label { flex: 0 0 auto; }
+.inventory-status-filter-group { display: none !important; }
 .search-clear-button { flex: 0 0 38px; width: 38px; height: 38px; padding: 0; border: 1px solid #c3cfe0; border-radius: 9px; background: #fff; color: #475569; font-size: 22px; line-height: 1; cursor: pointer; }
 .search-clear-button:hover { background: var(--red-wash); color: var(--red-strong); }
-.search-live-text { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 11px; }
-.search-live-text strong { color: var(--text); overflow-wrap: anywhere; }
 
 .inventory-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 14px; }
 .inventory-count { margin: 0; color: var(--ink); font-size: 13px; font-weight: 700; }
@@ -696,7 +697,9 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .settings-grid > .settings-box:nth-child(n) { grid-column: 1 / -1; grid-row: auto; }
   .reports-overview { grid-template-columns: minmax(0, 1fr); }
   .shared-preview-actions { flex-direction: column-reverse; align-items: stretch; }
-  .inventory-search-panel { grid-template-columns: minmax(0, 1fr); }
+  .inventory-search-panel { align-items: stretch; flex-direction: column; gap: 8px; }
+  .inventory-search-control { width: 100%; }
+  .inventory-search-panel > label { white-space: normal; }
   .inventory-management-actions { flex-direction: column; align-items: stretch; }
   .inventory-action-buttons .action-button { flex: 1 1 140px; }
   .inventory-toolbar { flex-direction: column; align-items: flex-start; }
