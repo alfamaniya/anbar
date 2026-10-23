@@ -4,7 +4,6 @@
     const sectionCards = document.querySelectorAll('.section-card');
     const inventoryGrid = document.getElementById('inventory-grid');
     const inventorySearchInput = document.getElementById('inventory-search');
-    const inventorySearchQuery = document.getElementById('inventory-search-query');
     const inventoryEmpty = document.getElementById('inventory-empty');
     const inventoryCount = document.getElementById('inventory-count');
     const inventoryFeedback = document.getElementById('inventory-feedback');
@@ -2432,32 +2431,7 @@
      */
     function ensureInventoryManagementControls() {
       const searchPanel = inventorySearchInput.closest('.inventory-search-panel');
-      if (searchPanel && !inventoryStatusFilterSelect) {
-        const group = document.createElement('div');
-        group.className = 'inventory-status-filter-group';
-        const label = document.createElement('label');
-        label.htmlFor = 'inventory-status-filter';
-        label.textContent = 'فیلتر موجودی';
-        const select = document.createElement('select');
-        select.id = 'inventory-status-filter';
-        select.className = 'inventory-status-filter';
-        select.setAttribute('aria-label', 'فیلتر اقلام بر اساس وضعیت موجودی');
-        [['all', 'همه اقلام'], ['low', 'کمبود نسبت به حداقل'], ['zero', 'موجودی صفر']].forEach(([value, text]) => {
-          const option = document.createElement('option');
-          option.value = value;
-          option.textContent = text;
-          select.append(option);
-        });
-        select.value = inventoryStatusFilter;
-        select.addEventListener('change', () => {
-          inventoryStatusFilter = select.value;
-          renderInventory();
-        });
-        group.append(label, select);
-        const liveText = searchPanel.querySelector('.search-live-text');
-        searchPanel.insertBefore(group, liveText || null);
-        inventoryStatusFilterSelect = select;
-      }
+      // کنترل فیلتر وضعیت موجودی حذف شده است؛ جست‌وجو ساده و یک‌ردیفه باقی می‌ماند.
 
       const headerRow = inventoryGrid.closest('table')?.querySelector('thead tr');
       if (headerRow && !headerRow.querySelector('[data-inventory-sort="category"]')) {
