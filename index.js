@@ -684,25 +684,64 @@
       });
     }
 
-    /** Build ledger rows only from stored entry/shipment item details. */
-    function getKardexRows() {
+    /**
+     * ساخت ممیزی کاردکس از روی سوابق ذخیره‌شده.
+     * داده‌های قدیمی یا ناقص حذف/اصلاح نمی‌شوند؛ موارد مسئله‌دار فقط گزارش می‌شوند.
+     * تکراری بودن فقط با شناسه پایدار سند و ردیف در همان نوع گردش تشخیص داده می‌شود.
+     */
+    function getKardexAudit() {
       const rows = [];
+      const issues = { missingItems: 0, invalidLines: 0, missingCode: 0, invalidQuantity: 0,
+        missingTimestamp: 0, duplicateLines: 0, legacyLines: 0 };
+      const seen = new Set();
+
       const addLines = (records, type) => {
-        records.forEach(record => {
-          if (!record || !Array.isArray(record.items)) return;
-          const timestamp = typeof record.timestamp === 'string' && Number.isFinite(Date.parse(record.timestamp))
-            ? Date.parse(record.timestamp) : 0;
+        (Array.isArray(records) ? records : []).forEach(record => {
+          if (!record || typeof record !== 'object') return;
+          if (!Array.isArray(record.items)) {
+            issues.missingItems += 1;
+            return;
+          }
+          const incoming = type === 'entry';
+          const rawTimestamp = record.timestamp;
+          const parsedTimestamp = typeof rawTimestamp === 'number' && Number.isFinite(rawTimestamp)
+            ? rawTimestamp
+            : (typeof rawTimestamp === 'string' && rawTimestamp.trim() && Number.isFinite(Date.parse(rawTimestamp))
+              ? Date.parse(rawTimestamp) : NaN);
+          const timestampValid = Number.isFinite(parsedTimestamp) && parsedTimestamp > 0;
+          if (!timestampValid) issues.missingTimestamp += 1;
           record.items.forEach(line => {
-            if (!line || typeof line.code !== 'string' || !line.code.trim()) return;
+            if (!line || typeof line !== 'object') {
+              issues.invalidLines += 1;
+              return;
+            }
+            if (!line.id || !record.id) issues.legacyLines += 1;
+            if (line.id && record.id) {
+              const identity = type + ':' + String(record.id) + ':' + String(line.id);
+              if (seen.has(identity)) {
+                issues.duplicateLines += 1;
+                return;
+              }
+              seen.add(identity);
+            }
+            const code = typeof line.code === 'string' ? line.code.trim() : '';
             const quantity = Number(line.quantity);
-            if (!Number.isFinite(quantity) || quantity <= 0) return;
-            const incoming = type === 'entry';
+            let valid = true;
+            if (!code) { issues.missingCode += 1; valid = false; }
+            if (!Number.isFinite(quantity) || quantity <= 0) { issues.invalidQuantity += 1; valid = false; }
+            if (!valid) {
+              issues.invalidLines += 1;
+              return;
+            }
             rows.push({
-              timestamp,
+              timestamp: timestampValid ? parsedTimestamp : null,
               date: String(record.date || '—') + (record.time ? ' ' + String(record.time) : ''),
+              dateKey: timestampValid ? parsedTimestamp : null,
               type,
               document: String(incoming ? record.entryNumber || '—' : record.voucherNumber || record.exitNumber || '—'),
-              code: line.code,
+              documentId: String(record.id || ''),
+              lineId: String(line.id || ''),
+              code,
               description: typeof line.description === 'string' ? line.description : '',
               location: incoming ? '—' : String(record.location || '—') + (record.sublocation ? ' / ' + String(record.sublocation) : ''),
               incoming: incoming ? quantity : 0,
@@ -711,9 +750,32 @@
           });
         });
       };
+
       addLines(loadEntryHistory(), 'entry');
       addLines(loadShipments(), 'shipment');
-      return rows.sort((first, second) => second.timestamp - first.timestamp);
+
+      // محاسبه مانده نسبی هر کد کالا از قدیمی به جدید؛ زمان نامعتبر در انتهای توالی قرار می‌گیرد.
+      const chronological = [...rows].sort((a, b) => {
+        if (a.timestamp === null && b.timestamp !== null) return 1;
+        if (a.timestamp !== null && b.timestamp === null) return -1;
+        return (a.timestamp || 0) - (b.timestamp || 0);
+      });
+      const balances = new Map();
+      chronological.forEach(row => {
+        const balance = (balances.get(row.code) || 0) + row.incoming - row.outgoing;
+        balances.set(row.code, balance);
+        row.balance = balance;
+      });
+      rows.sort((a, b) => {
+        if (a.timestamp === null && b.timestamp !== null) return 1;
+        if (a.timestamp !== null && b.timestamp === null) return -1;
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      });
+      return { rows, issues };
+    }
+
+    function getKardexRows() {
+      return getKardexAudit().rows;
     }
 
     function renderKardex() {
@@ -722,42 +784,88 @@
       const movementFilter = document.getElementById('kardex-movement-filter');
       if (!body || !search || !movementFilter) return;
 
+      const audit = getKardexAudit();
       const searchTerm = toEnglishDigits(search.value).trim().toLocaleLowerCase('fa');
-      const rows = getKardexRows().filter(row => {
+      const fromDate = document.getElementById('kardex-date-from')?.value || '';
+      const toDate = document.getElementById('kardex-date-to')?.value || '';
+      const rows = audit.rows.filter(row => {
         if (movementFilter.value !== 'all' && row.type !== movementFilter.value) return false;
-        return !searchTerm || toEnglishDigits([
-          row.code, row.description, row.document, row.location
-        ].join(' ')).toLocaleLowerCase('fa').includes(searchTerm);
+        if (searchTerm && !toEnglishDigits([
+          row.code, row.description, row.document, row.location, row.documentId, row.lineId
+        ].join(' ')).toLocaleLowerCase('fa').includes(searchTerm)) return false;
+        // ورودی تاریخ به صورت ISO (YYYY-MM-DD) است؛ برای سوابق دارای timestamp معتبر.
+        if ((fromDate || toDate) && row.timestamp === null) return false;
+        if (fromDate && row.timestamp < Date.parse(fromDate + 'T00:00:00')) return false;
+        if (toDate && row.timestamp > Date.parse(toDate + 'T23:59:59.999')) return false;
+        return true;
       });
-      document.getElementById('kardex-row-count').textContent = toEnglishDigits(rows.length);
-      document.getElementById('kardex-incoming-total').textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.incoming, 0));
-      document.getElementById('kardex-outgoing-total').textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.outgoing, 0));
+      const count = document.getElementById('kardex-row-count');
+      const incomingTotal = document.getElementById('kardex-incoming-total');
+      const outgoingTotal = document.getElementById('kardex-outgoing-total');
+      if (count) count.textContent = toEnglishDigits(rows.length);
+      if (incomingTotal) incomingTotal.textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.incoming, 0));
+      if (outgoingTotal) outgoingTotal.textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.outgoing, 0));
+
+      const issueSummary = document.getElementById('kardex-audit-summary');
+      if (issueSummary) {
+        const issueCount = audit.issues.missingItems + audit.issues.invalidLines + audit.issues.missingTimestamp + audit.issues.duplicateLines;
+        issueSummary.textContent = issueCount
+          ? 'هشدار ممیزی: ' + toEnglishDigits(issueCount) + ' مورد نیازمند بررسی است؛ سوابق ذخیره‌شده تغییر نکرده‌اند.'
+          : 'ممیزی اولیه: مورد ساختاری مشکوکی در سوابق قابل‌بررسی شناسایی نشد.';
+        issueSummary.dataset.status = issueCount ? 'warning' : 'ok';
+        issueSummary.title = [
+          'سند بدون آرایه اقلام: ' + audit.issues.missingItems,
+          'ردیف نامعتبر: ' + audit.issues.invalidLines,
+          'کد کالا خالی: ' + audit.issues.missingCode,
+          'تعداد نامعتبر: ' + audit.issues.invalidQuantity,
+          'زمان نامعتبر/ثبت‌نشده: ' + audit.issues.missingTimestamp,
+          'شناسه قدیمی/ثبت‌نشده: ' + audit.issues.legacyLines,
+          'ردیف تکراری با شناسه پایدار: ' + audit.issues.duplicateLines
+        ].join('\n');
+      }
+
       body.replaceChildren();
       if (!rows.length) {
         const row = document.createElement('tr');
         const cell = document.createElement('td');
-        cell.colSpan = 8;
+        cell.colSpan = 9;
         cell.className = 'preview-empty';
-        cell.textContent = 'برای این جست‌وجو یا نوع گردش، ردیفی پیدا نشد.';
+        cell.textContent = 'برای این جست‌وجو یا فیلتر، ردیفی پیدا نشد.';
         row.append(cell);
         body.append(row);
         return;
       }
       rows.forEach(item => {
         const row = document.createElement('tr');
-        [item.date, item.type === 'entry' ? 'ورود' : 'خروج', item.document, item.code,
+        if (item.timestamp === null) row.classList.add('kardex-row-undated');
+        const values = [item.date, item.type === 'entry' ? 'ورود' : 'خروج', item.document, item.code,
           item.description || '—', item.location, item.incoming ? toEnglishDigits(item.incoming) : '—',
-          item.outgoing ? toEnglishDigits(item.outgoing) : '—'].forEach(value => {
+          item.outgoing ? toEnglishDigits(item.outgoing) : '—', toEnglishDigits(item.balance)];
+        values.forEach((value, index) => {
           const cell = document.createElement('td');
           cell.textContent = String(value);
+          if (index === 3) cell.className = 'kardex-code-cell';
+          if (index >= 6) cell.className = 'kardex-number-cell';
+          if (index === 2 && (item.documentId || item.lineId)) {
+            cell.title = 'شناسه سند: ' + (item.documentId || 'ثبت‌نشده') + '\nشناسه ردیف: ' + (item.lineId || 'ثبت‌نشده');
+          }
           row.append(cell);
         });
         body.append(row);
       });
     }
 
-    document.getElementById('kardex-search').addEventListener('input', renderKardex);
-    document.getElementById('kardex-movement-filter').addEventListener('change', renderKardex);
+    document.getElementById('kardex-search')?.addEventListener('input', renderKardex);
+    document.getElementById('kardex-movement-filter')?.addEventListener('change', renderKardex);
+    document.getElementById('kardex-date-from')?.addEventListener('change', renderKardex);
+    document.getElementById('kardex-date-to')?.addEventListener('change', renderKardex);
+    document.getElementById('kardex-date-reset')?.addEventListener('click', () => {
+      const from = document.getElementById('kardex-date-from');
+      const to = document.getElementById('kardex-date-to');
+      if (from) from.value = '';
+      if (to) to.value = '';
+      renderKardex();
+    });
 
     document.querySelectorAll('[data-shipment-sort]').forEach(button => {
       // رویداد «کلیک» برای دکمه‌های مرتب‌سازی/صفحه‌بندی تاریخچه ارسال؛ تغییر ترتیب ردیف‌ها و نشانگر مرتب‌سازی.
