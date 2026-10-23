@@ -840,7 +840,9 @@
       const weekdayOffset = (firstDay.getUTCDay() + 1) % 7; // شروع هفته: شنبه
       let daysInMonth = 0;
       for (let day = 1; day <= 31; day += 1) {
-        if (!findGregorianDateForSolar(year, month, day)) break;
+        const candidate = new Date(firstDay.getTime() + (day - 1) * 86400000);
+        const parts = getSolarDateParts(candidate);
+        if (parts.year !== year || parts.month !== month || parts.day !== day) break;
         daysInMonth = day;
       }
       const selectedIso = input.dataset.isoDate || '';
@@ -848,8 +850,11 @@
       let dayButtons = '';
       for (let blank = 0; blank < weekdayOffset; blank += 1) dayButtons += '<span class="solar-calendar-empty" aria-hidden="true"></span>';
       for (let day = 1; day <= daysInMonth; day += 1) {
-        const iso = solarDateToIso(year, month, day);
-        const selected = iso && iso === selectedIso ? ' is-selected' : '';
+        const gregorian = new Date(firstDay.getTime() + (day - 1) * 86400000);
+        const iso = String(gregorian.getUTCFullYear()).padStart(4, '0') + '-' +
+          String(gregorian.getUTCMonth() + 1).padStart(2, '0') + '-' +
+          String(gregorian.getUTCDate()).padStart(2, '0');
+        const selected = iso === selectedIso ? ' is-selected' : '';
         const current = today.year === year && today.month === month && today.day === day ? ' is-today' : '';
         dayButtons += '<button type="button" class="solar-calendar-day' + selected + current +
           '" data-solar-day="' + day + '" aria-label="' + day + ' ' + SOLAR_MONTH_NAMES[month - 1] + ' ' + year + '">' +
