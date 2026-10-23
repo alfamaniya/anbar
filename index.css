@@ -193,8 +193,9 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible {
 }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(22, 163, 74, .16); }
 
-.sections { display: grid; gap: 20px; max-width: 1120px; margin: 0 auto; }
-#section-2 { width: min(1600px, calc(100vw - 48px)); max-width: none; justify-self: center; }
+.sections { display: grid; gap: 20px; width: 100%; margin: 0 auto; }
+.section-card:not(#section-2) { width: min(1120px, 100%); justify-self: center; }
+#section-2 { width: min(1600px, 100%); justify-self: center; }
 .section-card {
   display: none;
   min-width: 0;
