@@ -30,6 +30,7 @@
           <li><a class="nav-link" href="#section-dashboard"><span class="nav-number">۱</span><span>نمای کلی</span></a></li>
           <li><a class="nav-link" href="#section-1"><span class="nav-number">۲</span><span>ورود کالا</span></a></li>
           <li><a class="nav-link" href="#section-2"><span class="nav-number">۳</span><span>موجودی و ارسال</span></a></li>
+          <li><a class="nav-link" href="#section-4"><span class="nav-number">۴</span><span>گزارش‌ها</span></a></li>
           <li><a class="nav-link" href="#section-5"><span class="nav-number">۵</span><span>کاردکس</span></a></li>
           <li><a class="nav-link" href="#section-3"><span class="nav-number">۶</span><span>تنظیمات</span></a></li>
         </ul>
@@ -68,6 +69,7 @@
               <div class="dashboard-quick-links">
                 <a class="dashboard-quick-link" href="#section-1" data-section-target="section-1"><span class="quick-link-symbol">＋</span><span><strong>ورود کالا</strong><small>ثبت دستی، اکسل یا کلیپ‌بورد</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
                 <a class="dashboard-quick-link" href="#section-2" data-section-target="section-2"><span class="quick-link-symbol">▦</span><span><strong>موجودی و ارسال</strong><small>جست‌وجو، مرتب‌سازی و ثبت خروج</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
+                <a class="dashboard-quick-link" href="#section-4" data-section-target="section-4"><span class="quick-link-symbol">▤</span><span><strong>گزارش‌ها</strong><small>مرور تاریخچه ورود و ارسال</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
                 <a class="dashboard-quick-link" href="#section-3" data-section-target="section-3"><span class="quick-link-symbol">⚙</span><span><strong>تنظیمات و پشتیبان</strong><small>مدیریت محل‌ها و فایل‌های JSON</small></span><span class="quick-link-arrow" aria-hidden="true">←</span></a>
               </div>
             </section>
@@ -183,6 +185,65 @@
         </section>
 
         <!-- گزارش‌ها: تاریخچه ورود و ارسال، جدول‌های مستقل و قابل مرتب‌سازی دارند. -->
+        <section class="section-card" id="section-4" aria-labelledby="title-4">
+          <div class="section-heading">
+            <span class="section-icon" aria-hidden="true">▤</span>
+            <h3 id="title-4">گزارش‌ها</h3>
+          </div>
+          <!-- خلاصه مدیریتی افزوده‌شده؛ جدول‌های گزارش موجود بدون تغییر باقی می‌مانند. -->
+          <div class="reports-overview" aria-label="خلاصه گزارش‌ها">
+            <article class="report-metric"><span>مجموع ارسال‌ها</span><strong id="reports-total-shipments">۰</strong></article>
+            <article class="report-metric"><span>مجموع ورودها</span><strong id="reports-total-entries">۰</strong></article>
+            <article class="report-metric"><span>آخرین ارسال ثبت‌شده</span><strong id="reports-latest-shipment">—</strong></article>
+          </div>
+          <div class="settings-grid reports-grid">
+            <article class="settings-box entry-history-panel">
+              <h4>تاریخچه ارسال اقلام</h4>
+              <p>سوابق ارسال ثبت‌شده؛ برای مرتب‌سازی روی عنوان هر ستون کلیک کنید.</p>
+              <div class="entry-history-table-wrap">
+                <table class="preview-table entry-history-table shipment-history-table">
+                  <thead><tr>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="voucherNumber">شماره حواله <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="exitNumber">شماره خروج <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="date">تاریخ <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="location">محل ارسال <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="itemCount">تعداد اقلام <span aria-hidden="true">↕</span></button></th>
+                    <th scope="col"><button class="entry-sort-button" type="button" data-shipment-sort="pieceCount">تعداد قطعه <span aria-hidden="true">↕</span></button></th>
+                  </tr></thead>
+                  <tbody id="shipment-history-body"><tr><td colspan="6" class="preview-empty">هنوز ارسالی ثبت نشده است.</td></tr></tbody>
+                </table>
+              </div>
+              <div class="entry-history-pagination">
+                <button class="action-button secondary" id="shipment-history-prev" type="button" disabled>قبلی</button>
+                <span id="shipment-history-page" aria-live="polite">صفحه ۱</span>
+                <button class="action-button secondary" id="shipment-history-next" type="button" disabled>بعدی</button>
+              </div>
+            </article>
+            <article class="settings-box">
+              <h4>تاریخچه ورود اقلام</h4>
+              <p>فهرست ورودها؛ برای مرتب‌سازی روی عنوان هر ستون بزنید.</p>
+              <div class="preview-panel entry-history-panel">
+                <div class="entry-history-table-wrap">
+                  <table class="preview-table entry-history-table" aria-label="تاریخچه ورود اقلام">
+                    <thead><tr>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="entryNumber" aria-label="مرتب‌سازی بر اساس شماره ورود">شماره ورود <span aria-hidden="true">↕</span></button></th>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="date" aria-label="مرتب‌سازی بر اساس تاریخ">تاریخ <span aria-hidden="true">↕</span></button></th>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="itemCount" aria-label="مرتب‌سازی بر اساس تعداد کالاها">تعداد کالاها <span aria-hidden="true">↕</span></button></th>
+                      <th scope="col"><button class="entry-sort-button" type="button" data-entry-sort="pieceCount" aria-label="مرتب‌سازی بر اساس تعداد قطعه‌ها">تعداد قطعه‌ها <span aria-hidden="true">↕</span></button></th>
+                    </tr></thead>
+                    <tbody id="entry-history-body"><tr><td colspan="4" class="preview-empty">هنوز ورودی ثبت نشده است.</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+              <div class="entry-history-pagination">
+                <button class="action-button secondary" id="entry-history-prev" type="button" disabled>قبلی</button>
+                <span id="entry-history-page" aria-live="polite">صفحه ۱</span>
+                <button class="action-button secondary" id="entry-history-next" type="button" disabled>بعدی</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <section class="section-card" id="section-5" aria-labelledby="title-5">
           <div class="section-heading">
             <span class="section-icon" aria-hidden="true">▤</span>
