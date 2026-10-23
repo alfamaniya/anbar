@@ -778,6 +778,193 @@
       return getKardexAudit().rows;
     }
 
+    // نام ماه‌های تقویم خورشیدی برای انتخاب‌گر داخلی؛ بدون وابستگی به اینترنت.
+    const SOLAR_MONTH_NAMES = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+    const SOLAR_WEEKDAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+    const SOLAR_DATE_FORMATTER = new Intl.DateTimeFormat('en-US-u-ca-persian-nu-latn', {
+      year: 'numeric', month: 'numeric', day: 'numeric', timeZone: 'UTC'
+    });
+
+    /** تبدیل تاریخ میلادی UTC به اجزای عددی تاریخ خورشیدی. */
+    function getSolarDateParts(date) {
+      const parts = SOLAR_DATE_FORMATTER.formatToParts(date).reduce((result, part) => {
+        if (part.type !== 'literal') result[part.type] = Number(part.value);
+        return result;
+      }, {});
+      return { year: parts.year, month: parts.month, day: parts.day };
+    }
+
+    /**
+     * تبدیل تاریخ خورشیدی به روز میلادی با جست‌وجوی محدود در حوالی سال متناظر.
+     * استفاده از UTC مانع جابه‌جایی روز در مناطق زمانی مختلف می‌شود.
+     */
+    function findGregorianDateForSolar(year, month, day) {
+      if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day) ||
+          year < 1200 || year > 1600 || month < 1 || month > 12 || day < 1 || day > 31) return null;
+      const start = Date.UTC(year + 621, 2, 15, 12);
+      const end = Date.UTC(year + 622, 3, 10, 12);
+      for (let time = start; time <= end; time += 86400000) {
+        const date = new Date(time);
+        const parts = getSolarDateParts(date);
+        if (parts.year === year && parts.month === month && parts.day === day) return date;
+      }
+      return null;
+    }
+
+    /** تولید تاریخ میلادی ISO برای مقایسه فیلترها، بدون تغییر تاریخ ذخیره‌شده سوابق. */
+    function solarDateToIso(year, month, day) {
+      const date = findGregorianDateForSolar(year, month, day);
+      if (!date) return '';
+      const gregorian = new Date(date.getTime());
+      return String(gregorian.getUTCFullYear()).padStart(4, '0') + '-' +
+        String(gregorian.getUTCMonth() + 1).padStart(2, '0') + '-' +
+        String(gregorian.getUTCDate()).padStart(2, '0');
+    }
+
+    /** نمایش تاریخ خورشیدی با ارقام فارسی. */
+    function formatSolarDate(date) {
+      return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC'
+      }).format(date);
+    }
+
+    /** ساخت تقویم خورشیدی برای یک ماه؛ ورودی و خروجی فیلتر به ISO میلادی متصل می‌ماند. */
+    function renderSolarCalendar(input, panel, year, month) {
+      if (month < 1) { year -= 1; month = 12; }
+      if (month > 12) { year += 1; month = 1; }
+      const firstDay = findGregorianDateForSolar(year, month, 1);
+      if (!firstDay) {
+        panel.hidden = true;
+        return;
+      }
+      const weekdayOffset = (firstDay.getUTCDay() + 1) % 7; // شروع هفته: شنبه
+      let daysInMonth = 0;
+      for (let day = 1; day <= 31; day += 1) {
+        if (!findGregorianDateForSolar(year, month, day)) break;
+        daysInMonth = day;
+      }
+      const selectedIso = input.dataset.isoDate || '';
+      const today = getSolarDateParts(new Date());
+      let dayButtons = '';
+      for (let blank = 0; blank < weekdayOffset; blank += 1) dayButtons += '<span class="solar-calendar-empty" aria-hidden="true"></span>';
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const iso = solarDateToIso(year, month, day);
+        const selected = iso && iso === selectedIso ? ' is-selected' : '';
+        const current = today.year === year && today.month === month && today.day === day ? ' is-today' : '';
+        dayButtons += '<button type="button" class="solar-calendar-day' + selected + current +
+          '" data-solar-day="' + day + '" aria-label="' + day + ' ' + SOLAR_MONTH_NAMES[month - 1] + ' ' + year + '">' +
+          toEnglishDigits(day).replace(/[0-9]/g, digit => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]) + '</button>';
+      }
+      panel.innerHTML = '<div class="solar-calendar-heading">' +
+        '<button type="button" class="solar-calendar-nav" data-solar-nav="-1" aria-label="ماه قبل">‹</button>' +
+        '<strong>' + SOLAR_MONTH_NAMES[month - 1] + ' ' + toEnglishDigits(year).replace(/[0-9]/g, digit => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]) + '</strong>' +
+        '<button type="button" class="solar-calendar-nav" data-solar-nav="1" aria-label="ماه بعد">›</button></div>' +
+        '<div class="solar-calendar-grid solar-calendar-weekdays">' +
+        SOLAR_WEEKDAYS.map(day => '<span>' + day + '</span>').join('') + '</div>' +
+        '<div class="solar-calendar-grid solar-calendar-days">' + dayButtons + '</div>';
+      panel.dataset.viewYear = String(year);
+      panel.dataset.viewMonth = String(month);
+      panel.hidden = false;
+      input.setAttribute('aria-expanded', 'true');
+    }
+
+    /** اتصال ورودی‌های تاریخ به انتخاب‌گر خورشیدی، با پشتیبانی از تایپ دستی و صفحه‌کلید. */
+    function initializeSolarDateInputs() {
+      const inputs = Array.from(document.querySelectorAll('.solar-date-input'));
+      inputs.forEach(input => {
+        const control = document.createElement('div');
+        control.className = 'solar-date-control';
+        input.parentNode.insertBefore(control, input);
+        control.append(input);
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'solar-date-toggle';
+        toggle.textContent = 'تقویم';
+        toggle.setAttribute('aria-label', 'بازکردن تقویم خورشیدی');
+        toggle.setAttribute('aria-expanded', 'false');
+        const panel = document.createElement('div');
+        panel.className = 'solar-date-panel';
+        panel.hidden = true;
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'انتخاب تاریخ خورشیدی');
+        control.append(toggle, panel);
+
+        const openCalendar = () => {
+          const entered = (input.value || '').trim();
+          const match = entered.match(/^(\d{4})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{1,2})$/);
+          const today = getSolarDateParts(new Date());
+          const year = match ? Number(toEnglishDigits(match[1])) : today.year;
+          const month = match ? Number(toEnglishDigits(match[2])) : today.month;
+          renderSolarCalendar(input, panel, year, month);
+          toggle.setAttribute('aria-expanded', String(!panel.hidden));
+        };
+        input.addEventListener('focus', openCalendar);
+        input.addEventListener('click', openCalendar);
+        toggle.addEventListener('click', () => {
+          if (panel.hidden) openCalendar();
+          else {
+            panel.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+            toggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+        input.addEventListener('input', () => {
+          delete input.dataset.isoDate;
+          input.removeAttribute('aria-invalid');
+        });
+        input.addEventListener('change', () => {
+          const match = input.value.trim().match(/^(\d{4})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{1,2})$/);
+          const iso = match
+            ? solarDateToIso(Number(toEnglishDigits(match[1])), Number(toEnglishDigits(match[2])), Number(toEnglishDigits(match[3])))
+            : '';
+          if (input.value.trim() && !iso) {
+            input.setAttribute('aria-invalid', 'true');
+            input.title = 'تاریخ خورشیدی معتبر نیست؛ قالب نمونه: ۱۴۰۵/۰۱/۰۱';
+          } else {
+            input.removeAttribute('aria-invalid');
+            input.title = '';
+            if (iso) input.dataset.isoDate = iso;
+            else delete input.dataset.isoDate;
+          }
+        });
+        panel.addEventListener('click', event => {
+          const navigation = event.target.closest('[data-solar-nav]');
+          if (navigation) {
+            renderSolarCalendar(input, panel, Number(panel.dataset.viewYear), Number(panel.dataset.viewMonth) + Number(navigation.dataset.solarNav));
+            toggle.setAttribute('aria-expanded', String(!panel.hidden));
+            return;
+          }
+          const dayButton = event.target.closest('[data-solar-day]');
+          if (!dayButton) return;
+          const year = Number(panel.dataset.viewYear);
+          const month = Number(panel.dataset.viewMonth);
+          const day = Number(dayButton.dataset.solarDay);
+          const iso = solarDateToIso(year, month, day);
+          if (!iso) return;
+          input.dataset.isoDate = iso;
+          input.value = formatSolarDate(findGregorianDateForSolar(year, month, day));
+          input.removeAttribute('aria-invalid');
+          input.title = '';
+          panel.hidden = true;
+          input.setAttribute('aria-expanded', 'false');
+          toggle.setAttribute('aria-expanded', 'false');
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      });
+      document.addEventListener('click', event => {
+        inputs.forEach(input => {
+          const control = input.closest('.solar-date-control');
+          if (control && !control.contains(event.target)) {
+            const panel = control.querySelector('.solar-date-panel');
+            const toggle = control.querySelector('.solar-date-toggle');
+            if (panel) panel.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+            if (toggle) toggle.setAttribute('aria-expanded', 'false');
+          }
+        });
+      });
+    }
+
     function renderKardex() {
       const body = document.getElementById('kardex-body');
       const search = document.getElementById('kardex-search');
@@ -786,14 +973,14 @@
 
       const audit = getKardexAudit();
       const searchTerm = toEnglishDigits(search.value).trim().toLocaleLowerCase('fa');
-      const fromDate = document.getElementById('kardex-date-from')?.value || '';
-      const toDate = document.getElementById('kardex-date-to')?.value || '';
+      const fromDate = document.getElementById('kardex-date-from')?.dataset.isoDate || '';
+      const toDate = document.getElementById('kardex-date-to')?.dataset.isoDate || '';
       const rows = audit.rows.filter(row => {
         if (movementFilter.value !== 'all' && row.type !== movementFilter.value) return false;
         if (searchTerm && !toEnglishDigits([
           row.code, row.description, row.document, row.location, row.documentId, row.lineId
         ].join(' ')).toLocaleLowerCase('fa').includes(searchTerm)) return false;
-        // ورودی تاریخ به صورت ISO (YYYY-MM-DD) است؛ برای سوابق دارای timestamp معتبر.
+        // تاریخ انتخاب‌شده خورشیدی به ISO میلادی تبدیل می‌شود؛ زمان ذخیره‌شده سوابق دست‌نخورده می‌ماند.
         if ((fromDate || toDate) && row.timestamp === null) return false;
         if (fromDate && row.timestamp < Date.parse(fromDate + 'T00:00:00')) return false;
         if (toDate && row.timestamp > Date.parse(toDate + 'T23:59:59.999')) return false;
@@ -855,6 +1042,7 @@
       });
     }
 
+    initializeSolarDateInputs();
     document.getElementById('kardex-search')?.addEventListener('input', renderKardex);
     document.getElementById('kardex-movement-filter')?.addEventListener('change', renderKardex);
     document.getElementById('kardex-date-from')?.addEventListener('change', renderKardex);
@@ -862,8 +1050,8 @@
     document.getElementById('kardex-date-reset')?.addEventListener('click', () => {
       const from = document.getElementById('kardex-date-from');
       const to = document.getElementById('kardex-date-to');
-      if (from) from.value = '';
-      if (to) to.value = '';
+      if (from) { from.value = ''; delete from.dataset.isoDate; from.removeAttribute('aria-invalid'); from.title = ''; }
+      if (to) { to.value = ''; delete to.dataset.isoDate; to.removeAttribute('aria-invalid'); to.title = ''; }
       renderKardex();
     });
 
