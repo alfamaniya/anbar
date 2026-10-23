@@ -251,17 +251,16 @@
           </div>
           <p class="preview-message">گردش بر اساس جزئیات ثبت‌شدهٔ ورود و ارسال است؛ سوابق قدیمیِ بدون جزئیات قلم در این جدول نمایش داده نمی‌شوند.</p>
           <p id="kardex-audit-summary" class="kardex-audit-summary" role="status" aria-live="polite">ممیزی سوابق در حال انجام است.</p>
-          <div class="reports-overview" aria-label="خلاصه نتایج فیلترشده کاردکس">
-            <article class="report-metric"><span>ردیف‌های منطبق با فیلتر</span><strong id="kardex-row-count">۰</strong></article>
-            <article class="report-metric"><span>مجموع ورود</span><strong id="kardex-incoming-total">۰</strong></article>
-            <article class="report-metric"><span>مجموع خروج</span><strong id="kardex-outgoing-total">۰</strong></article>
-          </div>
           <div class="kardex-toolbar">
-            <div class="field-group"><label for="kardex-search">جست‌وجو</label><input id="kardex-search" type="search" autocomplete="off" placeholder="کد، شرح کالا، شماره سند یا محل"></div>
-            <div class="field-group"><label for="kardex-movement-filter">نوع گردش</label><select id="kardex-movement-filter"><option value="all">همه گردش‌ها</option><option value="entry">ورود</option><option value="shipment">خروج</option></select></div>
-            <div class="field-group"><label for="kardex-date-from">از تاریخ (خورشیدی)</label><input id="kardex-date-from" class="solar-date-input" type="text" inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۱/۰۱" aria-haspopup="dialog" aria-expanded="false"></div>
-            <div class="field-group"><label for="kardex-date-to">تا تاریخ (خورشیدی)</label><input id="kardex-date-to" class="solar-date-input" type="text" inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۱/۰۱" aria-haspopup="dialog" aria-expanded="false"></div>
-            <div class="kardex-date-actions"><button class="action-button secondary" id="kardex-date-reset" type="button">پاک‌کردن تاریخ</button></div>
+            <div class="kardex-date-row">
+              <div class="field-group"><label for="kardex-date-from">از تاریخ (خورشیدی)</label><input id="kardex-date-from" class="solar-date-input" type="text" inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۱/۰۱" aria-haspopup="dialog" aria-expanded="false"></div>
+              <div class="field-group"><label for="kardex-date-to">تا تاریخ (خورشیدی)</label><input id="kardex-date-to" class="solar-date-input" type="text" inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۱/۰۱" aria-haspopup="dialog" aria-expanded="false"></div>
+              <button class="action-button secondary kardex-date-reset" id="kardex-date-reset" type="button">پاک‌کردن تاریخ</button>
+            </div>
+            <div class="kardex-search-row">
+              <div class="field-group"><label for="kardex-search">جست‌وجو</label><input id="kardex-search" type="search" autocomplete="off" placeholder="کد، شرح کالا، شماره سند یا محل"></div>
+              <div class="field-group"><label for="kardex-movement-filter">نوع گردش</label><select id="kardex-movement-filter"><option value="all">همه گردش‌ها</option><option value="entry">ورود</option><option value="shipment">خروج</option></select></div>
+            </div>
           </div>
           <div class="entry-history-table-wrap">
             <table class="preview-table kardex-table" aria-label="دفتر گردش اقلام">
