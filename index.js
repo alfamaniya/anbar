@@ -916,7 +916,7 @@
         control.append(toggle, panel);
 
         const openCalendar = () => {
-          const entered = (input.value || '').trim();
+          const entered = toEnglishDigits((input.value || '').trim());
           const match = entered.match(/^(\d{4})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{1,2})$/);
           const today = getSolarDateParts(new Date());
           const year = match ? Number(toEnglishDigits(match[1])) : today.year;
@@ -939,7 +939,8 @@
           input.removeAttribute('aria-invalid');
         });
         input.addEventListener('change', () => {
-          const match = input.value.trim().match(/^(\d{4})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{1,2})$/);
+          const normalizedValue = toEnglishDigits(input.value.trim());
+          const match = normalizedValue.match(/^(\d{4})\s*[\/.-]\s*(\d{1,2})\s*[\/.-]\s*(\d{1,2})$/);
           const iso = match
             ? solarDateToIso(Number(toEnglishDigits(match[1])), Number(toEnglishDigits(match[2])), Number(toEnglishDigits(match[3])))
             : '';
