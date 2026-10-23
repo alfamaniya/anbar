@@ -147,14 +147,6 @@
 
         <!-- موجودی و ارسال: جدول ردیف‌ها در JavaScript ساخته می‌شود؛ جست‌وجو و مرتب‌سازی همان داده را کنترل می‌کنند. -->
         <section class="section-card" id="section-2" aria-labelledby="title-2">
-          <div class="inventory-search-panel" role="search" aria-label="جست‌وجوی موجودی">
-            <label for="inventory-search">جست‌وجو</label>
-            <div class="inventory-search-control">
-              <input id="inventory-search" type="search" autocomplete="off" placeholder="جست‌وجو بر اساس کد یا شرح کالا">
-              <button class="search-clear-button" id="clear-inventory-search" type="button" aria-label="پاک کردن عبارت جست‌وجو" title="پاک کردن عبارت جست‌وجو">×</button>
-            </div>
-            <p class="search-live-text" aria-live="polite">نتیجه جست‌وجو: <strong id="inventory-search-query">—</strong></p>
-          </div>
           <div class="inventory-toolbar">
             <p class="inventory-count" id="inventory-count">تعداد کالاها: ۰</p>
             <p class="preview-message">برای مرتب‌سازی، عنوان هر ستون را انتخاب کنید.</p>
@@ -169,6 +161,17 @@
           </div>
 
           <div class="empty-state" id="inventory-empty">هنوز کالایی وارد نشده است. ابتدا از سکشن «ورودی کالا ها» کالا اضافه کنید.</div>
+          <div class="inventory-list-heading">
+            <h4>لیست مشاهده کالاها</h4>
+          </div>
+          <div class="inventory-search-panel" role="search" aria-label="جست‌وجوی موجودی">
+            <label for="inventory-search">جست‌وجو</label>
+            <div class="inventory-search-control">
+              <input id="inventory-search" type="search" autocomplete="off" placeholder="جست‌وجو بر اساس کد یا شرح کالا">
+              <button class="search-clear-button" id="clear-inventory-search" type="button" aria-label="پاک کردن عبارت جست‌وجو" title="پاک کردن عبارت جست‌وجو">×</button>
+            </div>
+            <p class="search-live-text" aria-live="polite">نتیجه جست‌وجو: <strong id="inventory-search-query">—</strong></p>
+          </div>
           <div class="inventory-table-wrap">
             <table class="inventory-table" aria-label="فهرست کالاهای موجود">
               <thead>
