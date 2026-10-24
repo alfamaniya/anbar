@@ -165,7 +165,18 @@
           <div class="inventory-list-heading">
             <h4>لیست مشاهده کالاها</h4>
           </div>
-          <input id="inventory-search" class="inventory-search-input" type="search" autocomplete="off" aria-label="جست‌وجوی موجودی" placeholder="جست‌وجو بر اساس کد یا شرح کالا">
+          <div class="inventory-search-toolbar">
+            <input id="inventory-search" class="inventory-search-input" type="search" autocomplete="off" aria-label="جست‌وجوی موجودی" placeholder="جست‌وجو بر اساس کد یا شرح کالا">
+            <div class="inventory-filter-group">
+              <label for="inventory-stock-filter">فیلتر وضعیت:</label>
+              <select id="inventory-stock-filter" class="inventory-stock-filter-select">
+                <option value="all">همه اقلام</option>
+                <option value="low">کمبود نسبت به حداقل موجودی</option>
+                <option value="zero">موجودی صفر یا منفی</option>
+                <option value="positive">موجودی مثبت</option>
+              </select>
+            </div>
+          </div>
           <div class="inventory-table-wrap">
             <table class="inventory-table" aria-label="فهرست کالاهای موجود">
               <thead>
