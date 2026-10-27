@@ -17,12 +17,6 @@
         <h1>کنترل مصرف</h1>
         <p>سامانه مدیریت اقلام</p>
       </div>
-      <div class="release-meta" aria-label="اطلاعات نسخه">
-        <span class="release-version">نسخه <strong>1.2.0</strong></span>
-        <time datetime="2026-10-23">آخرین اصلاح: ۱۴۰۵/۰۸/۰۱</time>
-        <button class="release-notes-button" id="open-release-notes" type="button" aria-haspopup="dialog" aria-controls="release-notes-dialog">یادداشت‌های انتشار</button>
-      </div>
-
       <!-- فهرست ناوبری؛ مقدار href هر پیوند باید با ID سکشن مربوط هماهنگ بماند. -->
       <nav aria-label="ناوبری بخش‌ها">
         <p class="nav-title">دسترسی به بخش‌ها</p>
@@ -36,12 +30,7 @@
         </ul>
       </nav>
     </header>
-    <dialog class="release-notes-dialog" id="release-notes-dialog" aria-labelledby="release-notes-title">
-      <div class="release-notes-header"><div><span class="page-eyebrow">CHANGELOG</span><h2 id="release-notes-title">آخرین اصلاحات سامانه</h2><p>نسخه 1.2.0 · ۱۴۰۵/۰۸/۰۱</p></div><button class="release-notes-close" id="close-release-notes" type="button" aria-label="بستن پنجره">×</button></div>
-      <div class="release-notes-content"><h3>نسخه 1.2.0 — فیلترهای تاریخ خورشیدی</h3><ul><li>تبدیل فیلترهای تاریخ کاردکس و گزارش تفصیلی مصرف به ورودی و انتخاب‌گر تاریخ خورشیدی.</li><li>پشتیبانی از انتخاب تاریخ از تقویم یا ورود دستی با ارقام فارسی؛ نمایش پیام روشن برای تاریخ نامعتبر.</li><li>تبدیل تاریخ خورشیدی به تاریخ استاندارد فقط هنگام فیلتر، بدون تغییر timestamp سوابق ذخیره‌شده.</li><li>طراحی واکنش‌گرا و بدون وابستگی به سرویس خارجی برای پشتیبانی از محیط‌های آفلاین.</li></ul><p class="release-notes-footnote">بررسی ساختاری و آزمون تبدیل چند تاریخ انجام شده است؛ آزمون تعاملی در مرورگر واقعی و آزمون کامل سال‌های کبیسه هنوز لازم است.</p></div>
-    </dialog>
-
-    <!-- محتوای اصلی برنامه پس از ناوبری؛ اطلاعات نسخه در هدر اصلی قرار دارد. -->
+    <!-- محتوای اصلی برنامه پس از ناوبری. -->
     <main class="main">
       <!-- سربرگ معرفی سامانه و وضعیت نمایشی فعلی رابط. -->
             <div class="sections">
@@ -190,10 +179,11 @@
             <span class="section-icon" aria-hidden="true">▤</span>
             <h3 id="title-4">گزارش‌ها</h3>
           </div>
-          <!-- خلاصه مدیریتی افزوده‌شده؛ جدول‌های گزارش موجود بدون تغییر باقی می‌مانند. -->
+          <!-- شاخص‌ها از سوابق ثبت‌شده محاسبه می‌شوند؛ مقدارها داده نمونه نیستند. -->
           <div class="reports-overview" aria-label="خلاصه گزارش‌ها">
             <article class="report-metric"><span>مجموع ارسال‌ها</span><strong id="reports-total-shipments">۰</strong></article>
             <article class="report-metric"><span>مجموع ورودها</span><strong id="reports-total-entries">۰</strong></article>
+            <article class="report-metric"><span>مجموع تعداد ارسال‌شده</span><strong id="reports-total-consumption">۰</strong></article>
             <article class="report-metric"><span>آخرین ارسال ثبت‌شده</span><strong id="reports-latest-shipment">—</strong></article>
           </div>
           <div class="settings-grid reports-grid">
@@ -293,24 +283,52 @@
               </div>
             </article>
             <article class="settings-box">
-              <h4>بکاپ خودکار فایل JSON</h4>
-              <p>یک‌بار پوشه ذخیره‌سازی را انتخاب کنید. پس از آن فایل پشتیبان با هر تغییر اطلاعات به‌روزرسانی می‌شود و نام آن خودکار بر اساس سال و ماه خورشیدی تعیین خواهد شد.</p>
+              <h4>مدیریت پشتیبان</h4>
+              <p>ذخیرهٔ خودکار با تغییر داده، روزانه یا هفتگی انجام می‌شود. فایل ماه جاری حفظ می‌شود؛ برنامه فایل‌های قبلی را خودکار پاک نمی‌کند.</p>
+              <div class="field-group">
+                <label for="backup-frequency">برنامهٔ ذخیرهٔ خودکار</label>
+                <select id="backup-frequency">
+                  <option value="change">پس از هر تغییر (با تأخیر کوتاه)</option>
+                  <option value="daily">روزانه</option>
+                  <option value="weekly">هفتگی</option>
+                </select>
+                <span class="field-hint">در برنامهٔ باز، پشتیبان‌گیری در این بازه تکرار می‌شود؛ هنگام بسته‌بودن مرورگر اجرای پس‌زمینه ممکن نیست.</span>
+              </div>
               <div class="backup-folder-actions">
                 <button class="action-button success" id="choose-backup-folder" type="button">فعال‌سازی پوشه ذخیره‌شده</button>
                 <button class="action-button secondary" id="change-backup-folder" type="button">انتخاب یا تغییر پوشه بکاپ</button>
+              </div>
+              <div class="backup-folder-actions">
+                <button class="action-button" id="run-backup-now" type="button">ذخیرهٔ پشتیبان اکنون</button>
+                <button class="action-button secondary" id="download-backup-json" type="button">دریافت فایل JSON</button>
               </div>
               <p class="field-hint" id="backup-folder-status" role="status" aria-live="polite">هنوز محل ذخیره انتخاب نشده است.</p>
               <p class="feedback" id="backup-feedback" role="status" aria-live="polite"></p>
             </article>
             <article class="settings-box">
-              <h4>بازگردانی بکاپ JSON</h4>
-              <p>فایل بکاپ قبلی را انتخاب کنید تا اطلاعات موجود در همین مرورگر جایگزین شود.</p>
+              <h4>بررسی و بازیابی پشتیبان</h4>
+              <p>فایل JSON ابتدا اعتبارسنجی و با داده‌های فعلی مقایسه می‌شود. انتخاب پیش‌فرض «ادغام» است و دادهٔ فعلی را حذف نمی‌کند.</p>
               <div class="field-group">
                 <label for="restore-json-file">فایل پشتیبان JSON</label>
                 <input id="restore-json-file" type="file" accept=".json,application/json">
               </div>
+              <div class="field-group">
+                <label for="restore-strategy">روش بازیابی</label>
+                <select id="restore-strategy">
+                  <option value="merge">ادغام موارد جدید (ایمن و پیش‌فرض)</option>
+                  <option value="replace">جایگزینی بخش‌های انتخاب‌شده</option>
+                </select>
+              </div>
+              <fieldset class="restore-sections">
+                <legend>بخش‌های بازیابی</legend>
+                <label><input type="checkbox" name="restore-section" value="inventory" checked> موجودی کالا</label>
+                <label><input type="checkbox" name="restore-section" value="entryHistory" checked> تاریخچه ورود</label>
+                <label><input type="checkbox" name="restore-section" value="shipments" checked> تاریخچه ارسال</label>
+                <label><input type="checkbox" name="restore-section" value="shipmentLocations" checked> محل‌ها و زیرمجموعه‌ها</label>
+              </fieldset>
+              <p class="restore-warning" id="restore-mode-warning" role="status">ادغام، رکوردهای فعلی را نگه می‌دارد. انتخاب جایگزینی فقط روی بخش‌های علامت‌خورده اثر می‌گذارد و با تأیید جداگانه انجام می‌شود.</p>
+              <pre class="restore-preview" id="restore-preview" aria-live="polite">پس از انتخاب فایل، خلاصهٔ اعتبارسنجی و مغایرت‌ها اینجا نمایش داده می‌شود.</pre>
               <button class="action-button success" id="restore-json-backup" type="button" disabled>بازگردانی اطلاعات</button>
-              <p class="field-hint">توجه: بازگردانی، اطلاعات فعلی ذخیره‌شده در این مرورگر را جایگزین می‌کند.</p>
               <p class="feedback" id="restore-feedback" role="status" aria-live="polite"></p>
             </article>
 
@@ -324,23 +342,23 @@
     </main>
   </div>
 
-  <!-- دروازه آغاز؛ تا ذخیره موفق بکاپ اولیه، رابط اصلی غیرقابل تعامل است. -->
-  <section class="backup-setup-gate" id="backup-setup-gate" role="dialog" aria-modal="true" aria-labelledby="backup-gate-title">
+  <!-- پیش از نخستین تغییر داده، در صورت نیاز روش پشتیبان‌گیری را از کاربر می‌پرسد. -->
+  <section class="backup-setup-gate" id="backup-setup-gate" role="dialog" aria-modal="true" aria-labelledby="backup-gate-title" hidden>
     <div class="backup-setup-card">
-      <h2 id="backup-gate-title">پیش از شروع، محل ذخیره بکاپ را مشخص کنید</h2>
-      <p>تا زمانی که پوشه ذخیره انتخاب نشده و اولین فایل بکاپ با موفقیت ذخیره نشده باشد، تمام بخش‌های سایت قفل می‌مانند و امکان تغییر اطلاعات وجود ندارد.</p>
-      <button class="action-button success" id="backup-gate-choose-folder" type="button">انتخاب پوشه و فعال‌سازی سایت</button>
+      <h2 id="backup-gate-title">پیش از نخستین تغییر، روش پشتیبان‌گیری را انتخاب کنید</h2>
+      <p>این پیام فقط زمانی نمایش داده می‌شود که بخواهید برای نخستین بار اطلاعات را ذخیره یا تغییر دهید. عملیات فعلی ثبت نشده است؛ پس از انتخاب روش، آن را دوباره اجرا کنید.</p>
+      <button class="action-button success" id="backup-gate-choose-folder" type="button">انتخاب پوشه و فعال‌سازی بکاپ</button>
       <!-- مسیر جایگزین برای مرورگرهایی که انتخاب پوشه یا ذخیره مستقیم فایل را پشتیبانی نمی‌کنند. -->
       <button class="action-button secondary" id="backup-gate-continue-without-backup" type="button">ادامه بدون بکاپ خودکار</button>
       <p class="backup-gate-note">در این حالت اطلاعات همچنان در حافظه محلی مرورگر ذخیره می‌شود، اما فایل پشتیبان خودکار ساخته نمی‌شود. پاک‌شدن داده‌های مرورگر یا خرابی دستگاه می‌تواند باعث از دست رفتن اطلاعات شود؛ از بخش بکاپ، فایل JSON را دستی دریافت کنید.</p>
-      <p class="backup-gate-status" id="backup-gate-status" role="status" aria-live="polite">برای شروع، یک پوشه انتخاب کنید.</p>
+      <p class="backup-gate-status" id="backup-gate-status" role="status" aria-live="polite">برای ثبت تغییر، یک روش پشتیبان‌گیری انتخاب کنید.</p>
       <p class="backup-gate-feedback" id="backup-gate-feedback" role="alert" aria-live="assertive"></p>
       <p>برای ذخیره مستقیم فایل، از نسخه به‌روز Chrome یا Edge روی رایانه و از طریق HTTPS استفاده کنید.</p>
     </div>
   </section>
 
-  <!-- وابستگی Excel باید پیش از index.js بارگیری شود تا XLSX هنگام ورود فایل در دسترس باشد. -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!-- نسخه محلی SheetJS برای ورود Excel و خروجی گزارش، بدون وابستگی به CDN. -->
+  <script src="vendor/xlsx.full.min.js"></script>
   <!-- پنجره‌های محاوره‌ای؛ JavaScript محتوای پویا و رفتار دکمه‌های آن‌ها را کنترل می‌کند. -->
   <dialog class="duplicate-dialog" id="duplicate-dialog" aria-labelledby="duplicate-dialog-title">
     <div class="duplicate-dialog-header">
