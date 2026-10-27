@@ -310,6 +310,7 @@
 - **مخزن:** https://github.com/alfamaniya/anbar
 - **فایل‌های اصلی برنامه:** `index.html`، `index.css` و `index.js`
 - **فناوری‌ها:** HTML، CSS و JavaScript خالص؛ کتابخانه محلی SheetJS برای خواندن و نوشتن فایل‌های Excel.
+- **نسخه تک‌فایلی:** `anbar-standalone.html` شامل رابط، استایل‌ها، منطق برنامه و کتابخانه SheetJS است و به فایل‌های پروژه یا CDN وابستگی ندارد.
 
 ## ساختار مخزن
 
@@ -318,6 +319,7 @@ anbar/
 ├── index.html   # ساختار صفحه و اتصال فایل‌ها
 ├── index.css    # ظاهر و چیدمان رابط کاربری
 ├── index.js     # منطق و رفتار برنامه
+├── anbar-standalone.html # نسخه مستقل با CSS، JavaScript و SheetJS درون‌خطی
 ├── vendor/
 │   ├── xlsx.full.min.js     # کتابخانه محلی SheetJS 0.20.3
 │   └── SHEETJS-LICENSE.txt  # مجوز Apache-2.0 کتابخانه
@@ -567,6 +569,8 @@ anbar/
 ## اجرا
 
 **محلی:** پوشه `vendor` را همراه `index.html`، `index.css` و `index.js` نگه دارید و `index.html` را باز کنید؛ برای پشتیبانی کامل از قابلیت‌ها، اجرای برنامه روی وب‌سرور محلی توصیه می‌شود. SheetJS نسخه `0.20.3` در `vendor/xlsx.full.min.js` قرار دارد و برای ورود Excel و خروجی گزارش به اینترنت یا CDN نیاز نیست. مجوز کتابخانه در `vendor/SHEETJS-LICENSE.txt` آمده است.
+
+**نسخه تک‌فایلی:** برای اجرای مستقل یا ارسال ساده‌تر، فایل `anbar-standalone.html` را باز کنید. این فایل CSS، JavaScript برنامه و SheetJS را در خود دارد و برای اجرا نیازی به `index.css`، `index.js`، پوشه `vendor` یا اتصال اینترنت ندارد. داده‌ها همچنان در `localStorage` همان مرورگر ذخیره می‌شوند.
 
 **آنلاین:** نسخه منتشرشده با GitHub Pages در نشانی زیر قرار دارد:
 
