@@ -4,7 +4,6 @@
     const sectionCards = document.querySelectorAll('.section-card');
     const inventoryGrid = document.getElementById('inventory-grid');
     const inventorySearchInput = document.getElementById('inventory-search');
-    const inventoryStockFilterSelect = document.getElementById('inventory-stock-filter');
     const inventoryEmpty = document.getElementById('inventory-empty');
     const inventoryCount = document.getElementById('inventory-count');
     const inventoryFeedback = document.getElementById('inventory-feedback');
@@ -2885,13 +2884,7 @@
         return comparison * multiplier;
       });
 
-      const selectedStockFilter = inventoryStockFilterSelect ? inventoryStockFilterSelect.value : 'all';
-
       const filteredItems = sortedItems.filter(item => {
-        if (selectedStockFilter === 'low' && !isLowStockItem(item)) return false;
-        if (selectedStockFilter === 'zero' && Number(item.stock) > 0) return false;
-        if (selectedStockFilter === 'positive' && Number(item.stock) <= 0) return false;
-
         if (!searchTerm) return true;
         const searchable = toEnglishDigits([
           item.code, item.description, item.category, item.stock, item.minimumStock, item.sendQuantity,
@@ -3088,9 +3081,6 @@
 
     // رویداد «تغییر مقدار ورودی» برای فیلد جست‌وجوی موجودی؛ همگام‌سازی پیش‌نمایش یا وضعیت رابط با مقدار جاری.
     inventorySearchInput.addEventListener('input', renderInventory);
-    if (inventoryStockFilterSelect) {
-      inventoryStockFilterSelect.addEventListener('change', renderInventory);
-    }
 
     // رویداد «تغییر مقدار ورودی» برای فیلد کد کالا در ورود دستی؛ همگام‌سازی پیش‌نمایش یا وضعیت رابط با مقدار جاری.
     itemFormInputs.code.addEventListener('input', () => {

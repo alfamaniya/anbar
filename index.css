@@ -502,39 +502,7 @@ input[type="file"]::file-selector-button:hover { background: #bfdbfe; }
 .preview-empty { color: var(--muted); font-size: 12px; }
 
 /* ---------- ۷) موجودی و ارسال ---------- */
-.inventory-search-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin: 0 0 14px;
-}
-.inventory-search-input {
-  flex: 1 1 300px;
-  min-height: 44px;
-  margin: 0;
-}
-.inventory-filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-.inventory-filter-group label {
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
-}
-.inventory-stock-filter-select {
-  min-height: 44px;
-  padding: 6px 12px;
-  border: 1px solid var(--blue);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--ink);
-  font-weight: 700;
-}
+.inventory-search-input { display: block; width: 100%; min-height: 44px; margin: 0 0 14px; }
 
 .inventory-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 14px; margin: 0 0 14px; }
 .inventory-count { margin: 0; color: var(--ink); font-size: 13px; font-weight: 700; }
