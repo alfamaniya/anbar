@@ -125,35 +125,6 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible {
 }
 .nav-link[aria-current="page"] .nav-number { background: var(--yellow); color: var(--ink); font-weight: 800; }
 
-/* اطلاعات نسخه و دکمه یادداشت‌های انتشار */
-.release-meta {
-  order: 3;
-  display: flex;
-  flex: 0 1 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  max-width: 340px;
-  margin-inline-start: auto;
-  color: #e7edf7;
-  font-size: 11px;
-}
-.release-version { white-space: nowrap; }
-.release-version strong { color: #fff; font-size: 12px; direction: ltr; unicode-bidi: isolate; }
-.release-meta time { color: #c3d3ee; }
-.release-notes-button {
-  padding: 5px 10px;
-  border: 1px solid rgba(255, 255, 255, .3);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, .1);
-  color: #fff;
-  font-size: 11px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-.release-notes-button:hover { background: rgba(255, 255, 255, .2); }
-.release-notes-button:focus-visible { outline-color: var(--yellow); }
-
 /* ---------- ۳) سربرگ صفحه و کارت سکشن‌ها ---------- */
 .main {
   min-width: 0;
@@ -540,7 +511,9 @@ input[type="file"]::file-selector-button:hover { background: #bfdbfe; }
 .date-time-cell .time-part { color: var(--muted); font-size: .92em; }
 
 /* ---------- ۸) گزارش‌ها ---------- */
-.reports-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+.reports-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+.report-view-field { max-width: 360px; margin-bottom: 12px; }
+.report-view-field .field-group { margin: 0; }
 .report-metric { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 14px 18px; border: 1px solid var(--line); border-right: 4px solid var(--blue); border-radius: 14px; background: #fff; box-shadow: var(--shadow); }
 .report-metric:nth-child(2) { border-right-color: var(--green); }
 .report-metric:nth-child(3) { border-right-color: var(--yellow); }
@@ -579,6 +552,13 @@ input[type="file"]::file-selector-button:hover { background: #bfdbfe; }
 
 .backup-folder-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; }
 .backup-folder-actions .action-button { width: 100%; }
+.restore-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.restore-sections legend { padding: 0 6px; color: var(--ink); font-size: 13px; font-weight: 700; }
+.restore-sections label { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--text); font-size: 13px; }
+.restore-sections input { flex: 0 0 auto; width: 18px; height: 18px; accent-color: var(--blue); }
+.restore-warning { padding: 9px 12px; border-right: 4px solid var(--yellow); border-radius: 8px; background: var(--yellow-wash); color: #713f12 !important; }
+.restore-preview { max-height: 220px; overflow: auto; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--text); font: inherit; font-size: 12px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.restore-preview:empty { display: none; }
 .location-create-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
 .location-create-form .field-group { margin: 0; }
 .location-create-form > .action-button { grid-column: 1 / -1; justify-self: start; }
@@ -618,7 +598,7 @@ input[type="file"]::file-selector-button:hover { background: #bfdbfe; }
 dialog { color: var(--text); }
 dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px); }
 
-.duplicate-dialog, .shipment-dialog, .release-notes-dialog { padding: 0; border: 1px solid #bfdbfe; border-radius: 16px; background: #fff; box-shadow: 0 24px 80px rgba(20, 30, 48, .3); }
+.duplicate-dialog, .shipment-dialog { padding: 0; border: 1px solid #bfdbfe; border-radius: 16px; background: #fff; box-shadow: 0 24px 80px rgba(20, 30, 48, .3); }
 .duplicate-dialog { width: min(760px, calc(100% - 28px)); max-height: min(86vh, 780px); }
 .shipment-dialog { width: min(900px, calc(100% - 24px)); max-height: min(92vh, 900px); }
 .duplicate-dialog-header, .shipment-header, .shipment-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; background: var(--blue-faint); border-bottom: 1px solid #bfdbfe; }
@@ -639,19 +619,7 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
 .shipment-feedback { margin: 10px 0 0; color: var(--red-strong); font-size: 13px; }
 .shipment-footer { justify-content: flex-end; border-top: 1px solid #bfdbfe; border-bottom: 0; }
 
-.release-notes-dialog { width: min(560px, calc(100% - 28px)); max-width: 560px; max-height: min(80vh, 720px); }
-.release-notes-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 22px; background: var(--blue-faint); border-bottom: 1px solid #bfdbfe; }
-.release-notes-header h2 { margin: 4px 0; color: var(--ink); font-size: 20px; }
-.release-notes-header p { margin: 0; color: var(--muted); font-size: 12px; }
-.release-notes-header .page-eyebrow { color: var(--blue-strong); font-size: 11px; font-weight: 800; }
-.release-notes-close { flex: 0 0 36px; width: 36px; height: 36px; border: 0; border-radius: 9px; background: #fff; color: var(--red-strong); font-size: 25px; line-height: 1; cursor: pointer; }
-.release-notes-close:hover { background: var(--red-wash); }
-.release-notes-content { padding: 20px 24px 24px; text-align: right; }
-.release-notes-content h3 { margin: 0 0 10px; }
-.release-notes-content li { margin: 0 0 8px; }
-.release-notes-footnote { margin: 18px 0 0; padding: 12px; border-right: 3px solid var(--green); border-radius: 6px; background: var(--green-wash); color: #14532d; font-size: 12px; }
-
-/* دروازه شروع؛ تا ذخیره موفق بکاپ اولیه (یا انتخاب ادامه بدون بکاپ) رابط را می‌پوشاند. */
+/* انتخاب روش بکاپ هنگام نخستین تغییر؛ در ورود عادی پنهان می‌ماند. */
 .backup-setup-gate { position: fixed; inset: 0; z-index: 5000; display: grid; place-items: center; padding: 20px; overflow-y: auto; background: rgba(15, 25, 42, .8); backdrop-filter: blur(5px); }
 .backup-setup-card { width: min(560px, 100%); padding: clamp(22px, 5vw, 34px); border: 1px solid #bfdbfe; border-top: 5px solid var(--blue); border-radius: 18px; background: #fff; box-shadow: 0 24px 80px rgba(0, 0, 0, .3); text-align: center; }
 .backup-setup-card h2 { margin: 0 0 12px; color: var(--ink); font-size: clamp(20px, 4vw, 26px); }
@@ -664,9 +632,8 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
 
 /* ---------- ۱۲) واکنش‌گرایی ---------- */
 @media (max-width: 1200px) {
-  .sidebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand meta" "nav nav"; gap: 6px 14px; padding: 10px 18px; }
+  .sidebar { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "brand" "nav"; gap: 6px 14px; padding: 10px 18px; }
   .brand { grid-area: brand; white-space: normal; }
-  .release-meta { grid-area: meta; max-width: none; margin: 0; }
   .sidebar nav { grid-area: nav; width: 100%; }
   .nav-list { overflow-x: auto; overflow-y: hidden; padding: 2px 0 6px; scrollbar-width: thin; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
   .input-panels { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -702,15 +669,13 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   .kardex-toolbar { grid-template-columns: minmax(0, 1fr); }
   .inventory-action-buttons .action-button { flex: 1 1 140px; }
   .inventory-toolbar { flex-direction: column; align-items: flex-start; }
-  .backup-folder-actions, .location-create-form { grid-template-columns: minmax(0, 1fr); }
+  .backup-folder-actions, .location-create-form, .restore-sections { grid-template-columns: minmax(0, 1fr); }
   .duplicate-dialog, .shipment-dialog { width: calc(100% - 16px); max-height: 94vh; border-radius: 12px; }
   .duplicate-dialog-header, .shipment-header, .shipment-footer { flex-wrap: wrap; padding: 12px 14px; }
   .duplicate-dialog-body { max-height: calc(94vh - 140px); padding: 12px; }
   .shipment-body { max-height: calc(94vh - 150px); padding: 12px; }
   .duplicate-dialog-footer { flex-wrap: wrap; padding: 10px 12px; }
   .shipment-meta { grid-template-columns: minmax(0, 1fr); padding: 12px; }
-  .release-notes-dialog { max-height: 86vh; }
-  .release-notes-header, .release-notes-content { padding: 16px; }
   .backup-setup-gate { padding: 12px; }
 }
 @media (max-width: 480px) {
@@ -721,7 +686,7 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   html { scroll-padding-top: 130px; }
   .sidebar { padding: 9px 10px; }
   .brand h1 { font-size: 16px; }
-  .brand p, .release-meta time { display: none; }
+  .brand p { display: none; }
   .nav-link { gap: 6px; padding: 6px 9px; font-size: 12px; }
   .nav-number { width: 24px; height: 24px; }
   .main { padding-right: 10px; padding-left: 10px; }
@@ -809,6 +774,7 @@ dialog::backdrop { background: rgba(15, 25, 42, .62); backdrop-filter: blur(2px)
   align-items: center;
   gap: 8px;
 }
+.report-filter-actions .action-button { min-height: 40px; }
 .report-table-wrap { max-height: 520px; }
 .consumption-report-table { min-width: 980px; }
 .consumption-report-table td { white-space: nowrap; }

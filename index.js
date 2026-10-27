@@ -26,6 +26,8 @@
     const inputFeedback = document.getElementById('input-feedback');
     let inventorySort = { key: 'code', direction: 'asc' };
     let currentConsumptionReportRows = [];
+    let currentConsumptionReportMode = 'detail';
+    let currentConsumptionReportViewRows = [];
     const itemFormInputs = {
       code: document.getElementById('supply-code'),
       description: document.getElementById('item-description'),
@@ -299,22 +301,35 @@
     function updateReportsOverview() {
       const shipmentCount = document.getElementById('reports-total-shipments');
       const entryCount = document.getElementById('reports-total-entries');
+      const consumptionCount = document.getElementById('reports-total-consumption');
       const latestShipment = document.getElementById('reports-latest-shipment');
-      if (!shipmentCount || !entryCount || !latestShipment) return;
-      const shipments = loadShipments();
+      if (!shipmentCount || !entryCount || !consumptionCount || !latestShipment) return;
+      const shipments = loadShipments().filter(item =>
+        item && typeof item === 'object' && !Array.isArray(item)
+      );
       const entries = loadEntryHistory();
       shipmentCount.textContent = toEnglishDigits(shipments.length);
       entryCount.textContent = toEnglishDigits(entries.length);
+      consumptionCount.textContent = toEnglishDigits(shipments.reduce((total, shipment) =>
+        total + (Array.isArray(shipment.items) ? shipment.items.reduce((sum, item) => {
+          if (!item || typeof item !== 'object' || Array.isArray(item)) return sum;
+          const quantity = Number(item.quantity);
+          return sum + (Number.isFinite(quantity) && quantity > 0 ? quantity : 0);
+        }, 0) : 0), 0));
       const latest = shipments.reduce((best, item) => {
-        const candidate = String(item.timestamp || item.date || '');
-        return candidate > best ? candidate : best;
-      }, '');
-      latestShipment.textContent = latest || '—';
+        const timestamp = typeof item.timestamp === 'string' ? Date.parse(item.timestamp) : NaN;
+        const candidate = Number.isFinite(timestamp)
+          ? { timestamp, label: solarDateTime(new Date(timestamp)).label }
+          : { timestamp: NaN, label: String(item.date || '') };
+        if (!best || (Number.isFinite(candidate.timestamp) && candidate.timestamp > best.timestamp)) return candidate;
+        return best;
+      }, null);
+      latestShipment.textContent = latest ? latest.label : '—';
     }
 
     /**
      * هدف: ایجاد پنل گزارش مصرف از ردیف‌های واقعی تاریخچه ارسال.
-     * فیلترها بر اساس تاریخ سند، محل ارسال و گروه ثبت‌شده هر قلم هستند.
+     * فیلترها بر اساس تاریخ سند، شماره‌ها، کد، محل ارسال و گروه ثبت‌شده هستند.
      */
     function ensureConsumptionReportPanel() {
       const existing = document.getElementById('consumption-report-panel');
@@ -327,7 +342,25 @@
       const heading = document.createElement('h4');
       heading.textContent = 'گزارش تفصیلی مصرف';
       const description = document.createElement('p');
-      description.textContent = 'گزارش از سوابق واقعی ارسال ساخته می‌شود. بازه تاریخ بر اساس تقویم خورشیدی است؛ سوابق قدیمی بدون گروه با عنوان «بدون گروه ثبت‌شده» نمایش داده می‌شوند.';
+      description.textContent = 'گزارش بر پایهٔ سوابق واقعی ارسال است. بر اساس بازه تاریخ شمسی، شماره حواله، شماره خروج، کد تدارکاتی، محل ارسال و گروه کالا فیلتر کنید و نتیجه را به Excel، CSV یا JSON دریافت کنید.';
+      const viewField = document.createElement('div');
+      viewField.className = 'field-group report-view-field';
+      const viewLabel = document.createElement('label');
+      viewLabel.htmlFor = 'consumption-report-view';
+      viewLabel.textContent = 'نمای گزارش';
+      const viewSelect = document.createElement('select');
+      viewSelect.id = 'consumption-report-view';
+      [['detail', 'ریز گردش‌ها'], ['item-summary', 'خلاصه به تفکیک کالا']].forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        viewSelect.append(option);
+      });
+      viewSelect.addEventListener('change', () => {
+        currentConsumptionReportMode = viewSelect.value;
+        renderConsumptionReport();
+      });
+      viewField.append(viewLabel, viewSelect);
       const filters = document.createElement('div');
       filters.className = 'report-filter-grid';
       const makeField = (labelText, id, type) => {
@@ -355,6 +388,9 @@
       };
       makeField('از تاریخ (خورشیدی)', 'consumption-report-start-date', 'date');
       makeField('تا تاریخ (خورشیدی)', 'consumption-report-end-date', 'date');
+      makeField('شماره حواله', 'consumption-report-voucher', 'search');
+      makeField('شماره خروج', 'consumption-report-exit-number', 'search');
+      makeField('کد تدارکاتی', 'consumption-report-item-code', 'search');
       makeField('محل ارسال', 'consumption-report-location', 'select');
       makeField('گروه کالا', 'consumption-report-category', 'select');
       const summary = document.createElement('div');
@@ -376,8 +412,20 @@
       exportButton.id = 'export-consumption-report';
       exportButton.type = 'button';
       exportButton.className = 'action-button';
-      exportButton.textContent = 'خروجی CSV برای Excel';
-      exportButton.addEventListener('click', exportConsumptionReport);
+      exportButton.textContent = 'دانلود CSV';
+      exportButton.addEventListener('click', () => exportConsumptionReport('csv'));
+      const excelButton = document.createElement('button');
+      excelButton.id = 'export-consumption-report-xlsx';
+      excelButton.type = 'button';
+      excelButton.className = 'action-button';
+      excelButton.textContent = 'دانلود Excel';
+      excelButton.addEventListener('click', () => exportConsumptionReport('xlsx'));
+      const jsonButton = document.createElement('button');
+      jsonButton.id = 'export-consumption-report-json';
+      jsonButton.type = 'button';
+      jsonButton.className = 'action-button';
+      jsonButton.textContent = 'دانلود JSON';
+      jsonButton.addEventListener('click', () => exportConsumptionReport('json'));
       const resetButton = document.createElement('button');
       resetButton.type = 'button';
       resetButton.className = 'action-button secondary';
@@ -390,15 +438,19 @@
           input.removeAttribute('aria-invalid');
           input.title = '';
         });
+        ['consumption-report-voucher', 'consumption-report-exit-number', 'consumption-report-item-code'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
         document.getElementById('consumption-report-location').value = 'all';
         document.getElementById('consumption-report-category').value = 'all';
         renderConsumptionReport();
       });
-      actions.append(exportButton, resetButton);
+      actions.append(exportButton, excelButton, jsonButton, resetButton);
       const tableWrap = document.createElement('div');
       tableWrap.className = 'entry-history-table-wrap report-table-wrap';
       const tableParts = createDataTable(['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'], 'consumption-report-table');
-      tableParts.table.setAttribute('aria-label', 'گزارش تفصیلی مصرف بر اساس تاریخ، محل و گروه');
+      tableParts.table.id = 'consumption-report-table';
+      tableParts.table.setAttribute('aria-label', 'گزارش مصرف بر اساس تاریخ، شماره حواله و خروج، کد، محل و گروه');
       tableParts.tbody.id = 'consumption-report-body';
       tableWrap.append(tableParts.table);
       const feedback = document.createElement('p');
@@ -406,7 +458,7 @@
       feedback.className = 'feedback';
       feedback.setAttribute('role', 'status');
       feedback.setAttribute('aria-live', 'polite');
-      panel.append(heading, description, filters, summary, actions, tableWrap, feedback);
+      panel.append(heading, description, viewField, filters, summary, actions, tableWrap, feedback);
       overview.insertAdjacentElement('afterend', panel);
       initializeSolarDateInputs();
       [
@@ -415,6 +467,11 @@
         document.getElementById('consumption-report-location'),
         document.getElementById('consumption-report-category')
       ].forEach(control => control.addEventListener('change', renderConsumptionReport));
+      [
+        document.getElementById('consumption-report-voucher'),
+        document.getElementById('consumption-report-exit-number'),
+        document.getElementById('consumption-report-item-code')
+      ].forEach(control => control.addEventListener('input', renderConsumptionReport));
       return panel;
     }
 
@@ -491,27 +548,69 @@
       const endInput = document.getElementById('consumption-report-end-date');
       const start = startInput.dataset.isoDate || '';
       const end = endInput.dataset.isoDate || '';
+      const voucherFilter = normalizeArabicLetters(document.getElementById('consumption-report-voucher').value).trim().toLocaleLowerCase('fa');
+      const exitNumberFilter = normalizeArabicLetters(document.getElementById('consumption-report-exit-number').value).trim().toLocaleLowerCase('fa');
+      const itemCodeFilter = toEnglishDigits(document.getElementById('consumption-report-item-code').value).trim().toLocaleLowerCase('fa');
       const locationFilter = locationSelect.value;
       const categoryFilter = categorySelect.value;
       const invalidRange = startInput.getAttribute('aria-invalid') === 'true' || endInput.getAttribute('aria-invalid') === 'true' || Boolean(start && end && start > end);
       const rows = invalidRange ? [] : data.rows.filter(row => {
         if (start && (!row.localDate || row.localDate < start)) return false;
         if (end && (!row.localDate || row.localDate > end)) return false;
+        if (voucherFilter && !toEnglishDigits(normalizeArabicLetters(row.voucherNumber)).toLocaleLowerCase('fa').includes(toEnglishDigits(voucherFilter))) return false;
+        if (exitNumberFilter && !toEnglishDigits(normalizeArabicLetters(row.exitNumber)).toLocaleLowerCase('fa').includes(toEnglishDigits(exitNumberFilter))) return false;
+        if (itemCodeFilter && !toEnglishDigits(row.code).toLocaleLowerCase('fa').includes(itemCodeFilter)) return false;
         if (locationFilter !== 'all' && row.locationName !== locationFilter) return false;
         if (categoryFilter === '__uncategorized__' && row.category) return false;
         if (categoryFilter !== 'all' && categoryFilter !== '__uncategorized__' && row.category !== categoryFilter) return false;
         return true;
       });
       currentConsumptionReportRows = rows;
+      const itemSummaries = new Map();
+      rows.forEach(row => {
+        const key = JSON.stringify([row.code, row.category]);
+        let summary = itemSummaries.get(key);
+        if (!summary) {
+          summary = {
+            code: row.code,
+            description: row.description,
+            category: row.category,
+            quantity: 0,
+            documentIds: new Set(),
+            lastDate: row.dateLabel
+          };
+          itemSummaries.set(key, summary);
+        }
+        summary.quantity += row.quantity;
+        summary.documentIds.add(row.documentId);
+      });
+      const summarizedRows = [...itemSummaries.values()]
+        .map(row => ({ ...row, documentCount: row.documentIds.size }))
+        .sort((a, b) => b.quantity - a.quantity || a.code.localeCompare(b.code, 'fa', { numeric: true }));
+      currentConsumptionReportViewRows = currentConsumptionReportMode === 'item-summary' ? summarizedRows : rows;
       document.getElementById('consumption-report-line-count').textContent = toEnglishDigits(rows.length);
       document.getElementById('consumption-report-total-quantity').textContent = toEnglishDigits(rows.reduce((sum, row) => sum + row.quantity, 0));
       document.getElementById('consumption-report-document-count').textContent = toEnglishDigits(new Set(rows.map(row => row.documentId)).size);
       const body = document.getElementById('consumption-report-body');
       body.replaceChildren();
-      if (!rows.length) {
+      const headers = currentConsumptionReportMode === 'item-summary'
+        ? ['کد کالا', 'شرح کالا', 'گروه ثبت‌شده', 'تعداد اسناد', 'مجموع مصرف', 'آخرین گردش']
+        : ['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'];
+      const table = document.getElementById('consumption-report-table');
+      const headerRow = table.tHead && table.tHead.rows[0];
+      if (headerRow) {
+        headerRow.replaceChildren();
+        headers.forEach(text => {
+          const th = document.createElement('th');
+          th.scope = 'col';
+          th.textContent = text;
+          headerRow.append(th);
+        });
+      }
+      if (!currentConsumptionReportViewRows.length) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 8;
+        td.colSpan = headers.length;
         td.className = 'preview-empty';
         td.textContent = startInput.getAttribute('aria-invalid') === 'true' || endInput.getAttribute('aria-invalid') === 'true'
           ? 'قالب تاریخ خورشیدی معتبر نیست؛ تاریخ را به شکل ۱۴۰۵/۰۱/۰۱ وارد کنید.'
@@ -519,10 +618,14 @@
         tr.append(td);
         body.append(tr);
       } else {
-        rows.forEach(reportRow => {
+        currentConsumptionReportViewRows.forEach(reportRow => {
           const tr = document.createElement('tr');
-          [reportRow.dateLabel, reportRow.voucherNumber, reportRow.exitNumber, reportRow.location,
-            reportRow.category || 'بدون گروه ثبت‌شده', reportRow.code, reportRow.description, toEnglishDigits(reportRow.quantity)]
+          const values = currentConsumptionReportMode === 'item-summary'
+            ? [reportRow.code, reportRow.description, reportRow.category || 'بدون گروه ثبت‌شده',
+              toEnglishDigits(reportRow.documentCount), toEnglishDigits(reportRow.quantity), reportRow.lastDate]
+            : [reportRow.dateLabel, reportRow.voucherNumber, reportRow.exitNumber, reportRow.location,
+              reportRow.category || 'بدون گروه ثبت‌شده', reportRow.code, reportRow.description, toEnglishDigits(reportRow.quantity)];
+          values
             .forEach(value => { const td = document.createElement('td'); td.textContent = String(value); tr.append(td); });
           body.append(tr);
         });
@@ -533,7 +636,11 @@
       if (data.invalidLines) feedback.textContent += ' ' + toEnglishDigits(data.invalidLines) + ' ردیف نامعتبر از جمع کنار گذاشته شد؛ گزارش کیفیت داده را بررسی کنید.';
       if ((start || end) && data.missingTimestamps) feedback.textContent += ' ' + toEnglishDigits(data.missingTimestamps) + ' ردیف فاقد زمان ماشینی است و در فیلتر تاریخ منظور نمی‌شود.';
       const exportButton = document.getElementById('export-consumption-report');
-      if (exportButton) exportButton.disabled = rows.length === 0;
+      const excelButton = document.getElementById('export-consumption-report-xlsx');
+      const jsonButton = document.getElementById('export-consumption-report-json');
+      [exportButton, excelButton, jsonButton].filter(Boolean).forEach(button => {
+        button.disabled = currentConsumptionReportViewRows.length === 0;
+      });
     }
 
     /**
@@ -549,24 +656,91 @@
       return '"' + text.replace(/"/g, '""') + '"';
     }
 
-    /** هدف: خروجی CSV با BOM برای سازگاری بهتر با Excel و حفظ متن فارسی. */
-    function exportConsumptionReport() {
-      if (!currentConsumptionReportRows.length) return;
-      const headers = ['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'];
-      const csvValue = escapeCsvCell;
-      const csv = '\uFEFF' + [headers, ...currentConsumptionReportRows.map(row => [row.dateLabel, row.voucherNumber,
-        row.exitNumber, row.location, row.category || 'بدون گروه ثبت‌شده', row.code, row.description, row.quantity])]
-        .map(row => row.map(csvValue).join(',')).join('\r\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    function getConsumptionReportExportData() {
+      const headers = currentConsumptionReportMode === 'item-summary'
+        ? ['کد کالا', 'شرح کالا', 'گروه ثبت‌شده', 'تعداد اسناد', 'مجموع مصرف', 'آخرین گردش']
+        : ['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'];
+      const exportRows = currentConsumptionReportMode === 'item-summary'
+        ? currentConsumptionReportViewRows.map(row => [row.code, row.description, row.category || 'بدون گروه ثبت‌شده',
+          row.documentCount, row.quantity, row.lastDate])
+        : currentConsumptionReportViewRows.map(row => [row.dateLabel, row.voucherNumber,
+          row.exitNumber, row.location, row.category || 'بدون گروه ثبت‌شده', row.code, row.description, row.quantity]);
+      return { headers, exportRows };
+    }
+
+    function downloadReportBlob(blob, extension, reportName) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'گزارش-مصرف-' + new Date().toISOString().slice(0, 10) + '.csv';
+      link.download = reportName + '-' + new Date().toISOString().slice(0, 10) + '.' + extension;
       link.hidden = true;
       document.body.append(link);
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    /** خروجی گزارش فیلترشده با فرمت CSV، فایل Excel یا JSON. */
+    function exportConsumptionReport(format) {
+      if (!currentConsumptionReportViewRows.length) return;
+      const { headers, exportRows } = getConsumptionReportExportData();
+      const reportName = currentConsumptionReportMode === 'item-summary' ? 'خلاصه-مصرف-کالاها' : 'گزارش-مصرف';
+      if (format === 'csv') {
+        const csv = '\uFEFF' + [headers, ...exportRows]
+          .map(row => row.map(escapeCsvCell).join(',')).join('\r\n');
+        downloadReportBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), 'csv', reportName);
+          document.getElementById('consumption-report-feedback').textContent = 'گزارش فیلترشده با فرمت CSV دانلود شد.';
+          return;
+      }
+      if (format === 'xlsx') {
+        if (!window.XLSX || !window.XLSX.utils || typeof window.XLSX.writeFile !== 'function') {
+          document.getElementById('consumption-report-feedback').textContent =
+            'کتابخانهٔ محلی Excel بارگذاری نشده است؛ فایل vendor/xlsx.full.min.js را بررسی کنید.';
+          return;
+        }
+        const worksheet = window.XLSX.utils.aoa_to_sheet([headers, ...exportRows]);
+        worksheet['!cols'] = headers.map((header, index) => ({
+          wch: Math.min(36, Math.max(14, String(header).length + 6,
+            ...exportRows.slice(0, 100).map(row => String(row[index] ?? '').length + 2)))
+        }));
+        const workbook = window.XLSX.utils.book_new();
+        window.XLSX.utils.book_append_sheet(
+          workbook,
+          worksheet,
+          currentConsumptionReportMode === 'item-summary' ? 'خلاصه کالا' : 'ریز مصرف'
+        );
+        window.XLSX.writeFile(workbook, reportName + '-' + new Date().toISOString().slice(0, 10) + '.xlsx');
+        document.getElementById('consumption-report-feedback').textContent = 'گزارش فیلترشده با فرمت Excel دانلود شد.';
+        return;
+      }
+      if (format === 'json') {
+        const report = {
+          schemaVersion: 1,
+          reportType: currentConsumptionReportMode,
+          exportedAt: new Date().toISOString(),
+          filters: {
+            startDate: document.getElementById('consumption-report-start-date').value,
+            endDate: document.getElementById('consumption-report-end-date').value,
+            voucherNumber: document.getElementById('consumption-report-voucher').value.trim(),
+            exitNumber: document.getElementById('consumption-report-exit-number').value.trim(),
+            itemCode: document.getElementById('consumption-report-item-code').value.trim(),
+            location: document.getElementById('consumption-report-location').value,
+            category: document.getElementById('consumption-report-category').value
+          },
+          summary: {
+            lineCount: currentConsumptionReportRows.length,
+            documentCount: new Set(currentConsumptionReportRows.map(row => row.documentId)).size,
+            totalQuantity: currentConsumptionReportRows.reduce((total, row) => total + row.quantity, 0)
+          },
+          rows: exportRows.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index]])))
+        };
+        downloadReportBlob(
+          new Blob([JSON.stringify(report, null, 2)], { type: 'application/json;charset=utf-8;' }),
+          'json',
+          reportName
+        );
+        document.getElementById('consumption-report-feedback').textContent = 'گزارش فیلترشده با فرمت JSON دانلود شد.';
+      }
     }
 
     /**
@@ -601,18 +775,25 @@
       const nextButton = document.getElementById('shipment-history-next');
       if (!body || !pageLabel || !previousButton || !nextButton) return;
 
-      const records = loadShipments();
+      const records = loadShipments().filter(record =>
+        record && typeof record === 'object' && !Array.isArray(record)
+      );
+      const getItems = record => Array.isArray(record.items)
+        ? record.items.filter(item => item && typeof item === 'object' && !Array.isArray(item))
+        : [];
+      const getPieceCount = record => getItems(record).reduce((sum, item) => {
+        const quantity = Number(item.quantity);
+        return sum + (Number.isFinite(quantity) && quantity > 0 ? quantity : 0);
+      }, 0);
       const { key, direction } = shipmentHistorySort;
       records.sort((a, b) => {
         let left, right, comparison;
         if (key === 'itemCount') {
-          left = Array.isArray(a.items) ? a.items.length : 0;
-          right = Array.isArray(b.items) ? b.items.length : 0;
+          left = getItems(a).length;
+          right = getItems(b).length;
           comparison = left - right;
         } else if (key === 'pieceCount') {
-          left = (a.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-          right = (b.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
-          comparison = left - right;
+          comparison = getPieceCount(a) - getPieceCount(b);
         } else if (key === 'date') {
           comparison = String(a.timestamp || a.date || '').localeCompare(String(b.timestamp || b.date || ''), 'fa');
         } else {
@@ -641,8 +822,8 @@
             record.exitNumber || '—',
             { date: record.date || '—', time: record.time || '' },
             (record.location || '—') + (record.sublocation ? ' / ' + record.sublocation : ''),
-            Array.isArray(record.items) ? record.items.length : 0,
-            (record.items || []).reduce((sum, item) => sum + (Number(item.quantity) || 0), 0)
+            getItems(record).length,
+            getPieceCount(record)
           ];
           values.forEach((value, index) => {
             const cell = document.createElement('td');
@@ -654,10 +835,16 @@
               if (record.id) cell.title = 'شناسه سند: ' + record.id;
               const details = document.createElement('details');
               const summary = document.createElement('summary');
-              summary.textContent = 'جزئیات اقلام (' + toEnglishDigits(Array.isArray(record.items) ? record.items.length : 0) + ')';
+              const rawItems = Array.isArray(record.items) ? record.items : [];
+              summary.textContent = 'جزئیات اقلام (' + toEnglishDigits(rawItems.length) + ')';
               const list = document.createElement('ul');
-              (Array.isArray(record.items) ? record.items : []).forEach(line => {
+              rawItems.forEach(line => {
                 const detail = document.createElement('li');
+                if (!line || typeof line !== 'object' || Array.isArray(line)) {
+                  detail.textContent = 'ردیف نامعتبر؛ برای بررسی، گزارش کیفیت داده را ببینید.';
+                  list.append(detail);
+                  return;
+                }
                 detail.textContent = 'کد: ' + String(line.code || '—') +
                   '؛ شرح: ' + String(line.description || '—') +
                   '؛ تعداد: ' + toEnglishDigits(line.quantity ?? '—') +
@@ -1192,9 +1379,26 @@
      * ورودی: event: رویداد submit فرم.
      * خروجی: بدون مقدار بازگشتی؛ نتیجه با پیام رابط و داده ذخیره‌شده مشخص می‌شود.
      */
-    function commitShipment(event) {
+    async function commitShipment(event) {
       event.preventDefault();
+      if (navigator.locks && typeof navigator.locks.request === 'function') {
+        try {
+          await navigator.locks.request('anbar-inventory-shipment', processShipmentCommit);
+        } catch (error) {
+          shipmentFeedback.textContent = 'ثبت ارسال به‌دلیل خطای هماهنگی بین زبانه‌ها انجام نشد؛ دوباره تلاش کنید.';
+        }
+        return;
+      }
+      processShipmentCommit();
+    }
+
+    function processShipmentCommit() {
       shipmentFeedback.textContent = '';
+
+      if (!refreshInventoryFromStorage(false)) {
+        shipmentFeedback.textContent = 'موجودی ذخیره‌شده قابل خواندن نیست؛ ارسال ثبت نشد. داده‌ها را بررسی و صفحه را دوباره بارگذاری کنید.';
+        return;
+      }
 
       const location = shipmentLocationInput.value.trim();
       const sublocation = shipmentSublocationInput.value.trim();
@@ -1236,12 +1440,14 @@
       const voucher = shipmentVoucherInput.value.trim() || makeShipmentNumber('V', now, epoch);
       const exitNumber = shipmentExitInput.value.trim() || makeShipmentNumber('X', now, epoch + 1);
 
-      if (existingShipments.some(record => record.voucherNumber === voucher)) {
+      if (existingShipments.some(record => record && typeof record === 'object' &&
+          !Array.isArray(record) && record.voucherNumber === voucher)) {
         shipmentFeedback.textContent = 'این شماره حواله قبلاً ثبت شده است. شماره دیگری وارد کنید.';
         shipmentVoucherInput.focus();
         return;
       }
-      if (existingShipments.some(record => record.exitNumber === exitNumber)) {
+      if (existingShipments.some(record => record && typeof record === 'object' &&
+          !Array.isArray(record) && record.exitNumber === exitNumber)) {
         shipmentFeedback.textContent = 'این شماره خروج قبلاً ثبت شده است. شماره دیگری وارد کنید.';
         shipmentExitInput.focus();
         return;
@@ -1250,8 +1456,7 @@
       const previousLocations = loadShipmentLocations();
       const previousStoredValues = {
         [LOCATION_KEY]: localStorage.getItem(LOCATION_KEY),
-        [SHIPMENT_KEY]: localStorage.getItem(SHIPMENT_KEY),
-        [STORAGE_KEY]: localStorage.getItem(STORAGE_KEY)
+        [SHIPMENT_KEY]: localStorage.getItem(SHIPMENT_KEY)
       };
       const previousInventoryItems = inventoryItems.map(item => ({ ...item }));
       const nextLocations = previousLocations.map(item => ({
@@ -1274,10 +1479,7 @@
         !locationRecord.sublocations.some(item => normLocation(item) === normLocation(sublocation));
       if (isNewSublocation) locationRecord.sublocations.push(sublocation);
       if (!saveShipmentLocations(nextLocations)) {
-        const rollbackSucceeded = restoreLocalStorageValue(LOCATION_KEY, previousStoredValues[LOCATION_KEY]);
-        shipmentFeedback.textContent = rollbackSucceeded
-          ? 'ذخیره محل ارسال ممکن نشد؛ ارسال ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید.'
-          : 'ذخیره محل ارسال ناموفق بود و بازگردانی مقدار قبلی کامل نشد؛ داده‌ها را بررسی کنید.';
+        shipmentFeedback.textContent = 'ذخیره محل ارسال ممکن نشد؛ ارسال ثبت نشد. فضای ذخیره‌سازی مرورگر را بررسی کنید.';
         return;
       }
 
@@ -1303,10 +1505,7 @@
       };
 
       if (!saveShipments([shipment, ...existingShipments])) {
-        const rollbackSucceeded = [
-          restoreLocalStorageValue(SHIPMENT_KEY, previousStoredValues[SHIPMENT_KEY]),
-          restoreLocalStorageValue(LOCATION_KEY, previousStoredValues[LOCATION_KEY])
-        ].every(Boolean);
+        const rollbackSucceeded = restoreLocalStorageValue(LOCATION_KEY, previousStoredValues[LOCATION_KEY]);
         shipmentFeedback.textContent = rollbackSucceeded
           ? 'ذخیره تاریخچه ارسال انجام نشد؛ ارسال ثبت نشد و اطلاعات قبلی حفظ شد.'
           : 'ذخیره تاریخچه ارسال انجام نشد و بازگردانی همه مقادیر قبلی کامل نشد؛ داده‌ها را بررسی کنید.';
@@ -1321,7 +1520,6 @@
       if (!saveInventory()) {
         inventoryItems.splice(0, inventoryItems.length, ...previousInventoryItems);
         const rollbackSucceeded = [
-          restoreLocalStorageValue(STORAGE_KEY, previousStoredValues[STORAGE_KEY]),
           restoreLocalStorageValue(SHIPMENT_KEY, previousStoredValues[SHIPMENT_KEY]),
           restoreLocalStorageValue(LOCATION_KEY, previousStoredValues[LOCATION_KEY])
         ].every(Boolean);
@@ -1432,12 +1630,14 @@
             ' هنگام بازخوانی معمول از دست می‌رود یا تغییر می‌کند.';
         }
       }
-      if (!reason) return true;
-      if (feedbackTarget) {
-        feedbackTarget.textContent = reason +
-          ' برای جلوگیری از حذف ناخواسته، ذخیره متوقف شد. ابتدا از داده خام نسخه جداگانه تهیه و رکورد ناسازگار را بررسی کنید؛ هیچ رکوردی خودکار حذف نشده است.';
+      if (reason) {
+        if (feedbackTarget) {
+          feedbackTarget.textContent = reason +
+            ' برای جلوگیری از حذف ناخواسته، ذخیره متوقف شد. ابتدا از داده خام نسخه جداگانه تهیه و رکورد ناسازگار را بررسی کنید؛ هیچ رکوردی خودکار حذف نشده است.';
+        }
+        return false;
       }
-      return false;
+      return ensureBackupSetupForFirstChange(feedbackTarget);
     }
 
     /** نرمال‌سازی کلید متنی برای کشف تکرار بدون تغییر مقدار ذخیره‌شده. */
@@ -1701,6 +1901,40 @@
     }
 
     const inventoryItems = loadInventory();
+    let inventoryStorageSnapshot = null;
+    try {
+      inventoryStorageSnapshot = localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      inventoryFeedback.textContent = 'خواندن نسخه ذخیره‌شده موجودی ممکن نشد؛ ذخیره تغییرات تا دسترسی دوباره به حافظه متوقف می‌شود.';
+    }
+    let inventoryConflictRefreshPending = false;
+
+    function refreshInventoryFromStorage(render = true) {
+      const state = readStoredArrayState(STORAGE_KEY, 'موجودی');
+      if (state.error) {
+        inventoryFeedback.textContent = state.error + ' موجودی همگام نشد و هیچ تغییری ذخیره نشد.';
+        return false;
+      }
+      inventoryItems.splice(0, inventoryItems.length, ...loadInventory());
+      inventoryStorageSnapshot = state.raw;
+      for (const code of selectedItemCodes) {
+        if (!inventoryItems.some(item => item.code === code)) selectedItemCodes.delete(code);
+      }
+      if (render) renderInventory();
+      return true;
+    }
+
+    function scheduleInventoryConflictRefresh() {
+      inventoryFeedback.textContent = 'موجودی در زبانه دیگری تغییر کرده است؛ ذخیره این تغییر متوقف شد تا داده جدید بازخوانی شود.';
+      if (inventoryConflictRefreshPending) return;
+      inventoryConflictRefreshPending = true;
+      Promise.resolve().then(() => {
+        inventoryConflictRefreshPending = false;
+        if (refreshInventoryFromStorage()) {
+          inventoryFeedback.textContent = 'تغییر زبانه دیگر دریافت شد؛ موجودی تازه بارگذاری شد. تغییر قبلی را دوباره اعمال کنید.';
+        }
+      });
+    }
 
     /**
      * هدف: ذخیره موجودی جاری و ثبت خلاصه تغییر در لاگ فعالیت.
@@ -1732,7 +1966,14 @@
         return false;
       }
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(inventoryItems));
+        const currentSnapshot = localStorage.getItem(STORAGE_KEY);
+        if (currentSnapshot !== inventoryStorageSnapshot) {
+          scheduleInventoryConflictRefresh();
+          return false;
+        }
+        const nextSnapshot = JSON.stringify(inventoryItems);
+        localStorage.setItem(STORAGE_KEY, nextSnapshot);
+        inventoryStorageSnapshot = nextSnapshot;
         recordActivity('ذخیره / تغییر موجودی', 'تعداد اقلام فعلی: ' + toEnglishDigits(inventoryItems.length));
         renderDataQualityReport();
         return true;
@@ -1836,7 +2077,21 @@
       });
       updateDashboardSummary();
       // رویداد «تغییر ذخیره‌سازی در زبانه دیگر» برای عنصر رابط کاربری؛ همگام‌سازی شاخص‌ها با تغییر داده در زبانه دیگر.
-      window.addEventListener('storage', updateDashboardSummary);
+      window.addEventListener('storage', event => {
+        if (event.key === STORAGE_KEY || event.key === null) {
+          refreshInventoryFromStorage();
+        }
+        if (event.key === ENTRY_HISTORY_KEY || event.key === null) renderEntryHistory();
+        if (event.key === SHIPMENT_KEY || event.key === null) {
+          renderShipmentHistory();
+          renderKardex();
+        }
+        if (event.key === LOCATION_KEY || event.key === null) {
+          renderShipmentLocationOptions();
+          renderLocationManager();
+        }
+        updateDashboardSummary();
+      });
       if (typeof MutationObserver === 'function') {
         ['inventory-grid', 'entry-history-body', 'shipment-history-body'].forEach(id => {
           const target = document.getElementById(id);
@@ -3212,7 +3467,7 @@
     openSection('section-dashboard');
     setupDashboard();
   
-    // بخش راه‌اندازی بکاپ؛ تا ذخیره موفق فایل اولیه، رابط اصلی قفل می‌ماند.
+    // انتخاب بکاپ پیش از نخستین تغییر؛ رابط اصلی هنگام ورود آزاد است.
     const appLayout = document.getElementById('app-layout');
     const backupSetupGate = document.getElementById('backup-setup-gate');
     const backupGateChooseFolder = document.getElementById('backup-gate-choose-folder');
@@ -3222,6 +3477,24 @@
     const changeBackupFolderButton = document.getElementById('change-backup-folder');
     const backupFolderStatus = document.getElementById('backup-folder-status');
     const backupFeedback = document.getElementById('backup-feedback');
+    const backupFrequencySelect = document.getElementById('backup-frequency');
+    const runBackupNowButton = document.getElementById('run-backup-now');
+    const downloadBackupButton = document.getElementById('download-backup-json');
+    const BACKUP_SETTINGS_KEY = 'anbar.backup-settings.v1';
+    const BACKUP_INTERVALS = { daily: 24 * 60 * 60 * 1000, weekly: 7 * 24 * 60 * 60 * 1000 };
+    let backupSettings = { frequency: 'change', lastBackupAt: 0 };
+    try {
+      const savedSettings = JSON.parse(localStorage.getItem(BACKUP_SETTINGS_KEY) || '{}');
+      if (savedSettings && ['change', 'daily', 'weekly'].includes(savedSettings.frequency)) {
+        backupSettings.frequency = savedSettings.frequency;
+      }
+      if (savedSettings && Number.isFinite(savedSettings.lastBackupAt) && savedSettings.lastBackupAt > 0) {
+        backupSettings.lastBackupAt = savedSettings.lastBackupAt;
+      }
+    } catch (error) {
+      backupFeedback.textContent = 'تنظیمات زمان‌بندی بکاپ قابل خواندن نبود؛ حالت «پس از هر تغییر» موقتاً فعال است.';
+    }
+    backupFrequencySelect.value = backupSettings.frequency;
     const BACKUP_HANDLE_DB = 'anbar-backup-handle-db';
     const BACKUP_HANDLE_STORE = 'handles';
     let backupDirectoryHandle = null;
@@ -3231,11 +3504,12 @@
     let applicationReady = false;
     // این گزینه فقط بکاپ خودکار را در همین نشست غیرفعال می‌کند؛ ذخیره عادی localStorage فعال می‌ماند.
     let automaticBackupDisabledForSession = false;
+    let backupSetupCompleted = false;
 
     /**
-     * هدف: قفل/آزادکردن رابط اصلی براساس موفقیت راه‌اندازی بکاپ.
-     * ورودی: ready: فقط پس از آماده‌شدن بکاپ باید true باشد.
-     * خروجی: وضعیت inert و دروازه شروع تغییر می‌کند.
+     * هدف: قفل/آزادکردن رابط هنگام درخواست روش بکاپ پیش از نخستین ذخیره‌سازی.
+     * ورودی: ready: اگر true باشد رابط آزاد و اگر false باشد تا انتخاب روش ذخیره‌سازی قفل می‌شود.
+     * خروجی: وضعیت inert و نمایش پیام بکاپ تغییر می‌کند.
      */
     function setApplicationReady(ready) {
       applicationReady = Boolean(ready);
@@ -3243,10 +3517,22 @@
       backupSetupGate.hidden = applicationReady;
       if (applicationReady) {
         backupGateFeedback.textContent = '';
-        backupGateStatus.textContent = 'بکاپ اولیه ذخیره شد؛ سایت آماده استفاده است.';
+        backupGateStatus.textContent = 'سامانه آماده استفاده است.';
+        if (backupSettings.frequency !== 'change') scheduleAutomaticBackup();
       } else {
         backupGateChooseFolder.focus({ preventScroll: true });
       }
+    }
+
+    function ensureBackupSetupForFirstChange(feedbackTarget) {
+      if (backupSetupCompleted || automaticBackupDisabledForSession) return true;
+      if (feedbackTarget) {
+        feedbackTarget.textContent = 'این تغییر ثبت نشد. ابتدا روش پشتیبان‌گیری را انتخاب کنید؛ سپس عملیات را دوباره انجام دهید.';
+      }
+      backupGateFeedback.textContent = '';
+      backupGateStatus.textContent = 'برای ثبت نخستین تغییر، پوشه بکاپ را انتخاب کنید یا با تأیید هشدار بدون بکاپ ادامه دهید.';
+      setApplicationReady(false);
+      return false;
     }
 
     /**
@@ -3346,7 +3632,7 @@
         }
         if (permission !== 'granted') {
           backupFolderStatus.textContent = 'مجوز نوشتن در پوشه تأیید نشده است.';
-          backupFeedback.textContent = 'برای فعال‌سازی سایت، پوشه را دوباره انتخاب کنید و دسترسی نوشتن را تأیید کنید.';
+          backupFeedback.textContent = 'برای فعال‌سازی بکاپ، پوشه را دوباره انتخاب کنید و دسترسی نوشتن را تأیید کنید.';
           backupGateStatus.textContent = 'دسترسی نوشتن در پوشه برقرار نیست؛ پوشه را دوباره انتخاب کنید.';
           return false;
         }
@@ -3362,9 +3648,22 @@
         await writable.close();
         writable = null;
         succeeded = true;
-        backupFolderStatus.textContent = 'بکاپ خودکار فعال است؛ فایل ' + getSolarBackupFileName() + ' در پوشه انتخاب‌شده به‌روزرسانی شد.';
-        backupFeedback.textContent = 'آخرین بکاپ با موفقیت ذخیره شد.';
+        backupSetupCompleted = true;
+        backupSettings.lastBackupAt = Date.now();
+        let backupTimePersisted = true;
+        try {
+          localStorage.setItem(BACKUP_SETTINGS_KEY, JSON.stringify(backupSettings));
+        } catch (error) {
+          backupTimePersisted = false;
+          backupFeedback.textContent = 'فایل بکاپ ذخیره شد، اما زمان آخرین بکاپ در تنظیمات مرورگر ثبت نشد.';
+        }
+        backupFolderStatus.textContent = 'بکاپ خودکار فعال است؛ فایل ' + getSolarBackupFileName() +
+          ' به‌روزرسانی شد. آخرین ذخیره: ' + new Date(backupSettings.lastBackupAt).toLocaleString('fa-IR');
+        if (backupTimePersisted) {
+          backupFeedback.textContent = 'آخرین بکاپ با موفقیت ذخیره شد.';
+        }
         backupGateStatus.textContent = 'فایل بکاپ با موفقیت ذخیره شد.';
+        if (applicationReady && backupSettings.frequency !== 'change') scheduleAutomaticBackup();
         return true;
       } catch (error) {
         if (writable && typeof writable.abort === 'function') {
@@ -3372,18 +3671,13 @@
         }
         const detail = error && error.message ? ' ' + error.message : '';
         backupFeedback.textContent = 'ذخیره خودکار انجام نشد. دسترسی پوشه و اعتبار داده‌ها را بررسی کنید.' + detail;
-        backupGateFeedback.textContent = 'فایل بکاپ ساخته یا به‌روزرسانی نشد. سایت تا ذخیره موفق بکاپ قفل می‌ماند.';
+        backupGateFeedback.textContent = 'فایل بکاپ ساخته یا به‌روزرسانی نشد؛ وضعیت پوشه و مجوز نوشتن را بررسی کنید.';
         return false;
       } finally {
         backupWriteInProgress = false;
         if (backupWriteQueued) {
           backupWriteQueued = false;
           scheduleAutomaticBackup();
-        }
-        if (!succeeded && applicationReady && directoryHandle === backupDirectoryHandle) {
-          backupGateStatus.textContent = 'ذخیره بکاپ ناموفق بود؛ برای ادامه، محل ذخیره را دوباره انتخاب کنید.';
-          backupGateFeedback.textContent = 'برای جلوگیری از تغییرات بیشتر بدون بکاپ موفق، سایت قفل شد.';
-          setApplicationReady(false);
         }
       }
     }
@@ -3395,14 +3689,72 @@
     function scheduleAutomaticBackup() {
       if (!backupDirectoryHandle || !applicationReady || automaticBackupDisabledForSession) return;
       clearTimeout(backupWriteTimer);
+      const interval = BACKUP_INTERVALS[backupSettings.frequency] || 0;
+      const delay = interval
+        ? Math.max(350, interval - (Date.now() - backupSettings.lastBackupAt))
+        : 350;
       backupWriteTimer = setTimeout(() => {
         writeAutomaticBackup().then(saved => {
           if (!saved && applicationReady) {
             backupGateStatus.textContent = 'به‌روزرسانی بکاپ انجام نشد؛ پوشه و مجوز نوشتن را بررسی کنید.';
+          } else if (saved && backupSettings.frequency === 'change') {
+            backupWriteTimer = null;
           }
         });
-      }, 350);
+      }, delay);
     }
+
+    backupFrequencySelect.addEventListener('change', () => {
+      backupSettings.frequency = backupFrequencySelect.value;
+      try {
+        localStorage.setItem(BACKUP_SETTINGS_KEY, JSON.stringify(backupSettings));
+        backupFeedback.textContent = backupSettings.frequency === 'change'
+          ? 'ذخیرهٔ خودکار پس از هر تغییر فعال شد.'
+          : 'برنامهٔ بکاپ ' + (backupSettings.frequency === 'daily' ? 'روزانه' : 'هفتگی') +
+            ' ذخیره شد؛ اجرای آن به بازبودن برنامه در مرورگر وابسته است.';
+        scheduleAutomaticBackup();
+      } catch (error) {
+        backupSettings.frequency = 'change';
+        backupFrequencySelect.value = 'change';
+        backupFeedback.textContent = 'تنظیم زمان‌بندی ذخیره نشد؛ حافظهٔ مرورگر را بررسی کنید.';
+      }
+    });
+
+    downloadBackupButton.addEventListener('click', () => {
+      try {
+        const payload = buildBackupPayload();
+        const errors = validateBackupPayload(payload);
+        if (errors.length) {
+          backupFeedback.textContent = 'دریافت بکاپ متوقف شد: ' + errors.slice(0, 4).join('؛ ');
+          return;
+        }
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = getSolarBackupFileName();
+        link.hidden = true;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        backupFeedback.textContent = 'فایل بکاپ JSON دانلود شد.';
+      } catch (error) {
+        backupFeedback.textContent = 'ساخت فایل بکاپ انجام نشد؛ داده‌های ذخیره‌شده را بررسی کنید.' +
+          (error && error.message ? ' ' + error.message : '');
+      }
+    });
+
+    runBackupNowButton.addEventListener('click', async () => {
+      if (!backupDirectoryHandle) {
+        backupFeedback.textContent = 'پوشهٔ بکاپ فعال نیست؛ برای ذخیرهٔ فایل از «دریافت فایل JSON» استفاده کنید یا پوشه را فعال کنید.';
+        return;
+      }
+      const saved = await writeAutomaticBackup(backupDirectoryHandle, true);
+      if (!saved && applicationReady) {
+        backupFeedback.textContent = 'ذخیرهٔ فوری انجام نشد؛ وضعیت پوشه و مجوز نوشتن را بررسی کنید.';
+      }
+    });
 
     /**
      * هدف: انتخاب/فعال‌سازی پوشه، بررسی مجوز و ذخیره اولین بکاپ پیش از آزادکردن رابط.
@@ -3416,9 +3768,10 @@
      */
     function startWithoutAutomaticBackup() {
       automaticBackupDisabledForSession = true;
+      backupSetupCompleted = true;
       clearTimeout(backupWriteTimer);
       setApplicationReady(true);
-      backupGateStatus.textContent = 'سامانه فعال شد؛ بکاپ خودکار این نشست غیرفعال است.';
+      backupGateStatus.textContent = 'بدون بکاپ خودکار ادامه می‌دهید؛ عملیات قبلی ثبت نشد و باید دوباره انجام شود.';
       backupFeedback.textContent = 'بکاپ خودکار غیرفعال است. اطلاعات در حافظه محلی مرورگر ذخیره می‌شوند؛ از بخش بکاپ، نسخه JSON دستی تهیه کنید.';
       recordActivity('شروع بدون بکاپ خودکار', 'کاربر سامانه را بدون فعال‌سازی ذخیره خودکار فایل بکاپ اجرا کرد.');
     }
@@ -3494,7 +3847,7 @@
         if (error && error.name === 'AbortError') {
           backupGateStatus.textContent = wasReady
             ? 'عملیات لغو شد؛ محل ذخیره قبلی بدون تغییر باقی ماند.'
-            : 'برای شروع سایت، یک پوشه بکاپ معتبر لازم است.';
+            : 'برای ثبت تغییر، پوشه بکاپ را انتخاب کنید یا بدون بکاپ ادامه دهید.';
         } else {
           backupGateFeedback.textContent = 'فعال‌سازی انجام نشد: ' + (error && error.message ? error.message : 'خطای ناشناخته') + '؛ مجوز پوشه را بررسی کنید.';
           backupGateStatus.textContent = 'بکاپ موفق ثبت نشده است.';
@@ -3513,7 +3866,7 @@
       }
     }
 
-    // رویداد «کلیک» برای دکمه انتخاب پوشه بکاپ در صفحه شروع؛ اجرای رفتار متناسب با این کنترل و رویداد.
+    // انتخاب بکاپ از دروازه‌ای انجام می‌شود که فقط پیش از نخستین تغییر باز می‌شود.
     backupGateChooseFolder.addEventListener('click', () => chooseBackupFolder(false));
     // رویداد کلیک برای شروع جایگزین؛ در صورت خطای مرورگر اجازه استفاده بدون فایل بکاپ خودکار داده می‌شود.
     document.getElementById('backup-gate-continue-without-backup').addEventListener('click', () => {
@@ -3527,29 +3880,29 @@
     // رویداد «کلیک» برای دکمه تغییر پوشه بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
     if (changeBackupFolderButton) changeBackupFolderButton.addEventListener('click', () => chooseBackupFolder(true));
 
+    setApplicationReady(true);
+    backupGateStatus.textContent = 'برای نخستین تغییر، در صورت تمایل پوشه بکاپ را از تنظیمات انتخاب کنید.';
+
     (async () => {
       try {
         const savedDirectory = await loadBackupDirectoryHandle();
         if (!savedDirectory) {
-          backupGateStatus.textContent = 'هنوز محل ذخیره بکاپ مشخص نشده است. برای شروع، یک پوشه انتخاب کنید.';
           return;
         }
 
         backupDirectoryHandle = savedDirectory;
         const permission = await savedDirectory.queryPermission({ mode: 'readwrite' });
         if (permission === 'granted') {
-          backupGateStatus.textContent = 'پوشه ذخیره‌شده پیدا شد؛ در حال بررسی و به‌روزرسانی بکاپ...';
           const savedSuccessfully = await writeAutomaticBackup(savedDirectory, false);
           if (savedSuccessfully) {
-            setApplicationReady(true);
+            if (!applicationReady) setApplicationReady(true);
+            backupGateStatus.textContent = 'پوشه ذخیره‌شده فعال است؛ بکاپ به‌روز شد.';
           } else {
-            backupGateStatus.textContent = 'پوشه قبلی پیدا شد، اما بکاپ موفق نشد. برای تمدید مجوز پوشه ذخیره‌شده دکمه زیر را بزنید.';
+            backupGateStatus.textContent = 'پوشه قبلی پیدا شد، اما بکاپ به‌روز نشد؛ پیش از تغییر بعدی مجوز پوشه را بررسی کنید.';
           }
-        } else {
-          backupGateStatus.textContent = 'پوشه بکاپ قبلی پیدا شد؛ برای تمدید مجوز همان پوشه دکمه زیر را بزنید. نیازی به انتخاب دوباره پوشه نیست.';
         }
       } catch (error) {
-        backupGateStatus.textContent = 'محل ذخیره قبلی قابل استفاده نیست. برای شروع، پوشه را دوباره انتخاب کنید.';
+        backupGateStatus.textContent = 'محل ذخیره قبلی قابل استفاده نیست؛ پیش از نخستین تغییر، پوشه را دوباره انتخاب کنید.';
       }
     })();
 
@@ -3564,8 +3917,13 @@
      */
     function restoreLocalStorageValue(key, previousValue) {
       try {
+        if (key === STORAGE_KEY && localStorage.getItem(key) !== inventoryStorageSnapshot) {
+          scheduleInventoryConflictRefresh();
+          return false;
+        }
         if (previousValue === null) localStorage.removeItem(key);
         else originalLocalStorageSetItem.call(localStorage, key, previousValue);
+        if (key === STORAGE_KEY) inventoryStorageSnapshot = previousValue;
         return true;
       } catch (error) {
         return false;
@@ -3581,7 +3939,69 @@
     const restoreFileInput = document.getElementById('restore-json-file');
     const restoreBackupButton = document.getElementById('restore-json-backup');
     const restoreFeedback = document.getElementById('restore-feedback');
+    const restorePreview = document.getElementById('restore-preview');
+    const restoreStrategySelect = document.getElementById('restore-strategy');
+    const restoreModeWarning = document.getElementById('restore-mode-warning');
+    const restoreSectionCheckboxes = [...document.querySelectorAll('input[name="restore-section"]')];
     let pendingRestorePayload = null;
+
+    function getRestoreOptions() {
+      return {
+        strategy: restoreStrategySelect.value,
+        sections: Object.fromEntries(restoreSectionCheckboxes.map(input => [input.value, input.checked]))
+      };
+    }
+
+    function updateRestorePreview() {
+      if (!pendingRestorePayload) return;
+      const options = getRestoreOptions();
+      const selectedSections = Object.values(options.sections).filter(Boolean).length;
+      if (!selectedSections) {
+        pendingRestorePayload.analysis = null;
+        restoreBackupButton.disabled = true;
+        restorePreview.textContent = 'حداقل یک بخش برای بازیابی انتخاب کنید.';
+        return;
+      }
+      try {
+        const analysis = analyzeRestorePayload(pendingRestorePayload.payload, options);
+        pendingRestorePayload.analysis = analysis;
+        restoreBackupButton.disabled = false;
+        const sectionNames = {
+          inventory: 'موجودی',
+          entryHistory: 'تاریخچه ورود',
+          shipments: 'تاریخچه ارسال',
+          shipmentLocations: 'محل‌ها'
+        };
+        const lines = [
+          'اعتبارسنجی فایل موفق بود.',
+          'روش: ' + (options.strategy === 'replace' ? 'جایگزینی بخش‌های انتخاب‌شده' : 'ادغام؛ داده فعلی حفظ می‌شود'),
+          'بخش‌های انتخاب‌شده: ' + analysis.counts.sections.map(section => sectionNames[section]).join('، '),
+          'کالا: ' + analysis.counts.inventory + '؛ ورود: ' + analysis.counts.entries +
+            '؛ ارسال: ' + analysis.counts.shipments + '؛ محل نهایی: ' + analysis.counts.locations,
+          'مغایرت/موارد تکراری: ' + analysis.conflicts.length
+        ];
+        if (analysis.conflicts.length) {
+          lines.push('', ...analysis.conflicts.slice(0, 8).map((item, index) => (index + 1) + '. ' + item));
+          if (analysis.conflicts.length > 8) lines.push('... و ' + (analysis.conflicts.length - 8) + ' مورد دیگر');
+        }
+        restorePreview.textContent = lines.join('\n');
+      } catch (error) {
+        pendingRestorePayload.analysis = null;
+        restoreBackupButton.disabled = true;
+        restorePreview.textContent = error && error.message.startsWith('CURRENT_SECTION_INVALID:')
+          ? error.message.replace('CURRENT_SECTION_INVALID:', 'بازیابی متوقف شد؛ بخش فعلی قابل خواندن نیست: ')
+          : 'تحلیل فایل با تنظیمات انتخاب‌شده انجام نشد؛ داده‌های موجود دست‌نخورده باقی ماندند.';
+      }
+    }
+
+    restoreStrategySelect.addEventListener('change', () => {
+      const replacing = restoreStrategySelect.value === 'replace';
+      restoreModeWarning.textContent = replacing
+        ? 'هشدار: فقط بخش‌های علامت‌خورده با محتوای فایل جایگزین می‌شوند. داده‌های آن بخش‌ها ممکن است از بین بروند؛ برای ادامه تأیید جداگانه لازم است.'
+        : 'ادغام، رکوردهای فعلی را نگه می‌دارد و فقط رکوردهای جدید و غیرتکراری را اضافه می‌کند.';
+      updateRestorePreview();
+    });
+    restoreSectionCheckboxes.forEach(input => input.addEventListener('change', updateRestorePreview));
 
     /** نرمال‌سازی کلید متنی برای تشخیص تکرار با یکسان‌سازی فاصله و رقم‌ها. */
     // توابع کمکی ادغام بکاپ برای تشخیص رکوردهای تکراری.
@@ -3762,28 +4182,59 @@
      * ورودی: payload: بکاپ پس از کنترل ساختار.
      * خروجی: شیء شامل آرایه‌های ادغام‌شده، شمارش‌ها و مغایرت‌ها.
      */
-    function analyzeRestorePayload(payload) {
+    function analyzeRestorePayload(payload, options = getRestoreOptions()) {
       const conflicts = [];
-      let currentInventory;
-      try {
-        currentInventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-        if (!Array.isArray(currentInventory)) throw new Error('invalid inventory type');
-      } catch (error) {
-        throw new Error('CURRENT_INVENTORY_INVALID');
+      const selected = options.sections;
+      const replace = options.strategy === 'replace';
+      const getCurrentSection = (section, key, label) => {
+        if (!selected[section] || replace) return [];
+        const state = readStoredArrayState(key, label);
+        if (state.error) throw new Error('CURRENT_SECTION_INVALID:' + label);
+        return state.records;
+      };
+      const currentInventory = getCurrentSection('inventory', STORAGE_KEY, 'موجودی');
+      const currentEntries = getCurrentSection('entryHistory', ENTRY_HISTORY_KEY, 'تاریخچه ورود');
+      const currentShipments = getCurrentSection('shipments', SHIPMENT_KEY, 'تاریخچه ارسال');
+      const incomingInventory = selected.inventory && !replace
+        ? mergeUniqueRecords(currentInventory, payload.inventory, ['code'], conflicts, 'کالای تکراری')
+        : (selected.inventory ? payload.inventory : []);
+      let incomingEntries = [];
+      if (selected.entryHistory) {
+        if (!Array.isArray(payload.entryHistory)) {
+          conflicts.push('این فایل تاریخچه ورود ندارد؛ این بخش بدون تغییر حفظ می‌شود.');
+        } else {
+          incomingEntries = replace ? payload.entryHistory :
+            mergeUniqueRecords(currentEntries, payload.entryHistory, ['entryNumber'], conflicts, 'ورود تکراری');
+        }
       }
-      const currentEntries = loadEntryHistory();
-      const currentShipments = loadShipments();
-      const incomingInventory = mergeUniqueRecords(currentInventory, payload.inventory, ['code'], conflicts, 'کالای تکراری');
-      const incomingEntries = mergeUniqueRecords(currentEntries, payload.entryHistory || [], ['entryNumber'], conflicts, 'ورود تکراری');
       // اگر شماره خروج یا شماره حواله تکراری باشد، کل رکورد ارسال وارد نمی‌شود.
-      const incomingShipments = mergeUniqueRecords(currentShipments, payload.shipments, ['exitNumber', 'voucherNumber'], conflicts, 'ارسال دارای شماره تکراری');
-      const currentLocations = loadShipmentLocations();
-      const mergedLocations = currentLocations.map(location => ({
-        name: location.name,
-        sublocations: [...location.sublocations]
-      }));
+      const incomingShipments = selected.shipments
+        ? (replace ? payload.shipments :
+          mergeUniqueRecords(currentShipments, payload.shipments, ['exitNumber', 'voucherNumber'], conflicts, 'ارسال دارای شماره تکراری'))
+        : [];
+      let mergedLocations = [];
+      if (selected.shipmentLocations) {
+        if (!Array.isArray(payload.shipmentLocations)) {
+          conflicts.push('این فایل فهرست محل‌ها را ندارد؛ این بخش بدون تغییر حفظ می‌شود.');
+        } else if (replace) {
+          mergedLocations = payload.shipmentLocations;
+        } else {
+          const currentLocationState = readStoredArrayState(LOCATION_KEY, 'محل‌های ارسال');
+          if (currentLocationState.error) throw new Error('CURRENT_SECTION_INVALID:محل‌های ارسال');
+          if (currentLocationState.records.some(location =>
+            !location || typeof location !== 'object' || Array.isArray(location) ||
+            typeof location.name !== 'string' || !Array.isArray(location.sublocations || [])
+          )) {
+            throw new Error('CURRENT_SECTION_INVALID:محل‌های ارسال');
+          }
+          mergedLocations = currentLocationState.records.map(location => ({
+            ...location,
+            sublocations: [...(location.sublocations || [])]
+          }));
+        }
+      }
       const incomingLocations = Array.isArray(payload.shipmentLocations) ? payload.shipmentLocations : [];
-      incomingLocations.forEach(incoming => {
+      if (selected.shipmentLocations && !replace) incomingLocations.forEach(incoming => {
         if (!incoming || typeof incoming.name !== 'string' || !incoming.name.trim()) return;
         let existing = mergedLocations.find(location => normLocation(location.name) === normLocation(incoming.name));
         if (!existing) {
@@ -3798,26 +4249,49 @@
         });
       });
 
-      const currentActivity = loadActivityLog();
-      const incomingActivity = (payload.activityLog || []).filter(record => {
+      const currentActivityState = payload.activityLog
+        ? readStoredArrayState(ACTIVITY_KEY, 'لاگ قدیمی')
+        : { error: '', records: [] };
+      const canMergeActivity = !currentActivityState.error &&
+        currentActivityState.records.every(record =>
+          record && typeof record === 'object' && !Array.isArray(record)
+        );
+      const currentActivity = canMergeActivity ? currentActivityState.records : [];
+      const activitySignatures = new Set(currentActivity.map(record => JSON.stringify(record)));
+      const incomingActivity = canMergeActivity ? (payload.activityLog || []).filter(record => {
         const signature = JSON.stringify(record);
-        const exists = currentActivity.some(item => JSON.stringify(item) === signature);
-
-        return !exists;
-      });
+        if (activitySignatures.has(signature)) return false;
+        activitySignatures.add(signature);
+        return true;
+      }) : [];
+      if (!canMergeActivity && (payload.activityLog || []).length) {
+        conflicts.push('لاگ قدیمی محلی ساختار قابل ادغام ندارد؛ برای جلوگیری از حذف، بدون تغییر حفظ می‌شود.');
+      }
       return {
         conflicts,
-        inventory: currentInventory.concat(incomingInventory),
-        entryHistory: currentEntries.concat(incomingEntries).slice(0, 1000),
-        shipments: currentShipments.concat(incomingShipments),
-        activityLog: [],
-        shipmentLocations: mergedLocations,
+        inventory: selected.inventory
+          ? (replace ? incomingInventory : currentInventory.concat(incomingInventory))
+          : null,
+        entryHistory: selected.entryHistory && incomingEntries.length >= 0 && Array.isArray(payload.entryHistory)
+          ? (replace ? incomingEntries : currentEntries.concat(incomingEntries).slice(0, 1000))
+          : null,
+        shipments: selected.shipments
+          ? (replace ? incomingShipments : currentShipments.concat(incomingShipments))
+          : null,
+        activityLog: incomingActivity.length ? currentActivity.concat(incomingActivity) : null,
+        shipmentLocations: selected.shipmentLocations && Array.isArray(payload.shipmentLocations)
+          ? mergedLocations
+          : null,
         counts: {
           inventory: incomingInventory.length,
           entries: incomingEntries.length,
           shipments: incomingShipments.length,
           activity: incomingActivity.length,
-          locations: mergedLocations.length - currentLocations.length,
+          locations: selected.shipmentLocations && Array.isArray(payload.shipmentLocations)
+            ? mergedLocations.length
+            : 0,
+          strategy: options.strategy,
+          sections: Object.keys(selected).filter(section => selected[section])
         }
       };
     }
@@ -3827,6 +4301,7 @@
       pendingRestorePayload = null;
       restoreBackupButton.disabled = true;
       restoreFeedback.textContent = '';
+      restorePreview.textContent = 'پس از انتخاب فایل، خلاصهٔ اعتبارسنجی و مغایرت‌ها اینجا نمایش داده می‌شود.';
       const file = restoreFileInput.files && restoreFileInput.files[0];
       if (!file) return;
       try {
@@ -3839,32 +4314,21 @@
           return;
         }
 
-        const analysis = analyzeRestorePayload(payload);
-        pendingRestorePayload = { payload, analysis };
-        restoreBackupButton.disabled = false;
-        const summary = [
-          'بررسی فایل انجام شد.',
-          'کالاهای جدید: ' + analysis.counts.inventory,
-          'شماره‌های ورود جدید: ' + analysis.counts.entries,
-          'ارسال‌های جدید: ' + analysis.counts.shipments,
-          'محل‌های موجود در فهرست پس از ادغام: ' + analysis.shipmentLocations.length,
-          'رخدادهای جدید: ' + analysis.counts.activity,
-          'مغایرت‌ها و موارد تکراری: ' + analysis.conflicts.length,
-          'اطلاعات فعلی حذف نمی‌شود؛ فقط رکوردهای جدید اضافه خواهند شد.'
-        ];
-        restoreFeedback.textContent = summary.join('\n');
+        pendingRestorePayload = { payload, analysis: null };
+        updateRestorePreview();
+        restoreFeedback.textContent = '';
       } catch (error) {
         restoreBackupButton.disabled = true;
         pendingRestorePayload = null;
-        restoreFeedback.textContent = error && error.message === 'CURRENT_INVENTORY_INVALID'
-          ? 'موجودی فعلی قابل خواندن نیست؛ پیش از بازگردانی، از داده‌ها نسخه جداگانه بگیرید و ساختار ذخیره محلی را بررسی کنید.'
-          : 'فایل انتخاب‌شده معتبر نیست یا با ساختار بکاپ این برنامه سازگار نیست.';
+        restorePreview.textContent = 'فایل انتخاب‌شده معتبر نیست یا با ساختار بکاپ این برنامه سازگار نیست.';
+        restoreFeedback.textContent = error && error.message ? error.message : 'خواندن فایل ناموفق بود.';
       }
     });
 
     // رویداد «کلیک» برای دکمه تأیید بازگردانی بکاپ؛ اجرای رفتار متناسب با این کنترل و رویداد.
     restoreBackupButton.addEventListener('click', () => {
       if (!pendingRestorePayload) return;
+      if (!ensureBackupSetupForFirstChange(restoreFeedback)) return;
       // فایل را دوباره اعتبارسنجی و تحلیل می‌کنیم تا وضعیت ذخیره‌سازی تا لحظه تأیید لحاظ شود.
       const validationErrors = validateBackupPayload(pendingRestorePayload.payload);
       if (validationErrors.length) {
@@ -3874,47 +4338,53 @@
         return;
       }
       let analysis;
+      const options = getRestoreOptions();
       try {
-        analysis = analyzeRestorePayload(pendingRestorePayload.payload);
+        analysis = analyzeRestorePayload(pendingRestorePayload.payload, options);
       } catch (error) {
-        restoreFeedback.textContent = error && error.message === 'CURRENT_INVENTORY_INVALID'
-          ? 'موجودی فعلی قابل خواندن نیست؛ بازگردانی انجام نشد و هیچ داده‌ای تغییر نکرد.'
+        restoreFeedback.textContent = error && error.message.startsWith('CURRENT_SECTION_INVALID:')
+          ? 'بازیابی متوقف شد؛ ' + error.message.replace('CURRENT_SECTION_INVALID:', '') + ' قابل خواندن نیست و هیچ داده‌ای تغییر نکرد.'
           : 'تحلیل بکاپ ناموفق بود؛ بازگردانی انجام نشد و هیچ داده‌ای تغییر نکرد.';
         return;
       }
-      const mismatchLines = analysis.conflicts.length
-        ? analysis.conflicts.slice(0, 80).map((item, index) => (index + 1) + '. ' + item)
-        : ['هیچ مورد تکراری یا مغایرتی پیدا نشد.'];
-      if (analysis.conflicts.length > 80) mismatchLines.push('... و ' + (analysis.conflicts.length - 80) + ' مورد دیگر');
-      window.alert('گزارش مغایرت‌های فایل بکاپ\n\n' + mismatchLines.join('\n'));
+      const selectedSectionLabels = {
+        inventory: 'موجودی',
+        entryHistory: 'تاریخچه ورود',
+        shipments: 'تاریخچه ارسال',
+        shipmentLocations: 'محل‌ها'
+      };
+      const selectedNames = analysis.counts.sections.map(section => selectedSectionLabels[section]).join('، ');
       const confirmed = window.confirm(
         'نتیجه بررسی:\n' +
-        'کالاهای قابل افزودن: ' + analysis.counts.inventory + '\n' +
-        'ورودی‌های قابل افزودن: ' + analysis.counts.entries + '\n' +
-        'ارسال‌های قابل افزودن: ' + analysis.counts.shipments + '\n' +
+        'روش: ' + (options.strategy === 'replace' ? 'جایگزینی' : 'ادغام') + '\n' +
+        'بخش‌ها: ' + selectedNames + '\n' +
         'مغایرت‌ها/موارد تکراری: ' + analysis.conflicts.length + '\n\n' +
-        'اطلاعات فعلی حفظ می‌شود و فقط موارد غیرتکراری اضافه می‌شوند. ادامه می‌دهید؟'
+        (options.strategy === 'replace'
+          ? 'هشدار: اطلاعات بخش‌های انتخاب‌شده با فایل جایگزین می‌شوند. نسخه پشتیبان فعلی دارید و این جایگزینی را تأیید می‌کنید؟'
+          : 'داده فعلی حفظ می‌شود و فقط موارد جدید اضافه می‌شوند. ادامه می‌دهید؟')
       );
       if (!confirmed) return;
-      const restoreRecords = [
-        [STORAGE_KEY, analysis.inventory],
-        [ENTRY_HISTORY_KEY, analysis.entryHistory],
-        [SHIPMENT_KEY, analysis.shipments],
-        [LOCATION_KEY, analysis.shipmentLocations],
-        [ACTIVITY_KEY, []],
-      ];
+      const restoreRecords = [];
+      if (analysis.inventory) restoreRecords.push([STORAGE_KEY, analysis.inventory]);
+      if (analysis.entryHistory) restoreRecords.push([ENTRY_HISTORY_KEY, analysis.entryHistory]);
+      if (analysis.shipments) restoreRecords.push([SHIPMENT_KEY, analysis.shipments]);
+      if (analysis.shipmentLocations) restoreRecords.push([LOCATION_KEY, analysis.shipmentLocations]);
+      if (analysis.activityLog) restoreRecords.push([ACTIVITY_KEY, analysis.activityLog]);
       const previousValues = restoreRecords.map(([key]) => [key, localStorage.getItem(key)]);
 
       try {
         restoreRecords.forEach(([key, value]) => {
           // ذخیره خام کلید اصلی را دور می‌زنیم تا هنگام بازگردانی نیمه‌کاره بکاپ خودکار زمان‌بندی نشود.
           originalLocalStorageSetItem.call(localStorage, key, JSON.stringify(value));
+          if (key === STORAGE_KEY) inventoryStorageSnapshot = localStorage.getItem(STORAGE_KEY);
         });
         recordActivity(
           'بازگردانی بکاپ',
           'کالاها، تاریخچه‌ها، محل‌های ارسال و رخدادها از فایل بکاپ ادغام شدند.'
         );
-        restoreFeedback.textContent = 'بازگردانی تکمیل شد؛ اطلاعات قبلی حفظ و موارد جدید ادغام شدند.';
+        restoreFeedback.textContent = options.strategy === 'replace'
+          ? 'جایگزینی بخش‌های انتخاب‌شده تکمیل شد.'
+          : 'ادغام تکمیل شد؛ داده‌های موجود حفظ شدند.';
         window.location.reload();
       } catch (error) {
         // localStorage تراکنش چندکلیدی ندارد؛ در صورت شکست، مقادیر قبلی را تا حد امکان برمی‌گردانیم.
@@ -3932,21 +4402,3 @@
     renderEntryHistory();
     renderShipmentHistory();
     renderKardex();
-
-/* کنترل پنجره شناور یادداشت‌های انتشار با عنصر dialog بومی مرورگر. */
-const releaseNotesDialog = document.getElementById('release-notes-dialog');
-const openReleaseNotesButton = document.getElementById('open-release-notes');
-const closeReleaseNotesButton = document.getElementById('close-release-notes');
-if (releaseNotesDialog && openReleaseNotesButton && closeReleaseNotesButton) {
-  openReleaseNotesButton.addEventListener('click', () => {
-    if (typeof releaseNotesDialog.showModal === 'function') releaseNotesDialog.showModal();
-    else releaseNotesDialog.setAttribute('open', '');
-  });
-  closeReleaseNotesButton.addEventListener('click', () => {
-    if (typeof releaseNotesDialog.close === 'function') releaseNotesDialog.close();
-    else releaseNotesDialog.removeAttribute('open');
-  });
-  releaseNotesDialog.addEventListener('click', event => {
-    if (event.target === releaseNotesDialog && typeof releaseNotesDialog.close === 'function') releaseNotesDialog.close();
-  });
-}
