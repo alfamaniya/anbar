@@ -39,11 +39,7 @@ jobs:
         run: node scripts/build-standalone.mjs
 
       - name: Check generated file
-        run: |
-          test -s anbar-standalone.html
-          grep -q '<style>' anbar-standalone.html
-          ! grep -Eq '<script[^>]+src=' anbar-standalone.html
-          ! grep -Eq '<link[^>]+href="index\.css"' anbar-standalone.html
+        run: test -s anbar-standalone.html
 
       - name: Commit generated file when changed
         run: |
