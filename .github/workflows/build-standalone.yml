@@ -43,13 +43,15 @@ jobs:
 
       - name: Commit generated file when changed
         run: |
-          if git diff --quiet -- anbar-standalone.html; then
+          # Force-add in case the generated output matches a local ignore rule.
+          git add -f anbar-standalone.html
+
+          if git diff --cached --quiet -- anbar-standalone.html; then
             echo "Standalone output is already up to date."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add anbar-standalone.html
           git commit -m "build: refresh standalone HTML"
           git push
