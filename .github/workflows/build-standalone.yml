@@ -1,0 +1,59 @@
+name: Build standalone HTML
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'index.css'
+      - 'index.js'
+      - 'vendor/xlsx.full.min.js'
+      - 'scripts/build-standalone.mjs'
+      - '.github/workflows/build-standalone.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: standalone-build-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and publish standalone file
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build self-contained HTML
+        run: node scripts/build-standalone.mjs
+
+      - name: Check generated file
+        run: |
+          test -s anbar-standalone.html
+          grep -q '<style>' anbar-standalone.html
+          ! grep -Eq '<script[^>]+src=' anbar-standalone.html
+          ! grep -Eq '<link[^>]+href="index\.css"' anbar-standalone.html
+
+      - name: Commit generated file when changed
+        run: |
+          if git diff --quiet -- anbar-standalone.html; then
+            echo "Standalone output is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add anbar-standalone.html
+          git commit -m "build: refresh standalone HTML"
+          git push
