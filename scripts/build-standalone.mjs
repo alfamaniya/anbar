@@ -35,28 +35,74 @@ function replaceExactlyOnce(source, pattern, replacement, label) {
   return source.replace(pattern, replacement);
 }
 
-function safeInlineScript(source) {
-  // Prevent an embedded closing-script sequence from terminating the HTML element.
-  return source.replace(/<\/script/gi, '<\\/script');
+/**
+ * Stores JavaScript as Base64 in a non-executable script element.
+ * This prevents the HTML parser from interpreting any characters within
+ * minified third-party code as HTML markup.
+ */
+function encodeScriptPayload(source, id) {
+  const encoded = Buffer.from(source, 'utf8').toString('base64');
+  return '<script type="application/x-anbar-base64" id="' + id + '">' +
+    encoded +
+    '</script>\n';
 }
 
-function safeInlineStyle(source) {
-  return source.replace(/<\/style/gi, '<\\/style');
+/**
+ * Decodes a payload and inserts it as a real script element through the DOM.
+ * Setting textContent avoids reparsing the JavaScript as HTML, while insertion
+ * executes each classic script synchronously and preserves dependency order.
+ */
+function createScriptLoader() {
+  return `<script>
+(function () {
+  'use strict';
+
+  function runEmbeddedScript(payloadId) {
+    var payload = document.getElementById(payloadId);
+    if (!payload) {
+      throw new Error('Embedded script payload not found: ' + payloadId);
+    }
+
+    var binary = atob(payload.textContent.trim());
+    var bytes = new Uint8Array(binary.length);
+    for (var index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    var source = new TextDecoder('utf-8').decode(bytes);
+    var executable = document.createElement('script');
+    executable.textContent = source;
+    payload.replaceWith(executable);
+  }
+
+  runEmbeddedScript('anbar-xlsx-script');
+  runEmbeddedScript('anbar-app-script');
+})();
+</script>
+`;
 }
 
 function assertNoRequiredLocalReferencesRemain(html) {
-  // Scan HTML markup only; embedded JavaScript libraries can contain strings
-  // such as "src=\"...\"" that are not actual HTML dependencies.
+  // Scan HTML markup only; JavaScript payloads are Base64 data, not dependencies.
   const markupOnly = html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, '')
+    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, '');
   const refs = [];
-  for (const match of markupOnly.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
+  for (const match of markupOnly.matchAll(/\\b(?:src|href)\\s*=\\s*["']([^"']+)["']/gi)) {
     const value = match[1].trim();
     if (value.startsWith('#') || /^(?:https?:|data:|mailto:|tel:|javascript:)/i.test(value)) continue;
     refs.push(value);
   }
   assert(refs.length === 0, 'Standalone output still contains local file references: ' + refs.join(', '));
+}
+
+function assertPayloadMatches(html, id, expectedSource) {
+  const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp('<script\\b(?=[^>]*\\bid=["\\']' + escapedId + '["\\'])[^>]*>([\\s\\S]*?)<\\/script>', 'i');
+  const match = html.match(pattern);
+  assert(match, 'Embedded script payload is missing: ' + id);
+  const decoded = Buffer.from(match[1].trim(), 'base64').toString('utf8');
+  assert(decoded === expectedSource, 'Embedded script payload differs from source: ' + id);
 }
 
 async function main() {
@@ -66,6 +112,7 @@ async function main() {
     readRequiredFile(INPUT_JS, 'application JavaScript'),
     readRequiredFile(INPUT_XLSX, 'local SheetJS library')
   ]);
+
   let html = htmlFile;
   const css = cssFile;
   const appJs = jsFile;
@@ -79,22 +126,22 @@ async function main() {
 
   html = replaceExactlyOnce(
     html,
-    /<link\b(?=[^>]*\brel=["']stylesheet["'])(?=[^>]*\bhref=["']index\.css["'])[^>]*>\s*/i,
-    '<style>\n' + safeInlineStyle(css) + '\n</style>\n',
+    /<link\\b(?=[^>]*\\brel=["']stylesheet["'])(?=[^>]*\\bhref=["']index\\.css["'])[^>]*>\\s*/i,
+    '<style>\\n' + css.replace(/<\\/style/gi, '<\\\\/style') + '\\n</style>\\n',
     'index.css stylesheet'
   );
 
   html = replaceExactlyOnce(
     html,
-    /<script\b(?=[^>]*\bsrc=["']vendor\/xlsx\.full\.min\.js["'])[^>]*>\s*<\/script>\s*/i,
-    '<script>\n' + safeInlineScript(xlsxJs) + '\n</script>\n',
+    /<script\\b(?=[^>]*\\bsrc=["']vendor\\/xlsx\\.full\\.min\\.js["'])[^>]*>\\s*<\\/script>\\s*/i,
+    encodeScriptPayload(xlsxJs, 'anbar-xlsx-script'),
     'local SheetJS script'
   );
 
   html = replaceExactlyOnce(
     html,
-    /<script\b(?=[^>]*\bsrc=["']index\.js["'])[^>]*>\s*<\/script>\s*/i,
-    '<script>\n' + safeInlineScript(appJs) + '\n</script>\n',
+    /<script\\b(?=[^>]*\\bsrc=["']index\\.js["'])[^>]*>\\s*<\\/script>\\s*/i,
+    encodeScriptPayload(appJs, 'anbar-app-script') + createScriptLoader(),
     'index.js application script'
   );
 
@@ -107,16 +154,22 @@ async function main() {
     '  برای ساخت مجدد اجرا کنید: node scripts/build-standalone.mjs',
     '-->',
     ''
-  ].join('\n');
+  ].join('\\n');
 
-  html = banner + html.replace(/^\uFEFF/, '');
+  html = banner + html.replace(/^\\uFEFF/, '');
 
   assert(html.includes('<style>'), 'Embedded CSS was not found in generated output.');
-  assert((html.match(/<script(?:\s[^>]*)?>/gi) || []).length >= 3, 'Expected embedded JavaScript blocks were not found.');
-  // Local dependency references are checked against HTML markup above, not JS strings.
+  assert(html.includes('id="anbar-xlsx-script"'), 'Embedded SheetJS payload was not found.');
+  assert(html.includes('id="anbar-app-script"'), 'Embedded application payload was not found.');
+  assert((html.match(/<script(?:\\s[^>]*)?>/gi) || []).length >= 1, 'Expected script loader was not found.');
+
+  // Confirm exact source integrity instead of only checking that output exists.
+  assertPayloadMatches(html, 'anbar-xlsx-script', xlsxJs);
+  assertPayloadMatches(html, 'anbar-app-script', appJs);
 
   await writeFile(OUTPUT_HTML, html, 'utf8');
   console.log('Standalone build successful: anbar-standalone.html');
+  console.log('Embedded JavaScript payloads match their source files exactly.');
   console.log('Output size: ' + Buffer.byteLength(html, 'utf8') + ' bytes');
 }
 
