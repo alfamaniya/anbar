@@ -659,12 +659,19 @@
     function getConsumptionReportExportData() {
       const headers = currentConsumptionReportMode === 'item-summary'
         ? ['کد کالا', 'شرح کالا', 'گروه ثبت‌شده', 'تعداد اسناد', 'مجموع مصرف', 'آخرین گردش']
-        : ['تاریخ و ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'];
+        : ['تاریخ', 'ساعت', 'شماره حواله', 'شماره خروج', 'محل ارسال', 'گروه کالا', 'کد کالا', 'شرح کالا', 'تعداد'];
       const exportRows = currentConsumptionReportMode === 'item-summary'
         ? currentConsumptionReportViewRows.map(row => [row.code, row.description, row.category || 'بدون گروه ثبت‌شده',
           row.documentCount, row.quantity, row.lastDate])
-        : currentConsumptionReportViewRows.map(row => [row.dateLabel, row.voucherNumber,
-          row.exitNumber, row.location, row.category || 'بدون گروه ثبت‌شده', row.code, row.description, row.quantity]);
+        : currentConsumptionReportViewRows.map(row => {
+          // تاریخ و ساعت از برچسب ذخیره‌شده گزارش جدا می‌شوند؛ زمان تازه‌ای هنگام خروجی‌گیری ساخته نمی‌شود.
+          const dateLabel = String(row.dateLabel || '').trim();
+          const separator = dateLabel.indexOf(' ');
+          const date = separator >= 0 ? dateLabel.slice(0, separator) : dateLabel;
+          const time = separator >= 0 ? dateLabel.slice(separator + 1).trim() : '';
+          return [date, time, row.voucherNumber, row.exitNumber, row.location,
+            row.category || 'بدون گروه ثبت‌شده', row.code, row.description, row.quantity];
+        });
       return { headers, exportRows };
     }
 
