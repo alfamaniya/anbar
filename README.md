@@ -310,7 +310,10 @@
 - **مخزن:** https://github.com/alfamaniya/anbar
 - **فایل‌های اصلی برنامه:** `index.html`، `index.css` و `index.js`
 - **فناوری‌ها:** HTML، CSS و JavaScript خالص؛ کتابخانه محلی SheetJS برای خواندن و نوشتن فایل‌های Excel.
-- **نسخه تک‌فایلی:** `anbar-standalone.html` شامل رابط، استایل‌ها، منطق برنامه و کتابخانه SheetJS است و به فایل‌های پروژه یا CDN وابستگی ندارد.
+- **نسخه تک‌فایلی:** `anbar-standalone.html` خروجی خودکار ساخت است و CSS، JavaScript برنامه و کتابخانه محلی SheetJS را درون خود دارد.
+- **ساخت خودکار:** گردش‌کار `.github/workflows/build-standalone.yml` پس از تغییر فایل‌های اصلی در شاخه `main` اجرا می‌شود و فایل مستقل را در صورت تغییر به مخزن ثبت می‌کند؛ همچنین از زبانه **Actions** می‌توان آن را دستی اجرا کرد.
+- **ساخت دستی:** با Node.js نسخه 22 یا جدیدتر، دستور `node scripts/build-standalone.mjs` را از ریشه مخزن اجرا کنید. این اسکریپت به نصب بسته npm یا اینترنت نیاز ندارد.
+- **قاعده نگهداری:** `anbar-standalone.html` را مستقیماً ویرایش نکنید؛ تغییرات را در فایل‌های منبع اعمال کنید تا خروجی بعدی از نو ساخته شود.
 
 ## ساختار مخزن
 
@@ -319,7 +322,12 @@ anbar/
 ├── index.html   # ساختار صفحه و اتصال فایل‌ها
 ├── index.css    # ظاهر و چیدمان رابط کاربری
 ├── index.js     # منطق و رفتار برنامه
-├── anbar-standalone.html # نسخه مستقل با CSS، JavaScript و SheetJS درون‌خطی
+├── anbar-standalone.html # خروجی مستقل تولیدشده به‌صورت خودکار
+├── scripts/
+│   └── build-standalone.mjs # اسکریپت ساخت و اعتبارسنجی نسخه تک‌فایلی
+├── .github/
+│   └── workflows/
+│       └── build-standalone.yml # ساخت خودکار هنگام push و اجرای دستی
 ├── vendor/
 │   ├── xlsx.full.min.js     # کتابخانه محلی SheetJS 0.20.3
 │   └── SHEETJS-LICENSE.txt  # مجوز Apache-2.0 کتابخانه
