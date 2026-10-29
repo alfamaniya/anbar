@@ -35,6 +35,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Validate JavaScript syntax
+        run: |
+          node --check index.js
+          node --check vendor/xlsx.full.min.js
+
       - name: Build self-contained HTML
         run: node scripts/build-standalone.mjs
 
