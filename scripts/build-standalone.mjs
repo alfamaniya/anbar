@@ -45,8 +45,13 @@ function safeInlineStyle(source) {
 }
 
 function assertNoRequiredLocalReferencesRemain(html) {
+  // Scan HTML markup only; embedded JavaScript libraries can contain strings
+  // such as "src=\"...\"" that are not actual HTML dependencies.
+  const markupOnly = html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
   const refs = [];
-  for (const match of html.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
+  for (const match of markupOnly.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
     const value = match[1].trim();
     if (value.startsWith('#') || /^(?:https?:|data:|mailto:|tel:|javascript:)/i.test(value)) continue;
     refs.push(value);
