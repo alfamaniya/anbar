@@ -36,9 +36,9 @@ function replaceExactlyOnce(source, pattern, replacement, label) {
 }
 
 /**
- * Stores JavaScript as Base64 in a non-executable script element.
- * This prevents the HTML parser from interpreting any characters within
- * minified third-party code as HTML markup.
+ * Store JavaScript as Base64 in a non-executable script element.
+ * The HTML parser therefore never treats text within minified dependencies
+ * as HTML markup or an accidental closing script tag.
  */
 function encodeScriptPayload(source, id) {
   const encoded = Buffer.from(source, 'utf8').toString('base64');
@@ -48,47 +48,49 @@ function encodeScriptPayload(source, id) {
 }
 
 /**
- * Decodes a payload and inserts it as a real script element through the DOM.
- * Setting textContent avoids reparsing the JavaScript as HTML, while insertion
- * executes each classic script synchronously and preserves dependency order.
+ * Decode each payload and insert it as a real script through the DOM.
+ * Using textContent avoids reparsing script source as HTML. Each inline
+ * classic script executes synchronously when inserted, preserving order.
  */
 function createScriptLoader() {
-  return `<script>
-(function () {
-  'use strict';
-
-  function runEmbeddedScript(payloadId) {
-    var payload = document.getElementById(payloadId);
-    if (!payload) {
-      throw new Error('Embedded script payload not found: ' + payloadId);
-    }
-
-    var binary = atob(payload.textContent.trim());
-    var bytes = new Uint8Array(binary.length);
-    for (var index = 0; index < binary.length; index += 1) {
-      bytes[index] = binary.charCodeAt(index);
-    }
-
-    var source = new TextDecoder('utf-8').decode(bytes);
-    var executable = document.createElement('script');
-    executable.textContent = source;
-    payload.replaceWith(executable);
-  }
-
-  runEmbeddedScript('anbar-xlsx-script');
-  runEmbeddedScript('anbar-app-script');
-})();
-</script>
-`;
+  return [
+    '<script>',
+    '(function () {',
+    "  'use strict';",
+    '',
+    '  function runEmbeddedScript(payloadId) {',
+    '    var payload = document.getElementById(payloadId);',
+    '    if (!payload) {',
+    "      throw new Error('Embedded script payload not found: ' + payloadId);",
+    '    }',
+    '',
+    '    var binary = atob(payload.textContent.trim());',
+    '    var bytes = new Uint8Array(binary.length);',
+    '    for (var index = 0; index < binary.length; index += 1) {',
+    '      bytes[index] = binary.charCodeAt(index);',
+    '    }',
+    '',
+    "    var source = new TextDecoder('utf-8').decode(bytes);",
+    "    var executable = document.createElement('script');",
+    '    executable.textContent = source;',
+    '    payload.replaceWith(executable);',
+    '  }',
+    '',
+    "  runEmbeddedScript('anbar-xlsx-script');",
+    "  runEmbeddedScript('anbar-app-script');",
+    '})();',
+    '</script>',
+    ''
+  ].join('\n');
 }
 
 function assertNoRequiredLocalReferencesRemain(html) {
   // Scan HTML markup only; JavaScript payloads are Base64 data, not dependencies.
   const markupOnly = html
-    .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, '')
-    .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, '');
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
   const refs = [];
-  for (const match of markupOnly.matchAll(/\\b(?:src|href)\\s*=\\s*["']([^"']+)["']/gi)) {
+  for (const match of markupOnly.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
     const value = match[1].trim();
     if (value.startsWith('#') || /^(?:https?:|data:|mailto:|tel:|javascript:)/i.test(value)) continue;
     refs.push(value);
@@ -97,11 +99,17 @@ function assertNoRequiredLocalReferencesRemain(html) {
 }
 
 function assertPayloadMatches(html, id, expectedSource) {
-  const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp('<script\\b(?=[^>]*\\bid=["\\']' + escapedId + '["\\'])[^>]*>([\\s\\S]*?)<\\/script>', 'i');
-  const match = html.match(pattern);
-  assert(match, 'Embedded script payload is missing: ' + id);
-  const decoded = Buffer.from(match[1].trim(), 'base64').toString('utf8');
+  const markerIndex = html.indexOf('id="' + id + '"');
+  assert(markerIndex >= 0, 'Embedded script payload is missing: ' + id);
+
+  const openingTagEnd = html.indexOf('>', markerIndex);
+  assert(openingTagEnd >= 0, 'Opening tag is malformed for payload: ' + id);
+
+  const closingTagStart = html.indexOf('</script>', openingTagEnd + 1);
+  assert(closingTagStart >= 0, 'Closing tag is missing for payload: ' + id);
+
+  const encoded = html.slice(openingTagEnd + 1, closingTagStart).trim();
+  const decoded = Buffer.from(encoded, 'base64').toString('utf8');
   assert(decoded === expectedSource, 'Embedded script payload differs from source: ' + id);
 }
 
@@ -126,21 +134,21 @@ async function main() {
 
   html = replaceExactlyOnce(
     html,
-    /<link\\b(?=[^>]*\\brel=["']stylesheet["'])(?=[^>]*\\bhref=["']index\\.css["'])[^>]*>\\s*/i,
-    '<style>\\n' + css.replace(/<\\/style/gi, '<\\\\/style') + '\\n</style>\\n',
+    /<link\b(?=[^>]*\brel=["']stylesheet["'])(?=[^>]*\bhref=["']index\.css["'])[^>]*>\s*/i,
+    '<style>\n' + css.replace(/<\/style/gi, '<\\/style') + '\n</style>\n',
     'index.css stylesheet'
   );
 
   html = replaceExactlyOnce(
     html,
-    /<script\\b(?=[^>]*\\bsrc=["']vendor\\/xlsx\\.full\\.min\\.js["'])[^>]*>\\s*<\\/script>\\s*/i,
+    /<script\b(?=[^>]*\bsrc=["']vendor\/xlsx\.full\.min\.js["'])[^>]*>\s*<\/script>\s*/i,
     encodeScriptPayload(xlsxJs, 'anbar-xlsx-script'),
     'local SheetJS script'
   );
 
   html = replaceExactlyOnce(
     html,
-    /<script\\b(?=[^>]*\\bsrc=["']index\\.js["'])[^>]*>\\s*<\\/script>\\s*/i,
+    /<script\b(?=[^>]*\bsrc=["']index\.js["'])[^>]*>\s*<\/script>\s*/i,
     encodeScriptPayload(appJs, 'anbar-app-script') + createScriptLoader(),
     'index.js application script'
   );
@@ -154,16 +162,16 @@ async function main() {
     '  برای ساخت مجدد اجرا کنید: node scripts/build-standalone.mjs',
     '-->',
     ''
-  ].join('\\n');
+  ].join('\n');
 
-  html = banner + html.replace(/^\\uFEFF/, '');
+  html = banner + html.replace(/^\uFEFF/, '');
 
   assert(html.includes('<style>'), 'Embedded CSS was not found in generated output.');
   assert(html.includes('id="anbar-xlsx-script"'), 'Embedded SheetJS payload was not found.');
   assert(html.includes('id="anbar-app-script"'), 'Embedded application payload was not found.');
-  assert((html.match(/<script(?:\\s[^>]*)?>/gi) || []).length >= 1, 'Expected script loader was not found.');
+  assert((html.match(/<script(?:\s[^>]*)?>/gi) || []).length >= 1, 'Expected script loader was not found.');
 
-  // Confirm exact source integrity instead of only checking that output exists.
+  // Confirm the embedded payloads decode to the exact source files.
   assertPayloadMatches(html, 'anbar-xlsx-script', xlsxJs);
   assertPayloadMatches(html, 'anbar-app-script', appJs);
 
